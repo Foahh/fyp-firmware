@@ -109,6 +109,9 @@ int main(void)
   MX_EXTMEM_MANAGER_Init();
   /* USER CODE BEGIN 2 */
 
+  // TODO: ThreadX should not be generated as part of this FSBL project.
+  // This appears to be an STM32CubeMX/STM32Cube_FW_N6 v1.3.0 generation bug.
+
   /* USER CODE END 2 */
 
   /* Launch the application */

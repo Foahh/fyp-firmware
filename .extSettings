@@ -1,6 +1,6 @@
 [Appli:Others]
 Define=
-HALModule=TIM
+HALModule=
 [FSBL:Others]
 Define=NO_OTP_FUSE
 HALModule=

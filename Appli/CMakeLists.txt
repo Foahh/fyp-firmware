@@ -55,12 +55,14 @@ enable_language(C ASM)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK
+    ${CMAKE_CURRENT_SOURCE_DIR}/AZURE_RTOS/threads
 )
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/AZURE_RTOS/threads/led_blink_thread.c
 )
 
 # Link directories setup

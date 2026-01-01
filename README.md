@@ -3,7 +3,7 @@
 ## TODOs
 
 [x] First LED blinking LRUN project
-[ ] FreeRTOS Foundation
+[x] ThreadX Foundation
 [ ] Camera Middleware & Single DCMIPP Pipe
 [ ] LTDC Single Layer Display
 [ ] LTDC Dual-Layer Implementation
