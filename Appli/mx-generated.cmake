@@ -25,7 +25,10 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/AZURE_RTOS/App/app_azure_rtos.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/tx_initialize_low_level.S
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/csi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_threadx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/usart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_hal_msp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/secure_nsc.c
@@ -237,7 +240,8 @@ set(MX_LINK_DIRS
 set (MX_LINK_LIBS 
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
-    threadx	
+    threadx
+	
 )
 # Interface library for includes and symbols
 add_library(stm32cubemx INTERFACE)
