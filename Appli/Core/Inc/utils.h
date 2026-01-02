@@ -27,4 +27,6 @@
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #endif
 
+#define IS_IRQ_MODE()     (__get_IPSR() != 0U)
+
 #endif

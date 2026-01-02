@@ -25,7 +25,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "dcmipp.h"
 #include "error_code.h"
 /* USER CODE END Includes */
 
@@ -91,6 +90,8 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   BSP_LED_Init(LED_GREEN);
+  BSP_LED_Init(LED_RED);
+
   /* USER CODE END Init */
 
   /* USER CODE BEGIN SysInit */
@@ -178,7 +179,6 @@ void Error_Handler(void)
   /* Disable interrupts to prevent further execution */
   __disable_irq();
 
-  /* Infinite loop with LED flashing pattern for visual error indication */
   volatile uint32_t error_counter = 0;
   while (1) {
     error_counter++;

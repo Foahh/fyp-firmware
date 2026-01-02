@@ -81,12 +81,8 @@ static VOID camera_thread_entry(ULONG thread_input)
   ret = CAM_Init();
   if (ret != 0)
   {
-    /* Camera initialization failed - blink LED rapidly to indicate error */
-    while (1)
-    {
-      BSP_LED_Toggle(LED_GREEN);
-      tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 10);
-    }
+    Set_Error_Context(ERROR_CAMERA_INIT_FAILED);
+    Error_Handler();
   }
 
   /* Get sensor resolution for debug */
@@ -98,14 +94,9 @@ static VOID camera_thread_entry(ULONG thread_input)
   /* Start camera capture in continuous mode */
   CAM_DisplayPipe_Start(display_buffer, CMW_MODE_CONTINUOUS);
 
-  /* Main camera loop - update ISP periodically */
   while (1)
   {
-    /* Update ISP for auto exposure and auto white balance */
     CAM_IspUpdate();
-
-    /* Sleep to allow other threads to run and reduce CPU load */
-    /* ISP update rate: approximately 30 times per second */
     tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 30);
   }
 }

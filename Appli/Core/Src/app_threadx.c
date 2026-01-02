@@ -23,7 +23,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <assert.h>
+#include <stdint.h>
 #include "thread_cam.h"
+#include "stm32n6xx_hal.h"
+#include "utils.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -97,5 +101,24 @@ void MX_ThreadX_Init(void)
 }
 
 /* USER CODE BEGIN 1 */
+
+uint32_t HAL_GetTick()
+{
+  return (tx_time_get() * 1000) / TX_TIMER_TICKS_PER_SECOND;
+}
+
+void HAL_Delay(uint32_t Delay)
+{
+  if (IS_IRQ_MODE()) {
+    assert(0);
+  }
+  uint32_t ticks = (Delay * TX_TIMER_TICKS_PER_SECOND) / 1000;
+  tx_thread_sleep(ticks);
+}
+
+HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
+{
+  return HAL_OK;
+}
 
 /* USER CODE END 1 */
