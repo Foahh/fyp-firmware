@@ -5,8 +5,7 @@ set(MX_Defines_Syms
 	USE_HAL_DRIVER 
 	STM32N657xx 
 	TX_INCLUDE_USER_DEFINE_FILE 
-	TX_SINGLE_MODE_SECURE=1 
-	NO_OTP_FUSE
+	TX_SINGLE_MODE_SECURE=1
     $<$<CONFIG:Debug>:DEBUG>
 )
 # STM32CubeMX generated include paths

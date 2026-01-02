@@ -19,10 +19,8 @@
 #ifndef CMW_UTILS
 #define CMW_UTILS
 
-#include "stm32n6xx_hal_dcmipp.h"
 #include "cmw_camera.h"
-
-
+#include "stm32n6xx_hal_dcmipp.h"
 
 void CMW_UTILS_GetPipeConfig(uint32_t cam_width, uint32_t cam_height, CMW_DCMIPP_Conf_t *p_conf,
                                     DCMIPP_CropConfTypeDef *crop, DCMIPP_DecimationConfTypeDef *dec,
