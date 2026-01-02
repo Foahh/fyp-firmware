@@ -1,6 +1,6 @@
 /**
 ******************************************************************************
-* @file    led_blink_thread.h
+* @file    thread_led.h
 * @author  Long Liangmao
 *
 ******************************************************************************
@@ -16,9 +16,8 @@
 ******************************************************************************
 */
 
-#include "led_blink_thread.h"
+#include "thread_led.h"
 #include "main.h"
-#include "stm32n6xx_hal_def.h"
 
 #define LED_BLINK_THREAD_STACK_SIZE 1024
 #define LED_BLINK_THREAD_PRIORITY 1

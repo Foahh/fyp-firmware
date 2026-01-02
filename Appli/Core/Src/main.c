@@ -114,7 +114,35 @@ int main(void)
 }
 
 /* USER CODE BEGIN 4 */
+/**
+  * @brief  DCMIPP Clock Configuration for Camera Middleware
+  * @param  hdcmipp: DCMIPP handle pointer
+  * @retval HAL_StatusTypeDef
+  */
+HAL_StatusTypeDef MX_DCMIPP_ClockConfig(DCMIPP_HandleTypeDef *hdcmipp)
+{
+  UNUSED(hdcmipp);
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_DCMIPP;
+  PeriphClkInitStruct.DcmippClockSelection = RCC_DCMIPPCLKSOURCE_IC17;
+  PeriphClkInitStruct.ICSelection[RCC_IC17].ClockSelection = RCC_ICCLKSOURCE_PLL1;
+  PeriphClkInitStruct.ICSelection[RCC_IC17].ClockDivider = 4;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    return HAL_ERROR;
+  }
+
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_CSI;
+  PeriphClkInitStruct.ICSelection[RCC_IC18].ClockSelection = RCC_ICCLKSOURCE_PLL1;
+  PeriphClkInitStruct.ICSelection[RCC_IC18].ClockDivider = 60;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    return HAL_ERROR;
+  }
+
+  return HAL_OK;
+}
 /* USER CODE END 4 */
 
  /* MPU Configuration */

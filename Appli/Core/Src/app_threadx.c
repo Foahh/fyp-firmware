@@ -23,7 +23,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "led_blink_thread.h"
+#include "thread_led.h"
+#include "thread_cam.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,6 +67,13 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 
   /* Initialize LED blink thread */
   ret = LedBlinkThread_Init(memory_ptr);
+  if (ret != TX_SUCCESS)
+  {
+    return ret;
+  }
+
+  /* Initialize Camera thread */
+  ret = CameraThread_Init(memory_ptr);
   if (ret != TX_SUCCESS)
   {
     return ret;

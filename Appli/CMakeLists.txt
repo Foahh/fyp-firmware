@@ -55,24 +55,59 @@ enable_language(C ASM)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK
-    ${CMAKE_CURRENT_SOURCE_DIR}/AZURE_RTOS/threads
+    # Camera Middleware includes
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/sensors
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/sensors/imx335
+    # ISP Library includes
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/isp/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/evision/Inc
+)
+
+# Camera Middleware sources
+set(CMW_CAMERA_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/cmw_camera.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/cmw_utils.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/sensors/cmw_imx335.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/sensors/imx335/imx335.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/sensors/imx335/imx335_reg.c
+)
+
+# ISP Library sources
+set(ISP_LIBRARY_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/isp/Src/isp_algo.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/isp/Src/isp_core.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/isp/Src/isp_services.c
 )
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/AZURE_RTOS/threads/led_blink_thread.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_bus.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/thread_led.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/thread_cam.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_cam.c
+    # Camera Middleware
+    ${CMW_CAMERA_Src}
+    # ISP Library
+    ${ISP_LIBRARY_Src}
 )
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/evision/Lib
 )
 
-# Add linked libraries
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+# Add linked libraries (using plain signature to match mx-generated.cmake)
+target_link_libraries(${CMAKE_PROJECT_NAME}
     # Add user defined libraries
+    # ISP evision static libraries (Auto Exposure & Auto White Balance)
+    :libn6-evision-st-ae_gcc.a
+    :libn6-evision-awb_gcc.a
+    # Math library required by evision libraries
+    m
 )
 
 # Remove wrong libob.a library dependency when using cpp files

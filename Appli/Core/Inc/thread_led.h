@@ -1,6 +1,6 @@
 /**
 ******************************************************************************
-* @file    led_blink_thread.h
+* @file    thread_led.h
 * @author  Long Liangmao
 *
 ******************************************************************************
@@ -16,8 +16,8 @@
 ******************************************************************************
 */
 
-#ifndef LED_BLINK_THREAD_H
-#define LED_BLINK_THREAD_H
+#ifndef THREAD_LED_H
+#define THREAD_LED_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,4 +31,4 @@ UINT LedBlinkThread_Init(VOID *memory_ptr);
 }
 #endif
 
-#endif /* LED_BLINK_THREAD_H */
+#endif /* THREAD_LED_H */

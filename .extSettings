@@ -1,6 +1,6 @@
 [Appli:Others]
 Define=
-HALModule=
+HALModule=DCMIPP;I2C
 [FSBL:Others]
 Define=NO_OTP_FUSE
 HALModule=

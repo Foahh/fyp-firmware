@@ -112,5 +112,9 @@ static const ISP_IQParamTypeDef ISP_IQParamCacheInit_IMX335 = {
     },
 };
 
+/* ISP parameter cache initialization array */
+static const ISP_IQParamTypeDef* ISP_IQParamCacheInit[] = {
+    &ISP_IQParamCacheInit_IMX335
+};
 
 #endif /* __ISP_PARAM_CONF__H */
