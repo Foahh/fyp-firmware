@@ -40,6 +40,7 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stm32n6570_discovery.h"
+#include "error_code.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -71,7 +72,8 @@ typedef funcptr funcptr_NS;
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void Set_Error_Context(Error_Code_TypeDef error_code);
+extern volatile Error_Code_TypeDef g_error_code;
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

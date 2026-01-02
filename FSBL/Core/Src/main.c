@@ -26,7 +26,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stm32n6570_discovery.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,15 +47,13 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-#ifndef NO_OTP_FUSE
 static int32_t OTP_Config(void);
-#endif /* NO_OTP_FUSE */
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -93,12 +91,12 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-#ifndef NO_OTP_FUSE
+
   /* Set OTP fuses for XSPI IO pins speed optimization */
   if(OTP_Config() != 0){
     Error_Handler();
   }
-#endif /* NO_OTP_FUSE */
+
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -236,7 +234,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-#ifndef NO_OTP_FUSE
 /**
   * @brief  User OTP fuse Configuration
   *         The User Option Bytes are configured as follows :
@@ -303,7 +300,7 @@ static int32_t OTP_Config(void)
   }
   return retr;
 }
-#endif /* NO_OTP_FUSE */
+
 /* USER CODE END 4 */
 
 /**
@@ -313,10 +310,20 @@ static int32_t OTP_Config(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
+  BSP_LED_Init(LED_GREEN);
+  BSP_LED_Init(LED_RED);
+
+  BSP_LED_Off(LED_GREEN);
+  BSP_LED_Off(LED_RED);
+
+  /* Disable interrupts to prevent further execution */
   __disable_irq();
-  while (1)
-  {
+
+  while (1) {
+    BSP_LED_Toggle(LED_RED);
+    for (volatile uint32_t i = 0; i < 4000000; i++) {
+      __NOP();
+    }
   }
   /* USER CODE END Error_Handler_Debug */
 }

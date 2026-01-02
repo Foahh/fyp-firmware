@@ -86,7 +86,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_bus.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/usart_io.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/thread_led.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/thread_cam.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_cam.c
     # Camera Middleware
@@ -119,9 +118,12 @@ if((CMAKE_C_STANDARD EQUAL 90) OR (CMAKE_C_STANDARD EQUAL 99))
     message(ERROR "Generated code requires C11 or higher")
 endif()
 
-
-
-
+# Convert ELF to binary
+add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${CMAKE_PROJECT_NAME}> $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/${CMAKE_PROJECT_NAME}.bin
+    COMMENT "Converting ELF to binary: ${CMAKE_PROJECT_NAME}.bin"
+    VERBATIM
+)
 
 
 

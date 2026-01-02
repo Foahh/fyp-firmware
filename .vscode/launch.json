@@ -1,0 +1,32 @@
+{
+    "configurations": [
+        {
+            "name": "Appli",
+            "type": "stlinkgdbtarget",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+            "runEntry": "main",
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${workspaceFolder}/Appli/build/Firmware_Appli.elf"
+                }
+            ],
+            "verbose": false
+        },
+        {
+            "name": "FSBL",
+            "type": "stlinkgdbtarget",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+            "runEntry": "main",
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${workspaceFolder}/FSBL/build/Firmware_FSBL.elf"
+                }
+            ],
+            "verbose": false
+        }
+    ]
+}
