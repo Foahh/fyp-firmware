@@ -85,6 +85,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_bus.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/usart_io.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/thread_led.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/thread_cam.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_cam.c

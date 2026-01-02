@@ -21,11 +21,7 @@
 #include "app_cam.h"
 #include "stm32n6xx_hal.h"
 #include "cmw_camera.h"
-
-/* Macro for MIN calculation */
-#ifndef MIN
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#endif
+#include "utils.h"
 
 /* Stored sensor resolution */
 static uint32_t sensor_width = 0;

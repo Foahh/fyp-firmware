@@ -3,7 +3,10 @@ cmake_minimum_required(VERSION 3.22)
 # STM32CubeMX generated symbols (macros)
 set(MX_Defines_Syms 
 	USE_HAL_DRIVER 
-	STM32N657xx
+	STM32N657xx 
+	TX_INCLUDE_USER_DEFINE_FILE 
+	TX_SINGLE_MODE_SECURE=1 
+	NO_OTP_FUSE
     $<$<CONFIG:Debug>:DEBUG>
 )
 # STM32CubeMX generated include paths
@@ -19,6 +22,8 @@ set(MX_Include_Dirs
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/psram
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sdcard
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/user
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/CMSIS/Include
 )
 # STM32CubeMX generated application sources
@@ -70,8 +75,7 @@ set(MX_LINK_DIRS
 set (MX_LINK_LIBS 
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
-    STM32_ExtMem_Manager
-	
+    STM32_ExtMem_Manager	
 )
 # Interface library for includes and symbols
 add_library(stm32cubemx INTERFACE)
