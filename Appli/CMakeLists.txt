@@ -55,6 +55,7 @@ enable_language(C ASM)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/Common
     # Camera Middleware includes
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/sensors
@@ -80,18 +81,22 @@ set(ISP_LIBRARY_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/isp/Src/isp_services.c
 )
 
-# Add sources to executable
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user sources here
+# BSP Driver sources
+set(BSP_Driver_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_bus.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/dcmipp.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/usart_io.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/thread_cam.c
+)
+
+# Core sources
+set(CORE_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_cam.c
-    # Camera Middleware
+)
+
+# Add sources to executable
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    ${BSP_Driver_Src}
+    ${CORE_Src}
     ${CMW_CAMERA_Src}
-    # ISP Library
     ${ISP_LIBRARY_Src}
 )
 

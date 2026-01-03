@@ -25,10 +25,7 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/AZURE_RTOS/App/app_azure_rtos.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/tx_initialize_low_level.S
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/csi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_threadx.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/usart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_hal_msp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/secure_nsc.c
@@ -55,10 +52,13 @@ set(STM32_Drivers_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_i2c_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_ltdc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_ltdc_ex.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_tim.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_tim_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma2d.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_uart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_uart_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_usart.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_usart_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_tim.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_tim_ex.c
 )
 
 # Drivers Midllewares

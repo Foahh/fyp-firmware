@@ -30,8 +30,8 @@ extern "C" {
 #include "stm32n6xx_hal.h"
 
 /* COM defines */
-#define USE_COM_LOG                         0U
-#define USE_BSP_COM_FEATURE                 0U
+#define USE_COM_LOG                         1U
+#define USE_BSP_COM_FEATURE                 1U
 
 /* Touch Sensing controller defines */
 #define USE_FT5336_TS_CTRL                  1U

@@ -19,9 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "app_threadx.h"
 #include "main.h"
-#include "csi.h"
-#include "usart.h"
-#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -47,6 +44,8 @@
 
 /* USER CODE BEGIN PV */
 volatile Error_Code_TypeDef g_error_code = ERROR_UNKNOWN;
+volatile uint8_t *g_error_file = NULL;
+volatile uint32_t g_error_line = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,8 +98,6 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -201,9 +198,8 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line
-     number, ex: printf("Wrong parameters value: file %s on line %d\r\n", file,
-     line) */
+  g_error_file = file;
+  g_error_line = line;
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

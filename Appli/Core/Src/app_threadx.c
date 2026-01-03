@@ -25,9 +25,11 @@
 /* USER CODE BEGIN Includes */
 #include <assert.h>
 #include <stdint.h>
-#include "thread_cam.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
+#include "app_cam.h"
+#include "error_code.h"
+#include "main.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -70,8 +72,17 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 
   /* Initialize LED blink thread */
 
+  /* Configure camera peripherals before creating thread */
+  int cam_ret = CAM_ConfigurePeripherals();
+  if (cam_ret != 0)
+  {
+    Set_Error_Context(ERROR_CAMERA_INIT_FAILED);
+    Error_Handler();
+    return 1; /* Return non-zero error code */
+  }
+
   /* Initialize Camera thread */
-  ret = CameraThread_Init(memory_ptr);
+  ret = Thread_Camera_Init(memory_ptr);
   if (ret != TX_SUCCESS)
   {
     return ret;

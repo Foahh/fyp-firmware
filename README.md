@@ -11,3 +11,7 @@
 - [ ] Dual DCMIPP Pipes
 - [ ] DCMIPP ISP Usage
 - [ ] X-CUBE-AI integration
+
+## Bookmarks
+
+https://www.stmcu.com.cn/Designresource/detail/LAT/711609
