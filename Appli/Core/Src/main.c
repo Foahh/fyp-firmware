@@ -38,7 +38,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CONFIG_SYSTEM_CLOCK
+// #define CONFIG_SYSTEM_CLOCK
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -58,7 +58,7 @@ static void MPU_Config(void);
 /* USER CODE BEGIN PFP */
 #ifdef CONFIG_SYSTEM_CLOCK
 void SystemClock_Config(void);
-#endif /* CONFIGURE_SYSTEM_CLOCK */ 
+#endif /* CONFIG_SYSTEM_CLOCK */ 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -74,6 +74,9 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+#ifndef CONFIG_SYSTEM_CLOCK
+  SystemCoreClockUpdate();
+#endif
 
   /* USER CODE END 1 */
 
@@ -216,7 +219,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 }
-#endif /* CONFIGURE_SYSTEM_CLOCK */
+#endif /* CONFIG_SYSTEM_CLOCK */
 /* USER CODE END 4 */
 
  /* MPU Configuration */

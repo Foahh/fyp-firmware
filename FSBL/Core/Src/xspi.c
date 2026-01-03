@@ -21,7 +21,8 @@
 #include "xspi.h"
 
 /* USER CODE BEGIN 0 */
-
+#define HSLV_OTP 124
+#define VDDIO3_HSLV_MASK (1 << 15)
 /* USER CODE END 0 */
 
 XSPI_HandleTypeDef hxspi2;
@@ -80,6 +81,69 @@ void HAL_XSPI_MspInit(XSPI_HandleTypeDef* xspiHandle)
   if(xspiHandle->Instance==XSPI2)
   {
   /* USER CODE BEGIN XSPI2_MspInit 0 */
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWREx_EnableVddIO3();
+    HAL_PWREx_ConfigVddIORange(PWR_VDDIO3, PWR_VDDIO_RANGE_1V8);
+
+    BSEC_HandleTypeDef hbsec;
+    uint32_t fuse_data = 0;
+
+    /* Enable BSEC & SYSCFG clocks to ensure BSEC data accesses */
+    __HAL_RCC_BSEC_CLK_ENABLE();
+    __HAL_RCC_SYSCFG_CLK_ENABLE();
+
+    /* Set PWR configuration for IO speed optimization */
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWREx_EnableVddIO3();
+    HAL_PWREx_ConfigVddIORange(PWR_VDDIO3, PWR_VDDIO_RANGE_1V8);
+
+    hbsec.Instance = BSEC;
+    if (HAL_BSEC_OTP_Read(&hbsec, HSLV_OTP, &fuse_data) != HAL_OK) {
+      Error_Handler();
+    }
+
+    if (fuse_data & VDDIO3_HSLV_MASK) {
+      /* High speed IO optimization is enabled */
+
+      /*  Select IC3 clock from PLL1 at 200MHz (1200/6) as XSPI2 source */
+      PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_XSPI2;
+      PeriphClkInitStruct.Xspi2ClockSelection = RCC_XSPI2CLKSOURCE_IC3;
+      PeriphClkInitStruct.ICSelection[RCC_IC3].ClockSelection = RCC_ICCLKSOURCE_PLL1;
+      PeriphClkInitStruct.ICSelection[RCC_IC3].ClockDivider = 6;
+      if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+      {
+        Error_Handler();
+      }
+
+      /* Peripheral clock enable */
+      __HAL_RCC_XSPIM_CLK_ENABLE();
+      __HAL_RCC_XSPI2_CLK_ENABLE();
+
+      __HAL_RCC_GPION_CLK_ENABLE();
+      /**XSPI2 GPIO Configuration
+      PN4     ------> XSPIM_P2_IO2
+      PN6     ------> XSPIM_P2_CLK
+      PN8     ------> XSPIM_P2_IO4
+      PN0     ------> XSPIM_P2_DQS0
+      PN3     ------> XSPIM_P2_IO1
+      PN5     ------> XSPIM_P2_IO3
+      PN1     ------> XSPIM_P2_NCS1
+      PN9     ------> XSPIM_P2_IO5
+      PN2     ------> XSPIM_P2_IO0
+      PN10     ------> XSPIM_P2_IO6
+      PN11     ------> XSPIM_P2_IO7
+      */
+      GPIO_InitStruct.Pin = OCTOSPI_IO2_Pin|OCTOSPI_CLK_Pin|OCTOSPI_IO4_Pin|OCTOSPI_DQS_Pin
+                            |OCTOSPI_IO1_Pin|OCTOSPI_IO3_Pin|GPIO_PIN_1|OCTOSPI_IO5_Pin
+                            |OCTOSPI_IO0_Pin|OCTOSPI_IO6_Pin|OCTOSPI_IO7_Pin;
+      GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+      GPIO_InitStruct.Pull = GPIO_NOPULL;
+      GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+      GPIO_InitStruct.Alternate = GPIO_AF9_XSPIM_P2;
+      HAL_GPIO_Init(GPION, &GPIO_InitStruct);
+    } else {
+      /* High speed IO optimization is disabled, lower XSPI clock speed */
+      /*  Select IC3 clock from PLL1 at 50MHz (1200/24) as XSPI2 source */
 
   /* USER CODE END XSPI2_MspInit 0 */
 
@@ -88,7 +152,7 @@ void HAL_XSPI_MspInit(XSPI_HandleTypeDef* xspiHandle)
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_XSPI2;
     PeriphClkInitStruct.Xspi2ClockSelection = RCC_XSPI2CLKSOURCE_IC3;
     PeriphClkInitStruct.ICSelection[RCC_IC3].ClockSelection = RCC_ICCLKSOURCE_PLL1;
-    PeriphClkInitStruct.ICSelection[RCC_IC3].ClockDivider = 6;
+    PeriphClkInitStruct.ICSelection[RCC_IC3].ClockDivider = 24;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
     {
       Error_Handler();
@@ -122,7 +186,7 @@ void HAL_XSPI_MspInit(XSPI_HandleTypeDef* xspiHandle)
     HAL_GPIO_Init(GPION, &GPIO_InitStruct);
 
   /* USER CODE BEGIN XSPI2_MspInit 1 */
-
+    }
   /* USER CODE END XSPI2_MspInit 1 */
   }
 }

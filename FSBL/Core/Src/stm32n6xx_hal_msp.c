@@ -31,8 +31,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN Define */
-#define HSLV_OTP 124
-#define VDDIO3_HSLV_MASK (1<<15)
 /* USER CODE END Define */
 
 /* Private macro -------------------------------------------------------------*/

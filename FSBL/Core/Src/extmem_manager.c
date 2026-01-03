@@ -40,14 +40,23 @@
  * -- Insert your variables declaration here --
  */
 /* USER CODE BEGIN 0 */
-
+#define HEADER_V2_3_IMG_SIZE_OFFSET 108
+#define HEADER_V2_3_SIZE 1024
 /* USER CODE END 0 */
 
 /*
  * -- Insert your external function declaration here --
  */
 /* USER CODE BEGIN 1 */
+uint32_t BOOT_GetApplicationSize(uint32_t img_addr)
+{
+  uint32_t img_size;
 
+  img_size = (*(uint32_t *)(img_addr + HEADER_V2_3_IMG_SIZE_OFFSET));
+  img_size += HEADER_V2_3_SIZE;
+
+  return img_size;
+}
 /* USER CODE END 1 */
 
 /**
