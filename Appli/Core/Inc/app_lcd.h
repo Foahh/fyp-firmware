@@ -25,8 +25,6 @@
 extern "C" {
 #endif
 
-#include "stm32n6xx_hal.h"
-#include "stm32n6570_discovery_lcd.h"
 #include <stdint.h>
 #include "app_config.h"
 
@@ -37,9 +35,9 @@ extern "C" {
 /**
  * @brief  Initialize LTDC with dual-layer configuration
  * @param  None
- * @retval 0 on success, negative error code on failure
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-int LCD_Init(void);
+void LCD_Init(void);
 
 /**
  * @brief  Deinitialize LTDC
@@ -52,37 +50,37 @@ void LCD_DeInit(void);
  * @brief  Reload Layer 0 with buffer address (triple buffering)
  *         Called from frame event callback
  * @param  frame_buffer: Pointer to the next display buffer
- * @retval 0 on success, negative error code on failure
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-int LCD_ReloadCameraLayer(uint8_t *frame_buffer);
+void LCD_ReloadCameraLayer(uint8_t *frame_buffer);
 
 /**
  * @brief  Set Layer 1 (UI) transparency/alpha
  * @param  alpha: Alpha value (0-255, 0 = fully transparent, 255 = fully opaque)
- * @retval 0 on success, negative error code on failure
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-int LCD_SetUIAlpha(uint8_t alpha);
+void LCD_SetUIAlpha(uint8_t alpha);
 
 /**
  * @brief  Enable or disable Layer 1 (UI)
  * @param  enable: 1 to enable, 0 to disable
- * @retval 0 on success, negative error code on failure
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-int LCD_SetUILayerVisible(uint8_t enable);
+void LCD_SetUILayerVisible(uint8_t enable);
 
 /**
  * @brief  Enable or disable Layer 0 (Camera)
  * @param  enable: 1 to enable, 0 to disable
- * @retval 0 on success, negative error code on failure
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-int LCD_SetCameraLayerVisible(uint8_t enable);
+void LCD_SetCameraLayerVisible(uint8_t enable);
 
 /**
  * @brief  Handle LTDC reload (call after frame buffer updates)
  * @param  reload_type: BSP_LCD_RELOAD_IMMEDIATE or BSP_LCD_RELOAD_VERTICAL_BLANKING
- * @retval 0 on success, negative error code on failure
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-int LCD_Reload(uint32_t reload_type);
+void LCD_Reload(uint32_t reload_type);
 
 #ifdef __cplusplus
 }

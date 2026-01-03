@@ -23,9 +23,9 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
 #include "app_config.h"
+#include <stddef.h>
+#include <stdint.h>
 
 extern volatile int camera_display_idx;
 extern volatile int camera_capture_idx;
@@ -63,9 +63,9 @@ extern uint8_t ui_buffer[LCD_WIDTH * LCD_HEIGHT * 4];
  * @param  idx: Buffer index (0 to DISPLAY_BUFFER_NB-1)
  * @retval Pointer to the buffer, NULL if index is invalid
  */
-#define Buffer_GetCameraDisplayBuffer(idx) \
-  ({ \
-    int _idx = (idx); \
+#define Buffer_GetCameraDisplayBuffer(idx)                                       \
+  ({                                                                             \
+    int _idx = (idx);                                                            \
     ((unsigned)_idx >= DISPLAY_BUFFER_NB) ? NULL : camera_display_buffers[_idx]; \
   })
 
@@ -74,12 +74,14 @@ extern uint8_t ui_buffer[LCD_WIDTH * LCD_HEIGHT * 4];
  * @param  idx: New display buffer index
  * @retval 0 on success, -1 if index is invalid
  */
-#define Buffer_SetCameraDisplayIndex(idx) \
-  ({ \
-    int _idx = (idx); \
+#define Buffer_SetCameraDisplayIndex(idx)                      \
+  ({                                                           \
+    int _idx = (idx);                                          \
     int _ret = ((unsigned)_idx >= DISPLAY_BUFFER_NB) ? -1 : 0; \
-    if (_ret == 0) { camera_display_idx = _idx; } \
-    _ret; \
+    if (_ret == 0) {                                           \
+      camera_display_idx = _idx;                               \
+    }                                                          \
+    _ret;                                                      \
   })
 
 /**
@@ -87,12 +89,14 @@ extern uint8_t ui_buffer[LCD_WIDTH * LCD_HEIGHT * 4];
  * @param  idx: New capture buffer index
  * @retval 0 on success, -1 if index is invalid
  */
-#define Buffer_SetCameraCaptureIndex(idx) \
-  ({ \
-    int _idx = (idx); \
+#define Buffer_SetCameraCaptureIndex(idx)                      \
+  ({                                                           \
+    int _idx = (idx);                                          \
     int _ret = ((unsigned)_idx >= DISPLAY_BUFFER_NB) ? -1 : 0; \
-    if (_ret == 0) { camera_capture_idx = _idx; } \
-    _ret; \
+    if (_ret == 0) {                                           \
+      camera_capture_idx = _idx;                               \
+    }                                                          \
+    _ret;                                                      \
   })
 
 /**
@@ -103,9 +107,9 @@ extern uint8_t ui_buffer[LCD_WIDTH * LCD_HEIGHT * 4];
 
 /**
  * @brief  Initialize all buffers and cache
- * @retval 0 on success
+ * @note   Fail-fast: panics on unrecoverable issues (if any are added later)
  */
-int Buffer_Init(void);
+void Buffer_Init(void);
 
 #ifdef __cplusplus
 }

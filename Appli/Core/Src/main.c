@@ -102,11 +102,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   /* USER CODE BEGIN 2 */
-  BSP_LED_Init(LED_GREEN);
-  BSP_LED_Init(LED_RED);
-
-  BSP_LED_Off(LED_GREEN);
-  BSP_LED_On(LED_RED);
   /* USER CODE END 2 */
 
   MX_ThreadX_Init();
@@ -122,7 +117,6 @@ int main(void)
   }
   /* USER CODE END 3 */
 }
-
 
 /* USER CODE BEGIN 4 */
 #ifdef CONFIG_SYSTEM_CLOCK
@@ -313,6 +307,7 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE BEGIN 6 */
   g_error_file = file;
   g_error_line = line;
+  Error_Handler();
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

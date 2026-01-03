@@ -33,9 +33,8 @@ uint8_t ui_buffer[LCD_WIDTH * LCD_HEIGHT * 4] ALIGN_32 IN_PSRAM;
 
 /**
  * @brief  Initialize all buffers and cache
- * @retval 0 on success
  */
-int Buffer_Init(void) {
+void Buffer_Init(void) {
   memset(camera_display_buffers, 0, sizeof(camera_display_buffers));
   SCB_CleanInvalidateDCache_by_Addr((void *)camera_display_buffers, sizeof(camera_display_buffers));
 
@@ -44,6 +43,4 @@ int Buffer_Init(void) {
 
   camera_display_idx = 1;
   camera_capture_idx = 0;
-
-  return 0;
 }

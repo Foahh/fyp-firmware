@@ -56,6 +56,7 @@ void DebugMon_Handler(void);
 /* USER CODE BEGIN EFP */
 void DCMIPP_IRQHandler(void);
 void CSI_IRQHandler(void);
+void IAC_IRQHandler(void);
 /* USER CODE END EFP */
 
 #ifdef __cplusplus

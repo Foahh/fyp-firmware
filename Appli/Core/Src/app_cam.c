@@ -20,6 +20,7 @@
 #include "app_cam.h"
 #include "app_buffers.h"
 #include "app_config.h"
+#include "app_error.h"
 #include "app_lcd.h"
 #include "cmw_camera.h"
 #include "main.h"
@@ -72,9 +73,9 @@ static void CAM_CalcCropRoi(CMW_Manual_roi_area_t *roi,
  * @param  format: Output pixel format
  * @param  bpp: Bytes per pixel
  * @param  swap_enabled: Enable byte swap (for RGB888)
- * @retval 0 on success, negative on failure
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-static int CAM_ConfigPipe(uint32_t pipe,
+static void CAM_ConfigPipe(uint32_t pipe,
                           uint32_t sensor_w, uint32_t sensor_h,
                           uint32_t out_w, uint32_t out_h,
                           uint32_t format, uint32_t bpp,
@@ -89,17 +90,12 @@ static int CAM_ConfigPipe(uint32_t pipe,
       .enable_gamma_conversion = 0,
   };
   uint32_t hw_pitch;
-  int ret;
 
   CAM_CalcCropRoi(&conf.manual_conf, sensor_w, sensor_h, out_w, out_h);
 
-  ret = CMW_CAMERA_SetPipeConfig(pipe, &conf, &hw_pitch);
-  if (ret != HAL_OK) {
-    return -1;
-  }
+  APP_REQUIRE_EQ(CMW_CAMERA_SetPipeConfig(pipe, &conf, &hw_pitch), HAL_OK);
 
   assert(hw_pitch == out_w * bpp);
-  return 0;
 }
 
 /**
@@ -131,9 +127,9 @@ HAL_StatusTypeDef MX_DCMIPP_ClockConfig(DCMIPP_HandleTypeDef *hdcmipp) {
 
 /**
  * @brief  Initialize the camera module
- * @retval 0 on success, negative error code on failure
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-int CAM_Init(void) {
+void CAM_Init(void) {
   CMW_CameraInit_t cam_conf = {
       .width = 0, /* Let sensor driver choose */
       .height = 0,
@@ -142,32 +138,20 @@ int CAM_Init(void) {
       .anti_flicker = 0,
       .mirror_flip = CAMERA_FLIP,
   };
-  int ret;
 
-  ret = CMW_CAMERA_Init(&cam_conf, NULL);
-  if (ret != CMW_ERROR_NONE) {
-    return -1;
-  }
+  APP_REQUIRE(CMW_CAMERA_Init(&cam_conf, NULL) == CMW_ERROR_NONE);
 
   /* Configure display pipe (Pipe1) */
-  ret = CAM_ConfigPipe(DCMIPP_PIPE1,
-                       cam_conf.width, cam_conf.height,
-                       DISPLAY_LETTERBOX_WIDTH, DISPLAY_LETTERBOX_HEIGHT,
-                       DISPLAY_FORMAT, DISPLAY_BPP, 0);
-  if (ret != 0) {
-    return -2;
-  }
+  CAM_ConfigPipe(DCMIPP_PIPE1,
+                 cam_conf.width, cam_conf.height,
+                 DISPLAY_LETTERBOX_WIDTH, DISPLAY_LETTERBOX_HEIGHT,
+                 DISPLAY_FORMAT, DISPLAY_BPP, 0);
 
   /* Configure ML pipe (Pipe2) */
-  ret = CAM_ConfigPipe(DCMIPP_PIPE2,
-                       cam_conf.width, cam_conf.height,
-                       ML_WIDTH, ML_HEIGHT,
-                       ML_FORMAT, ML_BPP, 1);
-  if (ret != 0) {
-    return -3;
-  }
-
-  return 0;
+  CAM_ConfigPipe(DCMIPP_PIPE2,
+                 cam_conf.width, cam_conf.height,
+                 ML_WIDTH, ML_HEIGHT,
+                 ML_FORMAT, ML_BPP, 1);
 }
 
 /**
@@ -176,13 +160,11 @@ int CAM_Init(void) {
  */
 void CAM_DisplayPipe_Start(uint32_t cam_mode) {
   uint8_t *buffer;
-  int ret;
 
   buffer = Buffer_GetCameraDisplayBuffer(Buffer_GetCameraCaptureIndex());
-  assert(buffer != NULL);
+  APP_REQUIRE(buffer != NULL);
 
-  ret = CMW_CAMERA_Start(DCMIPP_PIPE1, buffer, cam_mode);
-  assert(ret == CMW_ERROR_NONE);
+  APP_REQUIRE(CMW_CAMERA_Start(DCMIPP_PIPE1, buffer, cam_mode) == CMW_ERROR_NONE);
 }
 
 /**
@@ -191,20 +173,15 @@ void CAM_DisplayPipe_Start(uint32_t cam_mode) {
  * @param  cam_mode: CMW_MODE_CONTINUOUS or CMW_MODE_SNAPSHOT
  */
 void CAM_MLPipe_Start(uint8_t *ml_buffer, uint32_t cam_mode) {
-  int ret;
-
-  ret = CMW_CAMERA_Start(DCMIPP_PIPE2, ml_buffer, cam_mode);
-  assert(ret == CMW_ERROR_NONE);
+  APP_REQUIRE(ml_buffer != NULL);
+  APP_REQUIRE(CMW_CAMERA_Start(DCMIPP_PIPE2, ml_buffer, cam_mode) == CMW_ERROR_NONE);
 }
 
 /**
  * @brief  Update ISP parameters (auto exposure, white balance)
  */
 void CAM_IspUpdate(void) {
-  int ret;
-
-  ret = CMW_CAMERA_Run();
-  assert(ret == CMW_ERROR_NONE);
+  APP_REQUIRE(CMW_CAMERA_Run() == CMW_ERROR_NONE);
 }
 
 /**
@@ -224,6 +201,7 @@ int CMW_CAMERA_PIPE_FrameEventCallback(uint32_t pipe) {
   /* Update DCMIPP to capture into next buffer */
   if (hdcmipp != NULL) {
     uint8_t *next_capt_buf = Buffer_GetCameraDisplayBuffer(next_capt);
+    APP_REQUIRE(next_capt_buf != NULL);
     HAL_DCMIPP_PIPE_SetMemoryAddress(hdcmipp, DCMIPP_PIPE1,
                                      DCMIPP_MEMORY_ADDRESS_0,
                                      (uint32_t)next_capt_buf);
@@ -265,23 +243,24 @@ static void isp_thread_entry(ULONG arg) {
 
 /**
  * @brief  Initialize ISP semaphore
- * @retval TX_SUCCESS on success
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-UINT CAM_InitIspSemaphore(void) {
-  return tx_semaphore_create(&isp_ctx.vsync_sem, "isp_vsync", 0);
+void CAM_InitIspSemaphore(void) {
+  APP_REQUIRE_EQ(tx_semaphore_create(&isp_ctx.vsync_sem, "isp_vsync", 0), TX_SUCCESS);
 }
 
 /**
  * @brief  Initialize and start the ISP update thread
  * @param  memory_ptr: Unused (static allocation)
- * @retval TX_SUCCESS on success
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-UINT Thread_IspUpdate_Init(VOID *memory_ptr) {
+void Thread_IspUpdate_Init(VOID *memory_ptr) {
   UNUSED(memory_ptr);
 
-  return tx_thread_create(&isp_ctx.thread, "isp_update",
-                          isp_thread_entry, 0,
-                          isp_ctx.stack, ISP_THREAD_STACK_SIZE,
-                          ISP_THREAD_PRIORITY, ISP_THREAD_PRIORITY,
-                          TX_NO_TIME_SLICE, TX_AUTO_START);
+  APP_REQUIRE_EQ(tx_thread_create(&isp_ctx.thread, "isp_update",
+                                 isp_thread_entry, 0,
+                                 isp_ctx.stack, ISP_THREAD_STACK_SIZE,
+                                 ISP_THREAD_PRIORITY, ISP_THREAD_PRIORITY,
+                                 TX_NO_TIME_SLICE, TX_AUTO_START),
+                 TX_SUCCESS);
 }

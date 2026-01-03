@@ -33,8 +33,8 @@
 /* Letterboxed: 640x480 (4:3) positioned on right side */
 #define DISPLAY_LETTERBOX_WIDTH 640
 #define DISPLAY_LETTERBOX_HEIGHT 480
-#define DISPLAY_LETTERBOX_X0 (LCD_WIDTH - DISPLAY_LETTERBOX_WIDTH)  /* 160 - left margin for black bars */
-#define DISPLAY_LETTERBOX_X1 LCD_WIDTH  /* 800 - right edge */
+#define DISPLAY_LETTERBOX_X0 (LCD_WIDTH - DISPLAY_LETTERBOX_WIDTH) /* 160 - left margin for black bars */
+#define DISPLAY_LETTERBOX_X1 LCD_WIDTH                             /* 800 - right edge */
 
 /* Delay display by DISPLAY_DELAY frame number */
 #define DISPLAY_DELAY 1

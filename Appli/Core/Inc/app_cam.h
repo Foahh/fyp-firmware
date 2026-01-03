@@ -23,16 +23,15 @@
 extern "C" {
 #endif
 
-#include "stm32n6xx_hal.h"
+#include "app_config.h"
 #include "tx_api.h"
 #include <stdint.h>
-#include "app_config.h"
 
 /**
  * @brief  Initialize the camera module
- * @retval 0 on success, negative error code on failure
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-int CAM_Init(void);
+void CAM_Init(void);
 
 /**
  * @brief  Start the display pipe capture
@@ -58,16 +57,16 @@ void CAM_IspUpdate(void);
 
 /**
  * @brief  Initialize ISP semaphore for vsync callback
- * @retval TX_SUCCESS on success, error code otherwise
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-UINT CAM_InitIspSemaphore(void);
+void CAM_InitIspSemaphore(void);
 
 /**
  * @brief  Initialize and create the ISP update thread
  * @param  memory_ptr: Memory pointer (unused, thread uses static allocation)
- * @retval TX_SUCCESS if successful, error code otherwise
+ * @note   Fail-fast: panics on unrecoverable failures
  */
-UINT Thread_IspUpdate_Init(VOID *memory_ptr);
+void Thread_IspUpdate_Init(VOID *memory_ptr);
 
 #ifdef __cplusplus
 }

@@ -196,4 +196,14 @@ void CSI_IRQHandler(void) {
   }
 }
 
+/**
+ * @brief This function handles IAC global interrupt.
+ */
+void IAC_IRQHandler(void)
+{
+  while (1)
+  {
+  }
+}
+
 /* USER CODE END 1 */

@@ -92,6 +92,7 @@ set(BSP_Driver_Src
 
 # Core sources
 set(CORE_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_buffers.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_cam.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_lcd.c
