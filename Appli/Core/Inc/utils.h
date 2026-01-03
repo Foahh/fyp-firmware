@@ -19,17 +19,17 @@
 #ifndef UTILS
 #define UTILS
 
-#define ALIGN_32 __attribute__ ((aligned (32)))
-#define IN_PSRAM __attribute__ ((section (".psram_bss")))
+#define ALIGN_32 __attribute__((aligned(32)))
+#define IN_PSRAM __attribute__((section(".psram_bss")))
 
 #ifndef MIN
-#define MIN(a,b) ((a)<(b)?(a):(b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
 #ifndef MAX
-#define MAX(a,b) ((a)>(b)?(a):(b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
-#define IS_IRQ_MODE()     (__get_IPSR() != 0U)
+#define IS_IRQ_MODE() (__get_IPSR() != 0U)
 
 #endif

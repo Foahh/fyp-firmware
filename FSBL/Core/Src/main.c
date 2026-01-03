@@ -51,6 +51,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+static void MPU_Config(void);
 /* USER CODE BEGIN PFP */
 static int32_t OTP_Config(void);
 
@@ -69,16 +70,12 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+  
 
   /* USER CODE END 1 */
 
-  /* Enable the CPU Cache */
-
-  /* Enable I-Cache---------------------------------------------------------*/
-  SCB_EnableICache();
-
-  /* Enable D-Cache---------------------------------------------------------*/
-  SCB_EnableDCache();
+  /* MPU Configuration--------------------------------------------------------*/
+  MPU_Config();
 
   /* MCU Configuration--------------------------------------------------------*/
   HAL_Init();
@@ -105,6 +102,12 @@ int main(void)
   MX_BSEC_Init();
   MX_EXTMEM_MANAGER_Init();
   /* USER CODE BEGIN 2 */
+
+  BSP_LED_Init(LED_GREEN);
+  BSP_LED_Init(LED_RED);
+
+  BSP_LED_On(LED_GREEN);
+  BSP_LED_Off(LED_RED);
 
   // TODO: ThreadX should not be generated as part of this FSBL project.
   // This appears to be an STM32CubeMX/STM32Cube_FW_N6 v1.3.0 generation bug.
@@ -303,6 +306,24 @@ static int32_t OTP_Config(void)
 
 /* USER CODE END 4 */
 
+ /* MPU Configuration */
+
+void MPU_Config(void)
+{
+  uint32_t primask_bit = __get_PRIMASK();
+  __disable_irq();
+
+  /* Disables the MPU */
+  HAL_MPU_Disable();
+
+  /* Enables the MPU */
+  HAL_MPU_Enable(MPU_HFNMI_PRIVDEF);
+
+  /* Exit critical section to lock the system and avoid any issue around MPU mechanism */
+  __set_PRIMASK(primask_bit);
+
+}
+
 /**
   * @brief  This function is executed in case of error occurrence.
   * @retval None
@@ -310,9 +331,6 @@ static int32_t OTP_Config(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  BSP_LED_Init(LED_GREEN);
-  BSP_LED_Init(LED_RED);
-
   BSP_LED_Off(LED_GREEN);
   BSP_LED_Off(LED_RED);
 

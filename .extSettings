@@ -1,6 +1,6 @@
 [Appli:Others]
 Define=
-HALModule=DCMIPP;I2C;LTDC;DMA2D;UART;USART
+HALModule=DCMIPP;I2C;LTDC;DMA2D;UART;USART;XSPI;RIF
 [FSBL:Others]
 Define=
 HALModule=

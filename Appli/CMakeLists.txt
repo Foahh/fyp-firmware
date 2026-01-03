@@ -39,7 +39,6 @@ add_executable(${CMAKE_PROJECT_NAME})
 # Include mx-generated
 include("mx-generated.cmake")
 
-
 # In order to use CMake for cross-compiling
 set(CMAKE_CXX_COMPILER_FORCED "true")
 
@@ -85,15 +84,23 @@ set(ISP_LIBRARY_Src
 set(BSP_Driver_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_bus.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_xspi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_lcd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/aps256xx/aps256xx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/mx66uw1g45g/mx66uw1g45g.c
 )
 
 # Core sources
 set(CORE_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_buffers.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_cam.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_lcd.c
 )
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rif.c
+    ${STM32_HAL_Driver_Src}
     ${BSP_Driver_Src}
     ${CORE_Src}
     ${CMW_CAMERA_Src}

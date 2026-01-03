@@ -54,7 +54,8 @@ void UsageFault_Handler(void);
 void SecureFault_Handler(void);
 void DebugMon_Handler(void);
 /* USER CODE BEGIN EFP */
-
+void DCMIPP_IRQHandler(void);
+void CSI_IRQHandler(void);
 /* USER CODE END EFP */
 
 #ifdef __cplusplus

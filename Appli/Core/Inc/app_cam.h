@@ -36,11 +36,10 @@ int CAM_Init(void);
 
 /**
  * @brief  Start the display pipe capture
- * @param  display_pipe_dst: Pointer to the display buffer
  * @param  cam_mode: Camera mode (CMW_MODE_CONTINUOUS or CMW_MODE_SNAPSHOT)
  * @retval None
  */
-void CAM_DisplayPipe_Start(uint8_t *display_pipe_dst, uint32_t cam_mode);
+void CAM_DisplayPipe_Start(uint32_t cam_mode);
 
 /**
  * @brief  Start the neural network pipe capture
@@ -56,6 +55,12 @@ void CAM_MLPipe_Start(uint8_t *ml_pipe_dst, uint32_t cam_mode);
  * @retval None
  */
 void CAM_IspUpdate(void);
+
+/**
+ * @brief  Initialize ISP semaphore for vsync callback
+ * @retval TX_SUCCESS on success, error code otherwise
+ */
+UINT CAM_InitIspSemaphore(void);
 
 /**
  * @brief  Initialize and create the ISP update thread

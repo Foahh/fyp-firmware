@@ -11,8 +11,7 @@ function Sign-Binary {
         [string]$ProjectName,
         [string]$BuildDir,
         [string]$BinFile,
-        [string]$SignedBinFile,
-        [string]$SigningType = "fsbl"
+        [string]$SignedBinFile
     )
     
     Write-Host "`n=== Signing $ProjectName ===" -ForegroundColor Cyan
@@ -35,13 +34,18 @@ function Sign-Binary {
     $signingArgs = @(
         "-bin", $BinFile,
         "-nk",
-        "-t", $SigningType,
+        "-of", "0x80000000",
+        "-t", "fsbl",
+        "-o", $SignedBinFile,
         "-hv", "2.3",
-        "-o", $SignedBinFile
+        "-dump", $SignedBinFile,
+        "-align"
     )
-    & $SigningTool $signingArgs
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Failed to sign binary"
+    $output = & $SigningTool $signingArgs 2>&1
+    $exitCode = $LASTEXITCODE
+    $output | ForEach-Object { Write-Host $_ }
+    if ($exitCode -ne 0) {
+        Write-Error "Failed to sign binary (exit code: $exitCode)"
         return $false
     }
     Write-Host "Signed binary created: $SignedBinFile" -ForegroundColor Green
@@ -123,9 +127,11 @@ function Flash-Binary {
     $flashArgs += "-hardRst", "-w", $SignedBinFile, $Address
     
     try {
-        & $FlashToolPath $flashArgs
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Failed to flash binary"
+        $output = & $FlashToolPath $flashArgs 2>&1
+        $exitCode = $LASTEXITCODE
+        $output | ForEach-Object { Write-Host $_ }
+        if ($exitCode -ne 0) {
+            Write-Error "Failed to flash binary (exit code: $exitCode)"
             return $false
         }
         Write-Host "Binary flashed successfully at address $Address" -ForegroundColor Green
@@ -164,7 +170,7 @@ $success = $true
 $fsblBin = Join-Path $ProjectRoot "FSBL\build\Firmware_FSBL.bin"
 $fsblSigned = Join-Path $ProjectRoot "FSBL\build\Firmware_FSBL-trusted.bin"
     
-if (Sign-Binary -ProjectName "FSBL" -BuildDir (Join-Path $ProjectRoot "FSBL\build") -BinFile $fsblBin -SignedBinFile $fsblSigned -SigningType "fsbl") {
+if (Sign-Binary -ProjectName "FSBL" -BuildDir (Join-Path $ProjectRoot "FSBL\build") -BinFile $fsblBin -SignedBinFile $fsblSigned) {
     if ($Flash -and -not (Flash-Binary -ProjectName "FSBL" -SignedBinFile $fsblSigned -Address "0x70000000" -FlashToolPath $FlashTool)) {
         $success = $false
     }
@@ -177,7 +183,7 @@ else {
 $appliBin = Join-Path $ProjectRoot "Appli\build\Firmware_Appli.bin"
 $appliSigned = Join-Path $ProjectRoot "Appli\build\Firmware_Appli-trusted.bin"
     
-if (Sign-Binary -ProjectName "Appli" -BuildDir (Join-Path $ProjectRoot "Appli\build") -BinFile $appliBin -SignedBinFile $appliSigned -SigningType "ssbl") {
+if (Sign-Binary -ProjectName "Appli" -BuildDir (Join-Path $ProjectRoot "Appli\build") -BinFile $appliBin -SignedBinFile $appliSigned) {
     if ($Flash -and -not (Flash-Binary -ProjectName "Appli" -SignedBinFile $appliSigned -Address "0x70100000" -FlashToolPath $FlashTool)) {
         $success = $false
     }
