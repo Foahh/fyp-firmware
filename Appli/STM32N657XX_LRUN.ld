@@ -40,6 +40,7 @@ MEMORY
 {
   ROM    (xrw)    : ORIGIN = 0x34000400,   LENGTH = 511K
   RAM    (xrw)    : ORIGIN = 0x34080000,   LENGTH = 1536K
+  PSRAM  (xrw)    : ORIGIN = 0x91000000,   LENGTH = 16M
 }
 /* Highest address of the user mode stack */
 _estack = ORIGIN(RAM) + LENGTH(RAM); /* end of "RAM" Ram type memory */
@@ -239,6 +240,13 @@ SECTIONS
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
   } >RAM
+
+  .psram_section (NOLOAD) :
+  {
+    . = ALIGN(32);
+    *(.psram_bss)
+    . = ALIGN(32);
+  } >PSRAM
 
   /* Remove information from the compiler libraries */
   /DISCARD/ :

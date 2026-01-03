@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "error_code.h"
+#include "app_cam.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,7 +43,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-volatile Error_Code_TypeDef g_error_code = ERROR_UNKNOWN;
 volatile uint8_t *g_error_file = NULL;
 volatile uint32_t g_error_line = 0;
 /* USER CODE END PV */
@@ -99,7 +98,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   /* USER CODE BEGIN 2 */
-
   /* USER CODE END 2 */
 
   MX_ThreadX_Init();
@@ -117,7 +115,7 @@ int main(void)
 }
 
 /* USER CODE BEGIN 4 */
-void Set_Error_Context(Error_Code_TypeDef error_code) { g_error_code = error_code; }
+
 /* USER CODE END 4 */
 
  /* MPU Configuration */

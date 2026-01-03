@@ -6,10 +6,10 @@
 - [x] ThreadX
 - [x] Camera Middleware & Single DCMIPP Pipe
 - [x] Debug & Automated build/sign/upload process
-- [ ] LTDC Single Layer Display
-- [ ] LTDC Dual-Layer Implementation
-- [ ] Dual DCMIPP Pipes
-- [ ] DCMIPP ISP Usage
+- [ ] LTDC Implementation
+- [x] Dual DCMIPP Pipes
+- [ ] Camera Pipeline Implementation
+- [ ] TouchGFX integration
 - [ ] X-CUBE-AI integration
 
 ## Bookmarks

@@ -19,6 +19,9 @@
 #ifndef UTILS
 #define UTILS
 
+#define ALIGN_32 __attribute__ ((aligned (32)))
+#define IN_PSRAM __attribute__ ((section (".psram_bss")))
+
 #ifndef MIN
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #endif

@@ -175,4 +175,25 @@ void DebugMon_Handler(void)
 /******************************************************************************/
 
 /* USER CODE BEGIN 1 */
+
+/**
+ * @brief This function handles DCMIPP global interrupt.
+ */
+void DCMIPP_IRQHandler(void) {
+  DCMIPP_HandleTypeDef *hdcmipp_ptr = CMW_CAMERA_GetDCMIPPHandle();
+  if (hdcmipp_ptr != NULL) {
+    HAL_DCMIPP_IRQHandler(hdcmipp_ptr);
+  }
+}
+
+/**
+ * @brief This function handles CSI global interrupt.
+ */
+void CSI_IRQHandler(void) {
+  DCMIPP_HandleTypeDef *hdcmipp_ptr = CMW_CAMERA_GetDCMIPPHandle();
+  if (hdcmipp_ptr != NULL) {
+    HAL_DCMIPP_CSI_IRQHandler(hdcmipp_ptr);
+  }
+}
+
 /* USER CODE END 1 */
