@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "bsec.h"
 #include "extmem_manager.h"
 #include "xspi.h"
 #include "xspim.h"
@@ -54,7 +53,7 @@ void SystemClock_Config(void);
 static void MPU_Config(void);
 /* USER CODE BEGIN PFP */
 static int32_t OTP_Config(void);
-
+static void LED_Config(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -70,8 +69,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  
-
   /* USER CODE END 1 */
 
   /* MPU Configuration--------------------------------------------------------*/
@@ -99,15 +96,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_XSPI2_Init();
-  MX_BSEC_Init();
   MX_EXTMEM_MANAGER_Init();
   /* USER CODE BEGIN 2 */
-
-  BSP_LED_Init(LED_GREEN);
-  BSP_LED_Init(LED_RED);
-
-  BSP_LED_On(LED_GREEN);
-  BSP_LED_Off(LED_RED);
+  LED_Config();
 
   // TODO: ThreadX should not be generated as part of this FSBL project.
   // This appears to be an STM32CubeMX/STM32Cube_FW_N6 v1.3.0 generation bug.
@@ -237,6 +228,14 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+static void LED_Config(void) {
+  BSP_LED_Init(LED_GREEN);
+  BSP_LED_Init(LED_RED);
+  BSP_LED_On(LED_GREEN);
+  BSP_LED_Off(LED_RED);
+}
+
 /**
   * @brief  User OTP fuse Configuration
   *         The User Option Bytes are configured as follows :
