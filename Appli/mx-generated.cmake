@@ -28,6 +28,7 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/cacheaxi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/csi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/ramcfg.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_threadx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_hal_msp.c
@@ -63,6 +64,7 @@ set(STM32_Drivers_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_usart_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rif.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_cacheaxi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_ramcfg.c
 )
 
 # Drivers Midllewares

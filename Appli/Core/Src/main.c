@@ -21,6 +21,7 @@
 #include "main.h"
 #include "cacheaxi.h"
 #include "csi.h"
+#include "ramcfg.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -105,6 +106,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CACHEAXI_Init();
+  MX_RAMCFG_Init();
   SystemIsolation_Config();
   /* USER CODE BEGIN 2 */
   /* USER CODE END 2 */
@@ -386,6 +388,7 @@ void MPU_Config(void)
 
   /* Exit critical section to lock the system and avoid any issue around MPU mechanism */
   __set_PRIMASK(primask_bit);
+
 }
 
 /**
