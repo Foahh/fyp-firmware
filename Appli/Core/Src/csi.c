@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    xspi.h
-  * @brief   This file contains all the function prototypes for
-  *          the xspi.c file
+  * @file    csi.c
+  * @brief   This file provides code for the configuration
+  *          of the CSI instances.
   ******************************************************************************
   * @attention
   *
@@ -17,39 +17,13 @@
   ******************************************************************************
   */
 /* USER CODE END Header */
-/* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __XSPI_H__
-#define __XSPI_H__
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include "csi.h"
 
-/* USER CODE BEGIN Includes */
+/* USER CODE BEGIN 0 */
 
-/* USER CODE END Includes */
+/* USER CODE END 0 */
 
-extern XSPI_HandleTypeDef hxspi1;
+/* USER CODE BEGIN 1 */
 
-extern XSPI_HandleTypeDef hxspi2;
-
-/* USER CODE BEGIN Private defines */
-
-/* USER CODE END Private defines */
-
-void MX_XSPI1_Init(void);
-void MX_XSPI2_Init(void);
-
-/* USER CODE BEGIN Prototypes */
-
-/* USER CODE END Prototypes */
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* __XSPI_H__ */
-
+/* USER CODE END 1 */

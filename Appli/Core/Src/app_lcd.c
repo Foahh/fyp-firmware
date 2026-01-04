@@ -102,7 +102,7 @@ void LCD_DeInit(void) {
 }
 
 /**
- * @brief  Reload Layer 0 with new buffer address (triple buffering)
+ * @brief  Reload Layer 0 with new buffer address (buffering)
  * @param  frame_buffer: Pointer to the next display buffer
  * @note   Fail-fast: panics on unrecoverable failures
  */

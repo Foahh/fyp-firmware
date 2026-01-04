@@ -100,7 +100,6 @@ set(CORE_Src
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rif.c
     ${STM32_HAL_Driver_Src}
     ${BSP_Driver_Src}
     ${CORE_Src}
@@ -131,6 +130,14 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 if((CMAKE_C_STANDARD EQUAL 90) OR (CMAKE_C_STANDARD EQUAL 99))
     message(ERROR "Generated code requires C11 or higher")
 endif()
+
+add_custom_target(clean_artifacts_${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E remove -f
+        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}-trusted.bin
+        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin
+    COMMENT "Removing old build artifacts"
+    VERBATIM
+)
 
 # Convert ELF to binary
 add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD

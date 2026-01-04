@@ -105,19 +105,17 @@ HAL_StatusTypeDef MX_DCMIPP_ClockConfig(DCMIPP_HandleTypeDef *hdcmipp) {
   UNUSED(hdcmipp);
   RCC_PeriphCLKInitTypeDef clk = {0};
 
-  /* Configure DCMIPP clock from PLL1 / 4 */
   clk.PeriphClockSelection = RCC_PERIPHCLK_DCMIPP;
   clk.DcmippClockSelection = RCC_DCMIPPCLKSOURCE_IC17;
-  clk.ICSelection[RCC_IC17].ClockSelection = RCC_ICCLKSOURCE_PLL1;
-  clk.ICSelection[RCC_IC17].ClockDivider = 4;
+  clk.ICSelection[RCC_IC17].ClockSelection = RCC_ICCLKSOURCE_PLL2;
+  clk.ICSelection[RCC_IC17].ClockDivider = 3;
   if (HAL_RCCEx_PeriphCLKConfig(&clk) != HAL_OK) {
     return HAL_ERROR;
   }
 
-  /* Configure CSI clock from PLL1 / 60 */
   clk.PeriphClockSelection = RCC_PERIPHCLK_CSI;
   clk.ICSelection[RCC_IC18].ClockSelection = RCC_ICCLKSOURCE_PLL1;
-  clk.ICSelection[RCC_IC18].ClockDivider = 60;
+  clk.ICSelection[RCC_IC18].ClockDivider = 40;
   if (HAL_RCCEx_PeriphCLKConfig(&clk) != HAL_OK) {
     return HAL_ERROR;
   }
@@ -185,7 +183,7 @@ void CAM_IspUpdate(void) {
 }
 
 /**
- * @brief  Frame event callback (ISR context) - handles triple buffering
+ * @brief  Frame event callback (ISR context) - handles buffering
  * @param  pipe: Pipe that triggered the event
  * @retval HAL_OK
  */

@@ -21,10 +21,10 @@
 #include "utils.h"
 #include <string.h>
 
-/* Camera display buffers (RGB565) - triple buffering */
+/* Camera display buffers (RGB565) - buffering */
 uint8_t camera_display_buffers[DISPLAY_BUFFER_NB][DISPLAY_LETTERBOX_WIDTH * DISPLAY_LETTERBOX_HEIGHT * DISPLAY_BPP] ALIGN_32 IN_PSRAM;
 
-/* Triple buffer state - accessed from ISR context */
+/* Buffer state - accessed from ISR context */
 volatile int camera_display_idx = 1;
 volatile int camera_capture_idx = 0;
 

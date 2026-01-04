@@ -24,10 +24,10 @@
 
 #### Root cause
 - The default HAL time base (SysTick or timer-based tick) was no longer incrementing as expected once ThreadX took ownership of timing / scheduling (or SysTick configuration changed).
-- HAL’s tick source must be aligned to the RTOS tick source when using ThreadX.
+- HAL's tick source must be aligned to the RTOS tick source when using ThreadX.
 
 #### Fix
-Override the HAL tick functions to use ThreadX time and disable HAL’s own tick init:
+Override the HAL tick functions to use ThreadX time and disable HAL's own tick init:
 
 ```c
 uint32_t HAL_GetTick(void)
@@ -112,7 +112,7 @@ BSP_XSPI_RAM_EnableMemoryMappedMode(0);
 
 ---
 
-### 2.1. PSRAM init causes freezes / “undebuggable” exceptions
+### 2.1. PSRAM init causes freezes / "undebuggable" exceptions
 
 #### Symptom
 After enabling PSRAM (init + memory-mapped mode), the MCU will:
@@ -134,7 +134,7 @@ MPU_InitStruct.LimitAddress = 0x91FFFFFF;
 
 #### Fix 2: Allow DMA / peripheral masters via RIF (security configuration)
 ```c
-static void Security_Config(void)
+static void SystemIsolation_Config(void)
 {
   __HAL_RCC_RIFSC_CLK_ENABLE();
 
@@ -175,6 +175,7 @@ Copy the clock configuration code from **FSBL** into the application and **enabl
 ### 4. FSBL cannot boot into Application
 
 #### Symptom
+- XSPI2's clock is set to 200 MHz
 - Device runs fine from IDE/debugger, but **FSBL does not jump to / boot** the application from flash.
 - Root cause was initially hidden because direcly IDE debugging bypassed the real boot path.
 
@@ -222,23 +223,41 @@ HAL_PWREx_EnableVddIO3();
 HAL_PWREx_ConfigVddIORange(PWR_VDDIO3, PWR_VDDIO_RANGE_1V8);
 ```
 
-Then select the XSPI clock divider based on whether HSLV / voltage mode is enabled:
-
-```c
-if (...) { // fuse VDDIO3 indicates high speed allowed
-  // 200 MHz: 1200/6
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_XSPI2;
-  PeriphClkInitStruct.Xspi2ClockSelection = RCC_XSPI2CLKSOURCE_IC3;
-  PeriphClkInitStruct.ICSelection[RCC_IC3].ClockSelection = RCC_ICCLKSOURCE_PLL1;
-  PeriphClkInitStruct.ICSelection[RCC_IC3].ClockDivider = 6;
-} else {
-  // 50 MHz: 1200/24
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_XSPI2;
-  PeriphClkInitStruct.Xspi2ClockSelection = RCC_XSPI2CLKSOURCE_IC3;
-  PeriphClkInitStruct.ICSelection[RCC_IC3].ClockSelection = RCC_ICCLKSOURCE_PLL1;
-  PeriphClkInitStruct.ICSelection[RCC_IC3].ClockDivider = 24;
-}
-```
-
 #### Key lesson
 Always validate the **real boot flow** (FSBL → application) after clock/memory changes; debugger runs can hide FSBL/header/voltage constraints.
+
+---
+
+## 5 Camera output shows severe tearing and flickering when booting from FSBL into Application
+
+### Symptom
+- FSBL successfully boots into the Application.
+- Camera output shows **severe tearing and flickering** (unstable frames).
+- Only reproducible on the **full boot path (FSBL → Application)**.
+- **Not reproducible** when running the Application directly from the debugger.
+
+### Root cause
+The external memory interface clocks were effectively too aggressive for the real boot configuration:
+
+- **XSPI1 (PSRAM)** clock was **implicitly left at a high default** (observed as **~200 MHz**) because it wasn't explicitly configured in the Application clock tree.
+- **XSPI2 (NOR)** was also running at **200 MHz**.
+- During the full boot sequence, these higher clocks reduced timing margin for:
+  - memory-mapped PSRAM reads/writes (frame buffer traffic),
+  - concurrent DMA masters (DCMIPP/LTDC) accessing external memory,
+  - potential voltage/IO-level constraints at high speed.
+
+This manifested as tearing/flickering consistent with intermittent read/write corruption or starvation in the framebuffer path.
+
+### Unknown / open question
+Why it doesn't occur when starting from the debugger.
+
+### Fix
+- Updated overall system clock configuration.
+- Reduced external memory clocks to improve timing margin:
+  - Set **XSPI2 (NOR)** to **100 MHz** (from 200 MHz).
+  - Explicitly set **XSPI1 (PSRAM)** to **100 MHz** (was previously not configured and effectively defaulted to 200 MHz).
+
+This stabilized camera → framebuffer → LTDC behavior when running through FSBL.
+
+### Key lesson
+If tearing/flickering/data corruption only appears on the **real boot path**, audit **peripheral clocks that were "assumed"** (XSPI/QSPI, memory-mapped RAM/flash). External memory used by camera/display pipelines is highly sensitive to clock rate, IO voltage range, MPU/cache policy, and init order—reduce clocks first to recover stability, then increase cautiously with proper voltage + timing validation.
