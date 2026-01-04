@@ -22,6 +22,7 @@
 #include "app_config.h"
 #include "app_lcd.h"
 #include "app_ui.h"
+#include "app_x-cube-ai.h"
 #include "cmw_camera.h"
 #include "main.h"
 #include "stm32n6570_discovery_errno.h"
@@ -54,6 +55,11 @@ static struct {
 
 static void XSPI_Config(void);
 static void IAC_Config(void);
+
+static void SMPS_Config(void) {
+  BSP_SMPS_Init(SMPS_VOLTAGE_OVERDRIVE);
+  HAL_Delay(2); /* Assuming Voltage Ramp Speed of 1mV/us --> 100mV increase takes 100us */
+}
 
 static void IAC_Config(void) {
   /* Configure IAC to trap illegal access events */
@@ -114,14 +120,12 @@ static void ui_thread_entry(ULONG arg) {
 void App_Init(VOID *memory_ptr) {
   UINT tx_status;
 
+  SMPS_Config();
   LED_Config();
-
-  BSP_SMPS_Init(SMPS_VOLTAGE_OVERDRIVE);
-  HAL_Delay(2); /* Assuming Voltage Ramp Speed of 1mV/us --> 100mV increase takes 100us */
-
   XSPI_Config();
   IAC_Config();
   Buffer_Init();
+  MX_X_CUBE_AI_Init();
 
   LCD_Init();
 

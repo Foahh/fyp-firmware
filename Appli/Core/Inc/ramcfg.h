@@ -32,6 +32,8 @@ extern "C" {
 
 /* USER CODE END Includes */
 
+extern RAMCFG_HandleTypeDef hramcfg_SRAM2;
+
 extern RAMCFG_HandleTypeDef hramcfg_SRAM3;
 
 extern RAMCFG_HandleTypeDef hramcfg_SRAM4;

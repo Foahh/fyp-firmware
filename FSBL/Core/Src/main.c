@@ -53,6 +53,7 @@ void SystemClock_Config(void);
 static void MPU_Config(void);
 /* USER CODE BEGIN PFP */
 static int32_t OTP_Config(void);
+static void SMPS_Config(void);
 static void LED_Config(void);
 /* USER CODE END PFP */
 
@@ -86,6 +87,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  SMPS_Config();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -207,11 +209,11 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL2.PLLP2 = 1;
   RCC_OscInitStruct.PLL3.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL3.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL3.PLLM = 8;
-  RCC_OscInitStruct.PLL3.PLLN = 225;
+  RCC_OscInitStruct.PLL3.PLLM = 2;
+  RCC_OscInitStruct.PLL3.PLLN = 25;
   RCC_OscInitStruct.PLL3.PLLFractional = 0;
   RCC_OscInitStruct.PLL3.PLLP1 = 1;
-  RCC_OscInitStruct.PLL3.PLLP2 = 2;
+  RCC_OscInitStruct.PLL3.PLLP2 = 1;
   RCC_OscInitStruct.PLL4.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL4.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL4.PLLM = 8;
@@ -260,6 +262,11 @@ static void LED_Config(void) {
   BSP_LED_Init(LED_RED);
   BSP_LED_On(LED_GREEN);
   BSP_LED_Off(LED_RED);
+}
+
+static void SMPS_Config(void) {
+  BSP_SMPS_Init(SMPS_VOLTAGE_OVERDRIVE);
+  HAL_Delay(2); /* Assuming Voltage Ramp Speed of 1mV/us --> 100mV increase takes 100us */
 }
 
 /**
