@@ -41,7 +41,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CONFIG_SYSTEM_CLOCK
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -227,7 +226,7 @@ int main(void)
 
 void SystemClock_Config(void)
 {
-#ifdef CONFIG_SYSTEM_CLOCK
+#ifdef DEBUG
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
@@ -337,7 +336,7 @@ void SystemClock_Config(void)
   }
 #else
   SystemCoreClockUpdate();
-#endif /* CONFIG_SYSTEM_CLOCK */
+#endif /* DEBUG */
 }
 
 /* USER CODE END 4 */
@@ -387,7 +386,6 @@ void MPU_Config(void)
 
   /* Exit critical section to lock the system and avoid any issue around MPU mechanism */
   __set_PRIMASK(primask_bit);
-
 }
 
 /**

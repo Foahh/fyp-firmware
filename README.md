@@ -178,6 +178,17 @@ As a result, the camera pipeline (DCMIPP) runs with incorrect clocks and can tri
 #### Resolution
 Copy the clock configuration code from **FSBL** into the application and **enable it when running from the debugger**.
 
+```c
+void SystemClock_Config(void)
+{
+#ifdef DEBUG
+  ... // config the clock
+#else
+  SystemCoreClockUpdate();
+#endif /* DEBUG */
+}
+```
+
 ---
 
 ### 4. FSBL cannot boot into Application

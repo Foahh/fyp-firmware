@@ -4,6 +4,7 @@ $ProjectRoot = $PSScriptRoot
 $SigningTool = "STM32_SigningTool_CLI"
 $Flash = $true
 $FlashTool = "STM32_Programmer_CLI"
+$BuildType = "Release"
 
 # Function to sign a binary
 function Sign-Binary {
@@ -146,6 +147,7 @@ function Flash-Binary {
 # Main execution
 Write-Host "STM32 Binary Signing Script" -ForegroundColor Magenta
 Write-Host "Project Root: $ProjectRoot" -ForegroundColor Gray
+Write-Host "Build Type: $BuildType" -ForegroundColor Gray
 
 # Check if signing tool is available
 try {
@@ -166,9 +168,26 @@ catch {
 }
 $success = $true
 
+# Determine build directory based on build type
+$buildSubDir = if ($BuildType -eq "Release") { "Release" } else { "Debug" }
+# Fallback to root build directory if preset-based directory doesn't exist
+$fsblBuildDir = Join-Path $ProjectRoot "FSBL\build"
+$appliBuildDir = Join-Path $ProjectRoot "Appli\build"
+
+# Try preset-based directory first, then fallback to root build directory
+$fsblBinPath = Join-Path $fsblBuildDir "$buildSubDir\Firmware_FSBL.bin"
+if (-not (Test-Path $fsblBinPath)) {
+    $fsblBinPath = Join-Path $fsblBuildDir "Firmware_FSBL.bin"
+}
+
+$appliBinPath = Join-Path $appliBuildDir "$buildSubDir\Firmware_Appli.bin"
+if (-not (Test-Path $appliBinPath)) {
+    $appliBinPath = Join-Path $appliBuildDir "Firmware_Appli.bin"
+}
+
 # Sign FSBL
-$fsblBin = Join-Path $ProjectRoot "FSBL\build\Firmware_FSBL.bin"
-$fsblSigned = Join-Path $ProjectRoot "FSBL\build\Firmware_FSBL-trusted.bin"
+$fsblBin = $fsblBinPath
+$fsblSigned = Join-Path $fsblBuildDir "Firmware_FSBL-trusted.bin"
     
 if (Sign-Binary -ProjectName "FSBL" -BuildDir (Join-Path $ProjectRoot "FSBL\build") -BinFile $fsblBin -SignedBinFile $fsblSigned) {
     if ($Flash -and -not (Flash-Binary -ProjectName "FSBL" -SignedBinFile $fsblSigned -Address "0x70000000" -FlashToolPath $FlashTool)) {
@@ -180,8 +199,8 @@ else {
 }
 
 # Sign Appli
-$appliBin = Join-Path $ProjectRoot "Appli\build\Firmware_Appli.bin"
-$appliSigned = Join-Path $ProjectRoot "Appli\build\Firmware_Appli-trusted.bin"
+$appliBin = $appliBinPath
+$appliSigned = Join-Path $appliBuildDir "Firmware_Appli-trusted.bin"
     
 if (Sign-Binary -ProjectName "Appli" -BuildDir (Join-Path $ProjectRoot "Appli\build") -BinFile $appliBin -SignedBinFile $appliSigned) {
     if ($Flash -and -not (Flash-Binary -ProjectName "Appli" -SignedBinFile $appliSigned -Address "0x70100000" -FlashToolPath $FlashTool)) {
