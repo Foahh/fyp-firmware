@@ -41,7 +41,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-// #define CONFIG_SYSTEM_CLOCK
+#define CONFIG_SYSTEM_CLOCK
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -60,12 +60,12 @@ volatile uint32_t g_error_line = 0;
 static void MPU_Config(void);
 static void SystemIsolation_Config(void);
 /* USER CODE BEGIN PFP */
-void SystemClock_Config(void);
+// void SystemClock_Config(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void SystemClock_Config(void);
 /* USER CODE END 0 */
 
 /**
@@ -98,9 +98,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-#ifdef CONFIG_SYSTEM_CLOCK
-  SystemClock_Config();
-#endif /* DEBUG */
   /* USER CODE END Init */
 
   /* USER CODE BEGIN SysInit */

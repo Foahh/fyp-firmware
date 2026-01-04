@@ -21,15 +21,13 @@
 #include "utils.h"
 #include <string.h>
 
-/* Camera display buffers (RGB565) - buffering */
 uint8_t camera_display_buffers[DISPLAY_BUFFER_NB][DISPLAY_LETTERBOX_WIDTH * DISPLAY_LETTERBOX_HEIGHT * DISPLAY_BPP] ALIGN_32 IN_PSRAM;
+uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4] ALIGN_32 IN_PSRAM;
 
-/* Buffer state - accessed from ISR context */
+/* Accessed from ISR context */
 volatile int camera_display_idx = 1;
 volatile int camera_capture_idx = 0;
-
-/* UI foreground buffer (ARGB8888) */
-uint8_t ui_buffer[LCD_WIDTH * LCD_HEIGHT * 4] ALIGN_32 IN_PSRAM;
+volatile int ui_display_idx = 0;
 
 /**
  * @brief  Initialize all buffers and cache
@@ -38,9 +36,10 @@ void Buffer_Init(void) {
   memset(camera_display_buffers, 0, sizeof(camera_display_buffers));
   SCB_CleanInvalidateDCache_by_Addr((void *)camera_display_buffers, sizeof(camera_display_buffers));
 
-  memset(ui_buffer, 0, sizeof(ui_buffer));
-  SCB_CleanInvalidateDCache_by_Addr((void *)ui_buffer, sizeof(ui_buffer));
+  memset(ui_display_buffers, 0, sizeof(ui_display_buffers));
+  SCB_CleanInvalidateDCache_by_Addr((void *)ui_display_buffers, sizeof(ui_display_buffers));
 
   camera_display_idx = 1;
   camera_capture_idx = 0;
+  ui_display_idx = 0;
 }

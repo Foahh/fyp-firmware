@@ -25,12 +25,12 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
 #include "app_config.h"
+#include <stdint.h>
 
 /* Layer definitions */
-#define LCD_LAYER_0_CAMERA    0U  /* Camera preview layer */
-#define LCD_LAYER_1_UI  1U  /* UI layer */
+#define LCD_LAYER_0_CAMERA 0U /* Camera preview layer */
+#define LCD_LAYER_1_UI 1U     /* UI layer */
 
 /**
  * @brief  Initialize LTDC with dual-layer configuration
@@ -53,6 +53,22 @@ void LCD_DeInit(void);
  * @note   Fail-fast: panics on unrecoverable failures
  */
 void LCD_ReloadCameraLayer(uint8_t *frame_buffer);
+
+/**
+ * @brief  Set UI layer buffer address for drawing (without reloading display)
+ *         Use this before drawing to the back buffer
+ * @param  frame_buffer: Pointer to the buffer to draw to
+ * @note   Fail-fast: panics on unrecoverable failures
+ */
+void LCD_SetUILayerAddress(uint8_t *frame_buffer);
+
+/**
+ * @brief  Reload Layer 1 (UI) with buffer address (double buffering)
+ *         Called after UI rendering is complete
+ * @param  frame_buffer: Pointer to the next UI display buffer
+ * @note   Fail-fast: panics on unrecoverable failures
+ */
+void LCD_ReloadUILayer(uint8_t *frame_buffer);
 
 /**
  * @brief  Set Layer 1 (UI) transparency/alpha
@@ -87,4 +103,3 @@ void LCD_Reload(uint32_t reload_type);
 #endif
 
 #endif /* APP_LCD_H */
-

@@ -21,6 +21,7 @@
 #include "app_lcd.h"
 #include "app_buffers.h"
 #include "app_error.h"
+#include "stm32_lcd.h"
 #include "stm32n6570_discovery_lcd.h"
 
 static uint8_t lcd_initialized = 0;
@@ -61,8 +62,8 @@ void LCD_Init(void) {
   }
 
   APP_REQUIRE(BSP_LCD_InitEx(0, LCD_ORIENTATION_LANDSCAPE,
-                            LCD_PIXEL_FORMAT_RGB565,
-                            LCD_WIDTH, LCD_HEIGHT) == BSP_ERROR_NONE);
+                             LCD_PIXEL_FORMAT_RGB565,
+                             LCD_WIDTH, LCD_HEIGHT) == BSP_ERROR_NONE);
 
   /* Configure Layer 0: Camera preview (letterboxed) */
   camera_buf = Buffer_GetCameraDisplayBuffer(0);
@@ -73,7 +74,7 @@ void LCD_Init(void) {
                   LCD_PIXEL_FORMAT_RGB565, camera_buf);
 
   /* Configure Layer 1: UI overlay (top half) */
-  ui_buf = Buffer_GetUIBuffer();
+  ui_buf = Buffer_GetUIFrontBuffer();
   APP_REQUIRE(ui_buf != NULL);
   LCD_ConfigLayer(LCD_LAYER_1_UI,
                   0, 0,
@@ -86,6 +87,8 @@ void LCD_Init(void) {
   BSP_LCD_SetTransparency(0, LCD_LAYER_1_UI, 0);
   BSP_LCD_Reload(0, BSP_LCD_RELOAD_IMMEDIATE);
   BSP_LCD_DisplayOn(0);
+
+  UTIL_LCD_SetFuncDriver(&LCD_Driver);
 
   lcd_initialized = 1;
 }
@@ -102,21 +105,70 @@ void LCD_DeInit(void) {
 }
 
 /**
- * @brief  Reload Layer 0 with new buffer address (buffering)
+ * @brief  Reload Layer 0 (Camera) with new buffer address (buffering)
  * @param  frame_buffer: Pointer to the next display buffer
  * @note   Fail-fast: panics on unrecoverable failures
  */
 void LCD_ReloadCameraLayer(uint8_t *frame_buffer) {
+  HAL_StatusTypeDef status;
+  
   APP_REQUIRE(lcd_initialized);
   APP_REQUIRE(frame_buffer != NULL);
 
-  APP_REQUIRE_EQ(HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
-                                             LCD_LAYER_0_CAMERA),
-                 HAL_OK);
+  SCB_CleanDCache_by_Addr((void *)frame_buffer,
+                          DISPLAY_LETTERBOX_WIDTH * DISPLAY_LETTERBOX_HEIGHT * DISPLAY_BPP);
 
-  APP_REQUIRE_EQ(HAL_LTDC_ReloadLayer(&hlcd_ltdc, LTDC_RELOAD_VERTICAL_BLANKING,
-                                      LCD_LAYER_0_CAMERA),
-                 HAL_OK);
+  status = HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
+                                        LCD_LAYER_0_CAMERA);
+  APP_REQUIRE_EQ(status, HAL_OK);
+
+  status = HAL_LTDC_ReloadLayer(&hlcd_ltdc, LTDC_RELOAD_VERTICAL_BLANKING,
+                                LCD_LAYER_0_CAMERA);
+  APP_REQUIRE_EQ(status, HAL_OK);
+}
+
+/**
+ * @brief  Set UI layer buffer address for drawing (without reloading display)
+ * @param  frame_buffer: Pointer to the buffer to draw to
+ * @note   Fail-fast: panics on unrecoverable failures
+ */
+void LCD_SetUILayerAddress(uint8_t *frame_buffer) {
+  HAL_StatusTypeDef status;
+  
+  APP_REQUIRE(lcd_initialized);
+  APP_REQUIRE(frame_buffer != NULL);
+
+  __disable_irq();
+  status = HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
+                                        LCD_LAYER_1_UI);
+  __enable_irq();
+  APP_REQUIRE_EQ(status, HAL_OK);
+}
+
+/**
+ * @brief  Reload Layer 1 (UI) with new buffer address (buffering)
+ * @param  frame_buffer: Pointer to the next UI display buffer
+ * @note   Fail-fast: panics on unrecoverable failures
+ */
+void LCD_ReloadUILayer(uint8_t *frame_buffer) {
+  HAL_StatusTypeDef status;
+  
+  APP_REQUIRE(lcd_initialized);
+  APP_REQUIRE(frame_buffer != NULL);
+
+  SCB_CleanDCache_by_Addr((void *)frame_buffer, LCD_WIDTH * LCD_HEIGHT * 4);
+
+  __disable_irq();
+  status = HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
+                                        LCD_LAYER_1_UI);
+  __enable_irq();
+  APP_REQUIRE_EQ(status, HAL_OK);
+
+  __disable_irq();
+  status = HAL_LTDC_ReloadLayer(&hlcd_ltdc, LTDC_RELOAD_VERTICAL_BLANKING,
+                                LCD_LAYER_1_UI);
+  __enable_irq();
+  APP_REQUIRE_EQ(status, HAL_OK);
 }
 
 /**

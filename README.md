@@ -2,15 +2,23 @@
 
 ## TODOs
 
+### In Progress
+
+- [ ] Integrate X-CUBE-AI
+
+### Completed
+
 - [x] First LED blinking LRUN project
-- [x] ThreadX
-- [x] Camera Middleware & Single DCMIPP Pipe
-- [x] Debug & Automated build/sign/upload process
-- [x] LTDC Implementation
-- [x] Dual DCMIPP Pipes
-- [x] Camera Pipeline Implementation
-- [ ] TouchGFX integration
-- [ ] X-CUBE-AI integration
+- [x] ThreadX RTOS integration
+- [x] Camera middleware & single DCMIPP pipe
+- [x] Debug & automated build/sign/upload process
+- [x] LTDC implementation
+- [x] Dual DCMIPP pipes
+- [x] Camera pipeline implementation
+
+### Cancelled
+
+- ~~TouchGFX integration~~ (Reason: overkill)
 
 ## Bookmarks
 

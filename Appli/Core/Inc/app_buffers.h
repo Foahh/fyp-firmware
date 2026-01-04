@@ -29,8 +29,9 @@ extern "C" {
 
 extern volatile int camera_display_idx;
 extern volatile int camera_capture_idx;
+extern volatile int ui_display_idx;
 extern uint8_t camera_display_buffers[DISPLAY_BUFFER_NB][DISPLAY_LETTERBOX_WIDTH * DISPLAY_LETTERBOX_HEIGHT * DISPLAY_BPP];
-extern uint8_t ui_buffer[LCD_WIDTH * LCD_HEIGHT * 4];
+extern uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4];
 
 /**
  * @brief  Get current display buffer index
@@ -100,10 +101,54 @@ extern uint8_t ui_buffer[LCD_WIDTH * LCD_HEIGHT * 4];
   })
 
 /**
- * @brief  Get pointer to UI foreground buffer (ARGB8888)
- * @retval Pointer to the UI buffer
+ * @brief  Get current UI display buffer index
+ * @retval Current UI display buffer index (0 or 1)
  */
-#define Buffer_GetUIBuffer() (ui_buffer)
+#define Buffer_GetUIDisplayIndex() (ui_display_idx)
+
+/**
+ * @brief  Get next UI display buffer index (for double buffering)
+ * @retval Next UI display buffer index (0 or 1)
+ */
+#define Buffer_GetNextUIDisplayIndex() ((ui_display_idx) ^ 1)
+
+/**
+ * @brief  Get pointer to a specific UI display buffer (ARGB8888)
+ * @param  idx: Buffer index (0 or 1)
+ * @retval Pointer to the UI buffer, NULL if index is invalid
+ */
+#define Buffer_GetUIBuffer(idx)                              \
+  ({                                                         \
+    int _idx = (idx);                                        \
+    ((unsigned)_idx >= 2) ? NULL : ui_display_buffers[_idx]; \
+  })
+
+/**
+ * @brief  Get pointer to UI front buffer (currently displayed)
+ * @retval Pointer to the front UI buffer
+ */
+#define Buffer_GetUIFrontBuffer() (ui_display_buffers[ui_display_idx])
+
+/**
+ * @brief  Get pointer to UI back buffer (for drawing)
+ * @retval Pointer to the back UI buffer
+ */
+#define Buffer_GetUIBackBuffer() (ui_display_buffers[ui_display_idx ^ 1])
+
+/**
+ * @brief  Set UI display buffer index
+ * @param  idx: New display buffer index (0 or 1)
+ * @retval 0 on success, -1 if index is invalid
+ */
+#define Buffer_SetUIDisplayIndex(idx)          \
+  ({                                           \
+    int _idx = (idx);                          \
+    int _ret = ((unsigned)_idx >= 2) ? -1 : 0; \
+    if (_ret == 0) {                           \
+      ui_display_idx = _idx;                   \
+    }                                          \
+    _ret;                                      \
+  })
 
 /**
  * @brief  Initialize all buffers and cache

@@ -62,6 +62,9 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # ISP Library includes
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/isp/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/evision/Inc
+    # Libraries includes
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lcd
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/Fonts
 )
 
 # Camera Middleware sources
@@ -90,12 +93,17 @@ set(BSP_Driver_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/mx66uw1g45g/mx66uw1g45g.c
 )
 
+set(LIBRARIES_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lcd/stm32_lcd.c
+)
+
 # Core sources
 set(CORE_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_buffers.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_cam.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_lcd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_ui.c
 )
 
 # Add sources to executable
@@ -105,6 +113,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CORE_Src}
     ${CMW_CAMERA_Src}
     ${ISP_LIBRARY_Src}
+    ${LIBRARIES_Src}
 )
 
 # Link directories setup
