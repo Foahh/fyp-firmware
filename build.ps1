@@ -44,6 +44,39 @@ try {
         exit 1
     }
     Write-Host "Appli built successfully" -ForegroundColor Green
+    
+    # Clean old build artifacts
+    $BuildDir = Join-Path $ProjectRoot "Appli\build\Release"
+    $ProjectName = "Firmware_Appli"
+    $TrustedBin = Join-Path $BuildDir "$ProjectName-trusted.bin"
+    $OldBin = Join-Path $BuildDir "$ProjectName.bin"
+    
+    Write-Host "`n=== Cleaning old build artifacts ===" -ForegroundColor Cyan
+    if (Test-Path $TrustedBin) {
+        Remove-Item $TrustedBin -Force
+        Write-Host "Removed: $TrustedBin" -ForegroundColor Gray
+    }
+    if (Test-Path $OldBin) {
+        Remove-Item $OldBin -Force
+        Write-Host "Removed: $OldBin" -ForegroundColor Gray
+    }
+    
+    # Convert ELF to binary
+    Write-Host "`n=== Converting ELF to binary ===" -ForegroundColor Cyan
+    $ElfFile = Join-Path $BuildDir "$ProjectName.elf"
+    $BinFile = Join-Path $BuildDir "$ProjectName.bin"
+    
+    if (-not (Test-Path $ElfFile)) {
+        Write-Error "ELF file not found: $ElfFile"
+        exit 1
+    }
+    
+    arm-none-eabi-objcopy -O binary $ElfFile $BinFile
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Failed to convert ELF to binary"
+        exit 1
+    }
+    Write-Host "Converted ELF to binary: $BinFile" -ForegroundColor Green
 }
 finally {
     Pop-Location

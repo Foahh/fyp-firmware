@@ -55,6 +55,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/Common
+    # CMSIS DSP includes
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/CMSIS/DSP/Include
     # Camera Middleware includes
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/sensors
@@ -65,6 +67,9 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Libraries includes
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lcd
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/Fonts
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/ai-postprocessing-wrapper/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lock-free-ring-buffer/src
 )
 
 # Camera Middleware sources
@@ -95,6 +100,10 @@ set(BSP_Driver_Src
 
 set(LIBRARIES_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lcd/stm32_lcd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lock-free-ring-buffer/src/ring_buf.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/ai-postprocessing-wrapper/app_postprocess_od_st_yolox_uf.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Src/od_pp_st_yolox.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Src/vision_models_pp.c
 )
 
 # Core sources
@@ -139,21 +148,6 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 if((CMAKE_C_STANDARD EQUAL 90) OR (CMAKE_C_STANDARD EQUAL 99))
     message(ERROR "Generated code requires C11 or higher")
 endif()
-
-add_custom_target(clean_artifacts_${CMAKE_PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E remove -f
-        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}-trusted.bin
-        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin
-    COMMENT "Removing old build artifacts"
-    VERBATIM
-)
-
-# Convert ELF to binary
-add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${CMAKE_PROJECT_NAME}> $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/${CMAKE_PROJECT_NAME}.bin
-    COMMENT "Converting ELF to binary: ${CMAKE_PROJECT_NAME}.bin"
-    VERBATIM
-)
 
 
 
