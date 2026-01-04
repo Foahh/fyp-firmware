@@ -2,11 +2,12 @@
 /**
  ******************************************************************************
  * @file           : main.c
+ * @author         : Long Liangmao
  * @brief          : Main program body
  ******************************************************************************
  * @attention
  *
- * Copyright (c) 2025 STMicroelectronics.
+ * Copyright (c) 2026 Long Liangmao.
  * All rights reserved.
  *
  * This software is licensed under terms that can be found in the LICENSE file
@@ -21,9 +22,7 @@
 #include "main.h"
 #include "cacheaxi.h"
 #include "csi.h"
-#include "ramcfg.h"
 #include "gpio.h"
-#include "app_x-cube-ai.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -61,12 +60,18 @@ volatile uint32_t g_error_line = 0;
 static void MPU_Config(void);
 static void SystemIsolation_Config(void);
 /* USER CODE BEGIN PFP */
-// void SystemClock_Config(void);
+static void SMPS_Config(void);
+static void SystemClock_Config(void);
+static void IAC_Config(void);
+static void XSPI_Config(void);
+static void LED_Config(void);
+static void Clock_SleepMode_Config(void);
+static void NPU_Config(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void SystemClock_Config(void);
+
 /* USER CODE END 0 */
 
 /**
@@ -107,9 +112,12 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CACHEAXI_Init();
-  MX_RAMCFG_Init();
   SystemIsolation_Config();
   /* USER CODE BEGIN 2 */
+  IAC_Config();
+  SMPS_Config();
+  XSPI_Config();
+  LED_Config();
   /* USER CODE END 2 */
 
   MX_ThreadX_Init();
@@ -121,7 +129,6 @@ int main(void)
   while (1) {
     /* USER CODE END WHILE */
 
-  MX_X_CUBE_AI_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -228,7 +235,7 @@ int main(void)
 
 /* USER CODE BEGIN 4 */
 
-void SystemClock_Config(void)
+static void SystemClock_Config(void)
 {
 #ifdef DEBUG
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -348,6 +355,92 @@ void SystemClock_Config(void)
 #endif /* DEBUG */
 }
 
+static void SMPS_Config(void) {
+  BSP_SMPS_Init(SMPS_VOLTAGE_OVERDRIVE);
+  HAL_Delay(2);
+}
+
+static void IAC_Config(void) {
+  /* Configure IAC to trap illegal access events */
+  __HAL_RCC_IAC_CLK_ENABLE();
+  __HAL_RCC_IAC_FORCE_RESET();
+  __HAL_RCC_IAC_RELEASE_RESET();
+}
+
+static void XSPI_Config(void) {
+  int32_t ret = BSP_ERROR_NONE;
+
+  ret = BSP_XSPI_RAM_Init(0);
+  assert(ret == BSP_ERROR_NONE);
+
+  ret = BSP_XSPI_RAM_EnableMemoryMappedMode(0);
+  assert(ret == BSP_ERROR_NONE);
+}
+
+static void LED_Config(void) {
+  BSP_LED_Init(LED_GREEN);
+  BSP_LED_Init(LED_RED);
+  BSP_LED_Off(LED_GREEN);
+  BSP_LED_Off(LED_RED);
+}
+
+static void Clock_SleepMode_Config(void) {
+  /* Leave clocks enabled in Low Power modes */
+  // Low-power clock enable misc
+#if defined(CPU_IN_SECURE_STATE)
+  __HAL_RCC_DBG_CLK_SLEEP_ENABLE();
+#endif
+  __HAL_RCC_XSPIPHYCOMP_CLK_SLEEP_ENABLE();
+
+  // Low-power clock enable for memories
+  __HAL_RCC_AXISRAM1_MEM_CLK_SLEEP_ENABLE();
+  __HAL_RCC_AXISRAM2_MEM_CLK_SLEEP_ENABLE();
+  __HAL_RCC_AXISRAM3_MEM_CLK_SLEEP_ENABLE();
+  __HAL_RCC_AXISRAM4_MEM_CLK_SLEEP_ENABLE();
+  __HAL_RCC_AXISRAM5_MEM_CLK_SLEEP_ENABLE();
+  __HAL_RCC_AXISRAM6_MEM_CLK_SLEEP_ENABLE();
+  __HAL_RCC_FLEXRAM_MEM_CLK_SLEEP_ENABLE();
+  __HAL_RCC_CACHEAXIRAM_MEM_CLK_SLEEP_ENABLE();
+  // LP clock AHB1: None
+  // LP clock AHB2: None
+  // LP clock AHB3
+#if defined(CPU_IN_SECURE_STATE)
+  __HAL_RCC_RIFSC_CLK_SLEEP_ENABLE();
+  __HAL_RCC_RISAF_CLK_SLEEP_ENABLE();
+  __HAL_RCC_IAC_CLK_SLEEP_ENABLE();
+#endif
+  // LP clock AHB4: None
+  // LP clocks AHB5
+  __HAL_RCC_XSPI1_CLK_SLEEP_ENABLE();
+  __HAL_RCC_XSPI2_CLK_SLEEP_ENABLE();
+  __HAL_RCC_CACHEAXI_CLK_SLEEP_ENABLE();
+  __HAL_RCC_NPU_CLK_SLEEP_ENABLE();
+  // LP clocks APB1: None
+  // LP clocks APB2
+  __HAL_RCC_USART1_CLK_SLEEP_ENABLE();
+  // LP clocks APB4: None
+  // LP clocks APB5: None
+}
+
+static void NPU_Config(void) {
+  __HAL_RCC_AXISRAM2_MEM_CLK_ENABLE();
+  __HAL_RCC_AXISRAM3_MEM_CLK_ENABLE();
+  __HAL_RCC_AXISRAM4_MEM_CLK_ENABLE();
+  __HAL_RCC_AXISRAM5_MEM_CLK_ENABLE();
+  __HAL_RCC_AXISRAM6_MEM_CLK_ENABLE();
+  RAMCFG_SRAM2_AXI->CR &= ~RAMCFG_CR_SRAMSD;
+  RAMCFG_SRAM3_AXI->CR &= ~RAMCFG_CR_SRAMSD;
+  RAMCFG_SRAM4_AXI->CR &= ~RAMCFG_CR_SRAMSD;
+  RAMCFG_SRAM5_AXI->CR &= ~RAMCFG_CR_SRAMSD;
+  RAMCFG_SRAM6_AXI->CR &= ~RAMCFG_CR_SRAMSD;
+  Clock_SleepMode_Config();
+  __HAL_RCC_NPU_CLK_ENABLE();
+  __HAL_RCC_NPU_FORCE_RESET();
+  __HAL_RCC_NPU_RELEASE_RESET();
+  npu_cache_init();
+  npu_cache_enable();
+}
+
 /* USER CODE END 4 */
 
  /* MPU Configuration */
@@ -418,7 +511,7 @@ void Error_Handler(void)
   while (1) {
     error_counter++;
 
-    BSP_LED_Toggle(LED_GREEN);
+    BSP_LED_Toggle(LED_RED);
     for (volatile uint32_t i = 0; i < 4000000; i++) {
       __NOP();
     }

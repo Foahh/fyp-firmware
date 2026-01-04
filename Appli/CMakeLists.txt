@@ -12,6 +12,11 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
+# Setup C++ compiler settings
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
+
 # Define the build type
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
@@ -47,12 +52,13 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
 )
 
-# Enable CMake support for ASM and C languages
-enable_language(C ASM)
+# Enable CMake support for ASM, C, and C++ languages
+enable_language(C ASM CXX)
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/Common
     # CMSIS DSP includes
@@ -109,10 +115,15 @@ set(LIBRARIES_Src
 # Core sources
 set(CORE_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_buffers.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_cam.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_lcd.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_ui.c
+)
+
+# App sources
+set(APP_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_buffers.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cam.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_event_bus.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_lcd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_ui.c
 )
 
 # Add sources to executable
@@ -120,6 +131,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${STM32_HAL_Driver_Src}
     ${BSP_Driver_Src}
     ${CORE_Src}
+    ${APP_Src}
     ${CMW_CAMERA_Src}
     ${ISP_LIBRARY_Src}
     ${LIBRARIES_Src}

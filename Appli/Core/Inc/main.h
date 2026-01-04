@@ -2,12 +2,13 @@
 /**
   ******************************************************************************
   * @file           : main.h
+  * @author         : Long Liangmao
   * @brief          : Header for main.c file.
   *                   This file contains the common defines of the application.
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2026 Long Liangmao.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file

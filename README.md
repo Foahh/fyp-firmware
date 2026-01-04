@@ -22,6 +22,9 @@
 
 ## Bookmarks
 
+https://wiki.st.com/stm32mcu/index.php?title=AI:How_to_install_STM32_model_zoo
+
+
 ## Debug Report
 
 ### 1. `HAL_Delay()` / `HAL_GetTick()` broken after introducing ThreadX
