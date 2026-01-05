@@ -54,6 +54,7 @@ void SystemClock_Config(void);
 static int32_t OTP_Config(void);
 static void SMPS_Config(void);
 static void LED_Config(void);
+static void XSPI_Config(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -88,6 +89,7 @@ int main(void)
     Error_Handler();
   }
 
+  XSPI_Config();
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -244,6 +246,14 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+static void XSPI_Config(void) {
+  __HAL_RCC_PWR_CLK_ENABLE();
+  HAL_PWREx_EnableVddIO3();
+  HAL_PWREx_ConfigVddIORange(PWR_VDDIO3, PWR_VDDIO_RANGE_1V8);
+  HAL_PWREx_EnableVddIO2();
+  HAL_PWREx_ConfigVddIORange(PWR_VDDIO2, PWR_VDDIO_RANGE_1V8);
+}
 
 static void LED_Config(void) {
   BSP_LED_Init(LED_GREEN);

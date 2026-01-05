@@ -36,10 +36,6 @@
 #define DISPLAY_LETTERBOX_X0 (LCD_WIDTH - DISPLAY_LETTERBOX_WIDTH) /* 160 - left margin for black bars */
 #define DISPLAY_LETTERBOX_X1 LCD_WIDTH                             /* 800 - right edge */
 
-/* Delay display by DISPLAY_DELAY frame number */
-#define DISPLAY_DELAY 1
-#define DISPLAY_BUFFER_NB (DISPLAY_DELAY + 2)
-
 /* Display format and bits per pixel */
 #define DISPLAY_FORMAT DCMIPP_PIXEL_PACKER_FORMAT_RGB565_1
 #define DISPLAY_BPP 2
