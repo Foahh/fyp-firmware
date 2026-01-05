@@ -21,7 +21,7 @@ $Script:Projects = @{
     Appli = @{
         SubDir = "Appli"
         FlashAddress = "0x70100000"
-        SigningType = "appli"
+        SigningType = "fsbl"
         OffsetAddress = "0x80000000"
     }
 }
@@ -111,7 +111,7 @@ function Invoke-ProjectBuild {
     }
     Write-Host "Converted ELF to binary: $binFile" -ForegroundColor Green
     
-    return $binFile
+    return $true
 }
 #endregion
 
@@ -270,11 +270,12 @@ function Invoke-ProjectProcessing {
     
     $buildDir = Get-BuildDirectory -ProjectSubDir $ProjectConfig.SubDir
     $fullProjectName = "$Script:ProjectNamePrefix$ProjectName"
+    $binFile = Join-Path $buildDir "$fullProjectName.bin"
     $signedBinFile = Join-Path $buildDir "$fullProjectName-trusted.bin"
     
     # Build
     try {
-        $binFile = Invoke-ProjectBuild -ProjectName $ProjectName -ProjectConfig $ProjectConfig
+        Invoke-ProjectBuild -ProjectName $ProjectName -ProjectConfig $ProjectConfig
     }
     catch {
         Write-Error "Failed to build $ProjectName : $_"

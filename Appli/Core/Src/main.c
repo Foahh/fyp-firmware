@@ -24,12 +24,12 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <assert.h>
 #include "app_cam.h"
 #include "tx_api.h"
 #include "app_lcd.h"
 #include "stm32n6570_discovery_xspi.h"
 #include "npu_cache.h"
+#include <assert.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -509,7 +509,7 @@ void Error_Handler(void)
   while (1) {
     error_counter++;
 
-    BSP_LED_Toggle(LED_GREEN);
+    BSP_LED_Toggle(LED_RED);
     for (volatile uint32_t i = 0; i < 4000000; i++) {
       __NOP();
     }

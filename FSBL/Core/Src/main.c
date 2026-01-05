@@ -71,14 +71,6 @@ int main(void)
   /* USER CODE BEGIN 1 */
   /* USER CODE END 1 */
 
-  /* Enable the CPU Cache */
-
-  /* Enable I-Cache---------------------------------------------------------*/
-  SCB_EnableICache();
-
-  /* Enable D-Cache---------------------------------------------------------*/
-  SCB_EnableDCache();
-
   /* MCU Configuration--------------------------------------------------------*/
   HAL_Init();
 
@@ -348,7 +340,7 @@ void Error_Handler(void)
   __disable_irq();
 
   while (1) {
-    BSP_LED_Toggle(LED_RED);
+    BSP_LED_Toggle(LED_GREEN);
     for (volatile uint32_t i = 0; i < 4000000; i++) {
       __NOP();
     }
