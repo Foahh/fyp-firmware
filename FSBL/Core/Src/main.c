@@ -50,7 +50,6 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MPU_Config(void);
 /* USER CODE BEGIN PFP */
 static int32_t OTP_Config(void);
 static void SMPS_Config(void);
@@ -71,9 +70,6 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
   /* USER CODE END 1 */
-
-  /* MPU Configuration--------------------------------------------------------*/
-  MPU_Config();
 
   /* Enable the CPU Cache */
 
@@ -209,11 +205,11 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL2.PLLP2 = 1;
   RCC_OscInitStruct.PLL3.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL3.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL3.PLLM = 2;
-  RCC_OscInitStruct.PLL3.PLLN = 25;
+  RCC_OscInitStruct.PLL3.PLLM = 8;
+  RCC_OscInitStruct.PLL3.PLLN = 225;
   RCC_OscInitStruct.PLL3.PLLFractional = 0;
   RCC_OscInitStruct.PLL3.PLLP1 = 1;
-  RCC_OscInitStruct.PLL3.PLLP2 = 1;
+  RCC_OscInitStruct.PLL3.PLLP2 = 2;
   RCC_OscInitStruct.PLL4.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL4.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL4.PLLM = 8;
@@ -337,24 +333,6 @@ static int32_t OTP_Config(void)
 }
 
 /* USER CODE END 4 */
-
- /* MPU Configuration */
-
-void MPU_Config(void)
-{
-  uint32_t primask_bit = __get_PRIMASK();
-  __disable_irq();
-
-  /* Disables the MPU */
-  HAL_MPU_Disable();
-
-  /* Enables the MPU */
-  HAL_MPU_Enable(MPU_HFNMI_PRIVDEF);
-
-  /* Exit critical section to lock the system and avoid any issue around MPU mechanism */
-  __set_PRIMASK(primask_bit);
-
-}
 
 /**
   * @brief  This function is executed in case of error occurrence.

@@ -19,21 +19,17 @@
 /* Includes ------------------------------------------------------------------*/
 #include "app_threadx.h"
 #include "main.h"
-#include "cacheaxi.h"
 #include "csi.h"
-#include "ramcfg.h"
 #include "gpio.h"
-#include "app_x-cube-ai.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "app_cam.h"
 #include <assert.h>
+#include "app_cam.h"
 #include "tx_api.h"
-
-#include "stm32n6570_discovery_xspi.h"
 #include "app_lcd.h"
-
+#include "app_ai.h"
+#include "stm32n6570_discovery_xspi.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,12 +57,15 @@ volatile uint32_t g_error_line = 0;
 static void MPU_Config(void);
 static void SystemIsolation_Config(void);
 /* USER CODE BEGIN PFP */
-// void SystemClock_Config(void);
+void SystemClock_Config(void);
+static void SMPS_Config(void);
+static void IAC_Config(void);
+static void XSPI_Config(void);
+static void LED_Config(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void SystemClock_Config(void);
 /* USER CODE END 0 */
 
 /**
@@ -77,6 +76,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+  SMPS_Config();
   SystemClock_Config();
 
   MEMSYSCTL->MSCR |= MEMSYSCTL_MSCR_ICACTIVE_Msk;
@@ -106,10 +106,12 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_CACHEAXI_Init();
-  MX_RAMCFG_Init();
   SystemIsolation_Config();
   /* USER CODE BEGIN 2 */
+  NPU_Config();
+  IAC_Config();
+  XSPI_Config();
+  LED_Config();
   /* USER CODE END 2 */
 
   MX_ThreadX_Init();
@@ -121,7 +123,6 @@ int main(void)
   while (1) {
     /* USER CODE END WHILE */
 
-  MX_X_CUBE_AI_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -227,6 +228,34 @@ int main(void)
 }
 
 /* USER CODE BEGIN 4 */
+static void SMPS_Config(void) {
+  BSP_SMPS_Init(SMPS_VOLTAGE_OVERDRIVE);
+  HAL_Delay(2); /* Assuming Voltage Ramp Speed of 1mV/us --> 100mV increase takes 100us */
+}
+
+static void IAC_Config(void) {
+  /* Configure IAC to trap illegal access events */
+  __HAL_RCC_IAC_CLK_ENABLE();
+  __HAL_RCC_IAC_FORCE_RESET();
+  __HAL_RCC_IAC_RELEASE_RESET();
+}
+
+static void XSPI_Config(void) {
+  int32_t ret = BSP_ERROR_NONE;
+
+  ret = BSP_XSPI_RAM_Init(0);
+  assert(ret == BSP_ERROR_NONE);
+
+  ret = BSP_XSPI_RAM_EnableMemoryMappedMode(0);
+  assert(ret == BSP_ERROR_NONE);
+}
+
+static void LED_Config(void) {
+  BSP_LED_Init(LED_GREEN);
+  BSP_LED_Init(LED_RED);
+  BSP_LED_Off(LED_GREEN);
+  BSP_LED_Off(LED_RED);
+}
 
 void SystemClock_Config(void)
 {

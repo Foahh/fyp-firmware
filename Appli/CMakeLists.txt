@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.22)
 #
 
 # Setup compiler settings
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
@@ -23,7 +23,7 @@ message("Build type: " ${CMAKE_BUILD_TYPE})
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 # Compiler options
-set(STM32_MCU_FLAGS  "-mcpu=cortex-m55 -mfpu=fpv5-d16 -mfloat-abi=hard -mcmse " )
+set(STM32_MCU_FLAGS  "-mcpu=cortex-m55 -mfpu=fpv5-d16 -mfloat-abi=hard -mcmse" )
 
 #Linker options
 set(STM32_LINKER_SCRIPT STM32N657XX_LRUN.ld)
@@ -42,9 +42,18 @@ include("mx-generated.cmake")
 # In order to use CMake for cross-compiling
 set(CMAKE_CXX_COMPILER_FORCED "true")
 
+
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined symbols
+    # AI Library platform configuration
+	LL_ATON_PLATFORM=LL_ATON_PLAT_STM32N6
+	LL_ATON_OSAL=LL_ATON_OSAL_THREADX
+	LL_ATON_RT_MODE=LL_ATON_RT_ASYNC
+    APP_HAS_PARALLEL_NETWORKS=0
+    LL_ATON_SW_FALLBACK
+    $<$<CONFIG:Debug>:LL_ATON_DUMP_DEBUG_API>
+	$<$<CONFIG:Debug>:LL_ATON_EB_DBG_INFO>
+    $<IF:$<CONFIG:Debug>,LL_ATON_DBG_BUFFER_INFO_EXCLUDED=0,LL_ATON_DBG_BUFFER_INFO_EXCLUDED=1>
 )
 
 # Enable CMake support for ASM and C languages
@@ -53,9 +62,11 @@ enable_language(C ASM)
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/Common
-    # CMSIS DSP includes
+    # CMSIS includes
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/CMSIS/Device/ST/STM32N6xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/CMSIS/DSP/Include
     # Camera Middleware includes
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera
@@ -70,6 +81,10 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/ai-postprocessing-wrapper/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lock-free-ring-buffer/src
+    # AI Library includes
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/Devices/STM32N6xx
 )
 
 # Camera Middleware sources
@@ -101,34 +116,61 @@ set(BSP_Driver_Src
 set(LIBRARIES_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lcd/stm32_lcd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lock-free-ring-buffer/src/ring_buf.c
+)
+
+set(AI_POSTPROCESSING_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/ai-postprocessing-wrapper/app_postprocess_od_st_yolox_uf.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Src/od_pp_st_yolox.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Src/vision_models_pp.c
 )
 
-# Core sources
-set(CORE_Src
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_buffers.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_cam.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_lcd.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_ui.c
+# AI NPU Library sources
+set(AI_NPU_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ecloader.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_cipher.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_dbgtrc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_debug.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_lib.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_lib_sw_operators.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_osal_threadx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_profiler.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_reloc_callbacks.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_reloc_network.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_rt_main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_runtime.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_util.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_sw_float.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_sw_integer.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/Devices/STM32N6XX/mcu_cache.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/Devices/STM32N6XX/npu_cache.c
 )
 
-# Add sources to executable
+set(APP_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_ai.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_buffers.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cam.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_lcd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_ui.c
+)
+
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${STM32_HAL_Driver_Src}
     ${BSP_Driver_Src}
-    ${CORE_Src}
+    ${APP_Src}
     ${CMW_CAMERA_Src}
     ${ISP_LIBRARY_Src}
     ${LIBRARIES_Src}
+    ${AI_POSTPROCESSING_Src}
+    ${AI_NPU_Src}
 )
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/evision/Lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Lib
 )
 
 # Add linked libraries (using plain signature to match mx-generated.cmake)
@@ -137,6 +179,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     # ISP evision static libraries (Auto Exposure & Auto White Balance)
     :libn6-evision-st-ae_gcc.a
     :libn6-evision-awb_gcc.a
+    # AI Network Runtime library
+    :NetworkRuntime1100_CM55_GCC.a
     # Math library required by evision libraries
     m
 )

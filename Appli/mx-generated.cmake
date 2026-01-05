@@ -4,13 +4,6 @@ cmake_minimum_required(VERSION 3.22)
 set(MX_Defines_Syms 
 	USE_HAL_DRIVER 
 	STM32N657xx 
-	LL_ATON_DUMP_DEBUG_API 
-	LL_ATON_PLATFORM=LL_ATON_PLAT_STM32N6 
-	LL_ATON_OSAL=LL_ATON_OSAL_BARE_METAL 
-	LL_ATON_RT_MODE=LL_ATON_RT_ASYNC 
-	LL_ATON_SW_FALLBACK 
-	LL_ATON_EB_DBG_INFO 
-	LL_ATON_DBG_BUFFER_INFO_EXCLUDED=1 
 	TX_INCLUDE_USER_DEFINE_FILE 
 	TX_SINGLE_MODE_SECURE=1
     $<$<CONFIG:Debug>:DEBUG>
@@ -18,14 +11,8 @@ set(MX_Defines_Syms
 # STM32CubeMX generated include paths
 set(MX_Include_Dirs
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/X-CUBE-AI/App
-    ${CMAKE_CURRENT_SOURCE_DIR}/X-CUBE-AI
     ${CMAKE_CURRENT_SOURCE_DIR}/AZURE_RTOS/App
     ${CMAKE_CURRENT_SOURCE_DIR}/../Secure_nsclib
-    ${CMAKE_CURRENT_SOURCE_DIR}/../X-CUBE-AI/App
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/Devices/STM32N6XX
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/CMSIS/Device/ST/STM32N6xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Inc/Legacy
@@ -39,17 +26,13 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/tx_initialize_low_level.S
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/cacheaxi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/csi.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/ramcfg.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_threadx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_hal_msp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/secure_nsc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/sysmem.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/syscalls.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Appli/X-CUBE-AI/App/od_yolo_x_person.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/X-CUBE-AI/App/app_x-cube-ai.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/startup_stm32n657xx.s
 )
 
@@ -79,33 +62,10 @@ set(STM32_Drivers_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_usart_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rif.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_cacheaxi.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_ramcfg.c
 )
 
 # Drivers Midllewares
 
-set(ST_Src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ecloader.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_cipher.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_dbgtrc.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_debug.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_lib.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_lib_sw_operators.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_osal_freertos.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_osal_threadx.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_osal_zephyr.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_profiler.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_reloc_callbacks.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_reloc_network.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_rt_main.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_runtime.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_aton_util.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_sw_float.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/ll_aton/ll_sw_integer.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/Devices/STM32N6XX/mcu_cache.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Npu/Devices/STM32N6XX/npu_cache.c
-)
 set(threadx_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_secure_stack_initialize.S
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_secure_stack_allocate.S
@@ -282,16 +242,12 @@ set(threadx_Src
 # Link directories setup
 set(MX_LINK_DIRS
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/AI/Lib
 )
 # Project libraries
-set (MX_LINK_LIBS  
-	:NetworkRuntime1020_CM55_GCC.a
+set (MX_LINK_LIBS 
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
-    ST
-	threadx
-	
+    threadx	
 )
 # Interface library for includes and symbols
 add_library(stm32cubemx INTERFACE)
@@ -302,11 +258,6 @@ target_compile_definitions(stm32cubemx INTERFACE ${MX_Defines_Syms})
 add_library(STM32_Drivers OBJECT)
 target_sources(STM32_Drivers PRIVATE ${STM32_Drivers_Src})
 target_link_libraries(STM32_Drivers PUBLIC stm32cubemx)
-
-# Create ST static library
-add_library(ST OBJECT)
-target_sources(ST PRIVATE ${ST_Src})
-target_link_libraries(ST PUBLIC stm32cubemx)
 
 # Create threadx static library
 add_library(threadx OBJECT)
