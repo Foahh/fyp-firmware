@@ -1,66 +1,183 @@
 $ErrorActionPreference = "Stop"
 
-$ProjectRoot = $PSScriptRoot
-$SigningTool = "STM32_SigningTool_CLI"
-$Flash = $true
-$FlashTool = "STM32_Programmer_CLI"
-$BuildType = "Release"
+#region Configuration
+$Script:ProjectRoot = $PSScriptRoot
+$Script:SigningTool = "STM32_SigningTool_CLI"
+$Script:Flash = $true
+$Script:FlashTool = "STM32_Programmer_CLI"
+$Script:BuildType = "Release"
+$Script:ProjectNamePrefix = "Firmware_"
+$Script:ObjCopyTool = "arm-none-eabi-objcopy"
+$Script:ExternalLoaderName = "MX66UW1G45G_STM32N6570-DK.stldr"
 
-# Function to sign a binary
-function Sign-Binary {
+# Project configurations
+$Script:Projects = @{
+    FSBL = @{
+        SubDir = "FSBL"
+        FlashAddress = "0x70000000"
+        SigningType = "fsbl"
+        OffsetAddress = "0x80000000"
+    }
+    Appli = @{
+        SubDir = "Appli"
+        FlashAddress = "0x70100000"
+        SigningType = "appli"
+        OffsetAddress = "0x80000000"
+    }
+}
+#endregion
+
+#region Helper Functions
+function Test-CommandExists {
+    param([string]$CommandName)
+    
+    try {
+        $null = Get-Command $CommandName -ErrorAction Stop
+        return $true
+    }
+    catch {
+        return $false
+    }
+}
+
+function Write-SectionHeader {
+    param(
+        [string]$Message,
+        [string]$Color = "Cyan"
+    )
+    Write-Host "`n=== $Message ===" -ForegroundColor $Color
+}
+
+function Get-BuildDirectory {
+    param([string]$ProjectSubDir)
+    return Join-Path $Script:ProjectRoot "$ProjectSubDir\build\$Script:BuildType"
+}
+#endregion
+
+#region Build Functions
+function Invoke-ProjectBuild {
     param(
         [string]$ProjectName,
-        [string]$BuildDir,
-        [string]$BinFile,
-        [string]$SignedBinFile
+        [hashtable]$ProjectConfig
     )
     
-    Write-Host "`n=== Signing $ProjectName ===" -ForegroundColor Cyan
+    $projectDir = Join-Path $Script:ProjectRoot $ProjectConfig.SubDir
+    $buildDir = Get-BuildDirectory -ProjectSubDir $ProjectConfig.SubDir
+    $fullProjectName = "$Script:ProjectNamePrefix$ProjectName"
+    
+    Write-SectionHeader "Configuring $ProjectName ($Script:BuildType)"
+    Push-Location $projectDir
+    try {
+        # Configure
+        cmake --preset $Script:BuildType
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to configure $ProjectName"
+        }
+        
+        # Build
+        Write-SectionHeader "Building $ProjectName ($Script:BuildType)"
+        cmake --build --preset $Script:BuildType
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to build $ProjectName"
+        }
+        Write-Host "$ProjectName built successfully" -ForegroundColor Green
+    }
+    finally {
+        Pop-Location
+    }
+    
+    # Clean old build artifacts
+    Write-SectionHeader "Cleaning old $ProjectName build artifacts"
+    $trustedBin = Join-Path $buildDir "$fullProjectName-trusted.bin"
+    $oldBin = Join-Path $buildDir "$fullProjectName.bin"
+    
+    @($trustedBin, $oldBin) | Where-Object { Test-Path $_ } | ForEach-Object {
+        Remove-Item $_ -Force
+        Write-Host "Removed: $_" -ForegroundColor Gray
+    }
+    
+    # Convert ELF to binary
+    Write-SectionHeader "Converting $ProjectName ELF to binary"
+    $elfFile = Join-Path $buildDir "$fullProjectName.elf"
+    $binFile = Join-Path $buildDir "$fullProjectName.bin"
+    
+    if (-not (Test-Path $elfFile)) {
+        throw "ELF file not found: $elfFile"
+    }
+    
+    & $Script:ObjCopyTool -O binary $elfFile $binFile
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to convert $ProjectName ELF to binary"
+    }
+    Write-Host "Converted ELF to binary: $binFile" -ForegroundColor Green
+    
+    return $binFile
+}
+#endregion
 
-    # Check if binary file exists (should be created by CMake post-build)
+#region Signing Functions
+function Invoke-BinarySign {
+    param(
+        [string]$ProjectName,
+        [string]$BinFile,
+        [string]$SignedBinFile,
+        [hashtable]$ProjectConfig
+    )
+    
+    Write-SectionHeader "Signing $ProjectName"
+    
     if (-not (Test-Path $BinFile)) {
         Write-Error "Binary file not found: $BinFile. Please build the project first."
         return $false
     }
-
+    
     Write-Host "Using binary file: $BinFile" -ForegroundColor Green
-
+    
     # Remove the signed binary if it exists
     if (Test-Path $SignedBinFile) {
         Remove-Item $SignedBinFile -Force
     }
-
+    
     # Sign the binary
-    Write-Host "Signing binary with type: $SigningType..." -ForegroundColor Yellow
+    Write-Host "Signing binary with type: $($ProjectConfig.SigningType)..." -ForegroundColor Yellow
     $signingArgs = @(
         "-bin", $BinFile,
         "-nk",
-        "-of", "0x80000000",
-        "-t", "fsbl",
+        "-of", $ProjectConfig.OffsetAddress,
+        "-t", $ProjectConfig.SigningType,
         "-o", $SignedBinFile,
         "-hv", "2.3",
         "-dump", $SignedBinFile,
         "-align"
     )
-    $output = & $SigningTool $signingArgs 2>&1
-    $exitCode = $LASTEXITCODE
-    $output | ForEach-Object { Write-Host $_ }
-    if ($exitCode -ne 0) {
-        Write-Error "Failed to sign binary (exit code: $exitCode)"
+    
+    try {
+        $output = & $Script:SigningTool $signingArgs 2>&1
+        $exitCode = $LASTEXITCODE
+        $output | ForEach-Object { Write-Host $_ }
+        
+        if ($exitCode -ne 0) {
+            Write-Error "Failed to sign binary (exit code: $exitCode)"
+            return $false
+        }
+        
+        Write-Host "Signed binary created: $SignedBinFile" -ForegroundColor Green
+        return $true
+    }
+    catch {
+        Write-Error "Error executing signing tool: $_"
         return $false
     }
-    Write-Host "Signed binary created: $SignedBinFile" -ForegroundColor Green
-    
-    return $true
 }
+#endregion
 
-# Function to find external loader
+#region Flash Functions
 function Get-ExternalLoader {
-    # Try to find STM32CubeProgrammer installation
+    # Try common installation paths
     $possiblePaths = @(
-        "${env:ProgramFiles}\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\ExternalLoader\MX66UW1G45G_STM32N6570-DK.stldr",
-        "${env:ProgramFiles(x86)}\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\ExternalLoader\MX66UW1G45G_STM32N6570-DK.stldr",
-        "$env:LOCALAPPDATA\Programs\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\ExternalLoader\MX66UW1G45G_STM32N6570-DK.stldr"
+        "${env:ProgramFiles}\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\ExternalLoader\$Script:ExternalLoaderName",
+        "${env:ProgramFiles(x86)}\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\ExternalLoader\$Script:ExternalLoaderName",
+        "$env:LOCALAPPDATA\Programs\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\ExternalLoader\$Script:ExternalLoaderName"
     )
     
     foreach ($path in $possiblePaths) {
@@ -71,9 +188,9 @@ function Get-ExternalLoader {
     
     # Try to find from STM32_Programmer_CLI location
     try {
-        $programmerPath = (Get-Command "STM32_Programmer_CLI" -ErrorAction Stop).Source
+        $programmerPath = (Get-Command $Script:FlashTool -ErrorAction Stop).Source
         $programmerDir = Split-Path $programmerPath -Parent
-        $externalLoader = Join-Path $programmerDir "ExternalLoader\MX66UW1G45G_STM32N6570-DK.stldr"
+        $externalLoader = Join-Path $programmerDir "ExternalLoader\$Script:ExternalLoaderName"
         if (Test-Path $externalLoader) {
             return $externalLoader
         }
@@ -85,18 +202,15 @@ function Get-ExternalLoader {
     return $null
 }
 
-# Function to flash a binary using ST-Link
-function Flash-Binary {
+function Invoke-BinaryFlash {
     param(
         [string]$ProjectName,
         [string]$SignedBinFile,
-        [string]$Address,
-        [string]$FlashToolPath
+        [string]$Address
     )
     
-    Write-Host "`n=== Flashing $ProjectName ===" -ForegroundColor Cyan
+    Write-SectionHeader "Flashing $ProjectName"
     
-    # Check if signed binary file exists
     if (-not (Test-Path $SignedBinFile)) {
         Write-Error "Signed binary file not found: $SignedBinFile. Please sign the binary first."
         return $false
@@ -109,7 +223,7 @@ function Flash-Binary {
     $externalLoader = Get-ExternalLoader
     if (-not $externalLoader) {
         Write-Warning "External loader not found. Attempting to flash without external loader (may fail for external flash)."
-        Write-Warning "Expected location: ...\STM32CubeProgrammer\bin\ExternalLoader\MX66UW1G45G_STM32N6570-DK.stldr"
+        Write-Warning "Expected location: ...\STM32CubeProgrammer\bin\ExternalLoader\$Script:ExternalLoaderName"
     }
     else {
         Write-Host "Using external loader: $externalLoader" -ForegroundColor Green
@@ -128,13 +242,15 @@ function Flash-Binary {
     $flashArgs += "-hardRst", "-w", $SignedBinFile, $Address
     
     try {
-        $output = & $FlashToolPath $flashArgs 2>&1
+        $output = & $Script:FlashTool $flashArgs 2>&1
         $exitCode = $LASTEXITCODE
         $output | ForEach-Object { Write-Host $_ }
+        
         if ($exitCode -ne 0) {
             Write-Error "Failed to flash binary (exit code: $exitCode)"
             return $false
         }
+        
         Write-Host "Binary flashed successfully at address $Address" -ForegroundColor Green
         return $true
     }
@@ -143,81 +259,92 @@ function Flash-Binary {
         return $false
     }
 }
+#endregion
 
-# Main execution
-Write-Host "STM32 Binary Signing Script" -ForegroundColor Magenta
-Write-Host "Project Root: $ProjectRoot" -ForegroundColor Gray
-Write-Host "Build Type: $BuildType" -ForegroundColor Gray
-
-# Check if signing tool is available
-try {
-    $null = Get-Command $SigningTool -ErrorAction Stop
+#region Main Processing
+function Invoke-ProjectProcessing {
+    param(
+        [string]$ProjectName,
+        [hashtable]$ProjectConfig
+    )
+    
+    $buildDir = Get-BuildDirectory -ProjectSubDir $ProjectConfig.SubDir
+    $fullProjectName = "$Script:ProjectNamePrefix$ProjectName"
+    $signedBinFile = Join-Path $buildDir "$fullProjectName-trusted.bin"
+    
+    # Build
+    try {
+        $binFile = Invoke-ProjectBuild -ProjectName $ProjectName -ProjectConfig $ProjectConfig
+    }
+    catch {
+        Write-Error "Failed to build $ProjectName : $_"
+        return $false
+    }
+    
+    # Sign
+    if (-not (Invoke-BinarySign -ProjectName $ProjectName -BinFile $binFile -SignedBinFile $signedBinFile -ProjectConfig $ProjectConfig)) {
+        return $false
+    }
+    
+    # Flash (if enabled)
+    if ($Script:Flash) {
+        if (-not (Invoke-BinaryFlash -ProjectName $ProjectName -SignedBinFile $signedBinFile -Address $ProjectConfig.FlashAddress)) {
+            return $false
+        }
+    }
+    
+    return $true
 }
-catch {
-    Write-Error "Signing tool not found: $SigningTool. Please ensure it's in your PATH."
+
+function Test-Prerequisites {
+    $allValid = $true
+    
+    if (-not (Test-CommandExists -CommandName $Script:SigningTool)) {
+        Write-Error "Signing tool not found: $Script:SigningTool. Please ensure it's in your PATH."
+        $allValid = $false
+    }
+    
+    if ($Script:Flash -and -not (Test-CommandExists -CommandName $Script:FlashTool)) {
+        Write-Error "Flash tool not found: $Script:FlashTool. Please ensure STM32CubeProgrammer is installed and in your PATH."
+        $allValid = $false
+    }
+    
+    if (-not (Test-CommandExists -CommandName $Script:ObjCopyTool)) {
+        Write-Error "Objcopy tool not found: $Script:ObjCopyTool. Please ensure ARM toolchain is in your PATH."
+        $allValid = $false
+    }
+    
+    return $allValid
+}
+#endregion
+
+#region Main Execution
+Write-Host "STM32 Binary Signing and Flashing Script" -ForegroundColor Magenta
+Write-Host "Project Root: $Script:ProjectRoot" -ForegroundColor Gray
+Write-Host "Build Type: $Script:BuildType" -ForegroundColor Gray
+Write-Host "Flash Enabled: $Script:Flash" -ForegroundColor Gray
+
+# Validate prerequisites
+if (-not (Test-Prerequisites)) {
     exit 1
 }
 
-# Check if flash tool is available (if flashing is requested)
-try {
-    $null = Get-Command $FlashTool -ErrorAction Stop
-}
-catch {
-    Write-Error "Flash tool not found: $FlashTool. Please ensure STM32CubeProgrammer is installed and in your PATH."
-    exit 1
-}
-$success = $true
-
-# Determine build directory based on build type
-$buildSubDir = if ($BuildType -eq "Release") { "Release" } else { "Debug" }
-# Fallback to root build directory if preset-based directory doesn't exist
-$fsblBuildDir = Join-Path $ProjectRoot "FSBL\build"
-$appliBuildDir = Join-Path $ProjectRoot "Appli\build"
-
-# Try preset-based directory first, then fallback to root build directory
-$fsblBinPath = Join-Path $fsblBuildDir "$buildSubDir\Firmware_FSBL.bin"
-if (-not (Test-Path $fsblBinPath)) {
-    $fsblBinPath = Join-Path $fsblBuildDir "Firmware_FSBL.bin"
-}
-
-$appliBinPath = Join-Path $appliBuildDir "$buildSubDir\Firmware_Appli.bin"
-if (-not (Test-Path $appliBinPath)) {
-    $appliBinPath = Join-Path $appliBuildDir "Firmware_Appli.bin"
-}
-
-# Sign FSBL
-$fsblBin = $fsblBinPath
-$fsblSigned = Join-Path $fsblBuildDir "Firmware_FSBL-trusted.bin"
-    
-if (Sign-Binary -ProjectName "FSBL" -BuildDir (Join-Path $ProjectRoot "FSBL\build") -BinFile $fsblBin -SignedBinFile $fsblSigned) {
-    if ($Flash -and -not (Flash-Binary -ProjectName "FSBL" -SignedBinFile $fsblSigned -Address "0x70000000" -FlashToolPath $FlashTool)) {
-        $success = $false
+# Process all projects
+$allSucceeded = $true
+foreach ($projectName in $Script:Projects.Keys) {
+    Write-SectionHeader "Processing $projectName" -Color Magenta
+    if (-not (Invoke-ProjectProcessing -ProjectName $projectName -ProjectConfig $Script:Projects[$projectName])) {
+        $allSucceeded = $false
     }
 }
-else {
-    $success = $false
-}
 
-# Sign Appli
-$appliBin = $appliBinPath
-$appliSigned = Join-Path $appliBuildDir "Firmware_Appli-trusted.bin"
-    
-if (Sign-Binary -ProjectName "Appli" -BuildDir (Join-Path $ProjectRoot "Appli\build") -BinFile $appliBin -SignedBinFile $appliSigned) {
-    if ($Flash -and -not (Flash-Binary -ProjectName "Appli" -SignedBinFile $appliSigned -Address "0x70100000" -FlashToolPath $FlashTool)) {
-        $success = $false
-    }
-}
-else {
-    $success = $false
-}
-
-# Check if the operation was successful
-if ($success) {
-    Write-Host "`n=== Operation completed successfully ===" -ForegroundColor Green
+# Final status
+if ($allSucceeded) {
+    Write-SectionHeader "Operation completed successfully" -Color Green
     exit 0
 }
 else {
-    Write-Host "`n=== Operation completed with errors ===" -ForegroundColor Red
+    Write-SectionHeader "Operation completed with errors" -Color Red
     exit 1
 }
-
+#endregion

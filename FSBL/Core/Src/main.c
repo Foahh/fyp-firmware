@@ -52,6 +52,7 @@
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 static int32_t OTP_Config(void);
+static void SMPS_Config(void);
 static void LED_Config(void);
 /* USER CODE END PFP */
 
@@ -70,11 +71,19 @@ int main(void)
   /* USER CODE BEGIN 1 */
   /* USER CODE END 1 */
 
+  /* Enable the CPU Cache */
+
+  /* Enable I-Cache---------------------------------------------------------*/
+  SCB_EnableICache();
+
+  /* Enable D-Cache---------------------------------------------------------*/
+  SCB_EnableDCache();
+
   /* MCU Configuration--------------------------------------------------------*/
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  SMPS_Config();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -249,6 +258,11 @@ static void LED_Config(void) {
   BSP_LED_Init(LED_RED);
   BSP_LED_On(LED_GREEN);
   BSP_LED_Off(LED_RED);
+}
+
+static void SMPS_Config(void) {
+  BSP_SMPS_Init(SMPS_VOLTAGE_OVERDRIVE);
+  HAL_Delay(2); /* Assuming Voltage Ramp Speed of 1mV/us --> 100mV increase takes 100us */
 }
 
 /**

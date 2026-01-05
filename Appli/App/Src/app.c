@@ -20,10 +20,8 @@
 #include "app_buffers.h"
 #include "app_cam.h"
 #include "app_config.h"
-#include "app_event_bus.h"
 #include "app_lcd.h"
 #include "app_ui.h"
-#include "app_x-cube-ai.h"
 #include "cmw_camera.h"
 #include "main.h"
 #include "stm32n6570_discovery_errno.h"
@@ -52,6 +50,8 @@ static struct {
   TX_THREAD thread;
   UCHAR stack[IDLE_THREAD_STACK_SIZE];
 } idle_ctx;
+
+
 
 /**
  * @brief  Idle measurement thread entry
@@ -87,9 +87,6 @@ static void ui_thread_entry(ULONG arg) {
 
 void App_Init(VOID *memory_ptr) {
   UINT tx_status;
-
-  tx_status = event_bus_init();
-  assert(tx_status == TX_SUCCESS);
 
   Buffer_Init();
   LCD_Init();
