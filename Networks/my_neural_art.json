@@ -2,8 +2,8 @@
     "Globals": {
     },
     "Profiles": {
-        "default": {
-            "memory_pool": "./configs/stm32n6.mpool",
+        "object_detection": {
+            "memory_pool": "./configs/stm32n6_od.mpool",
             "options" : "--enable-epoch-controller -O3 --all-buffers-info --cache-maintenance --Oalt-sched --native-float --Omax-ca-pipe 4 --Ocache-opt --Os"
         }
     }

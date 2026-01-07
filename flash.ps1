@@ -212,13 +212,18 @@ function Invoke-BinaryFlash {
     Write-SectionHeader "Flashing $ProjectName"
     
     if (-not (Test-Path $SignedBinFile)) {
-        Write-Error "Signed binary file not found: $SignedBinFile. Please sign the binary first."
+        Write-Error "Image file not found: $SignedBinFile. Please sign/convert the binary first."
+        return $false
+    }
+
+    # Enforce HEX images for flashing, which already embed absolute addresses.
+    if (-not $SignedBinFile.ToLower().EndsWith(".hex")) {
+        Write-Error "Only Intel HEX images are supported for flashing. Got: $SignedBinFile"
         return $false
     }
     
-    Write-Host "Using signed binary: $SignedBinFile" -ForegroundColor Green
-    Write-Host "Target address: $Address" -ForegroundColor Green
-    
+    Write-Host "Using image file: $SignedBinFile" -ForegroundColor Green
+
     # Get external loader for XSPI flash
     $externalLoader = Get-ExternalLoader
     if (-not $externalLoader) {
@@ -229,8 +234,8 @@ function Invoke-BinaryFlash {
         Write-Host "Using external loader: $externalLoader" -ForegroundColor Green
     }
     
-    # Flash the binary using STM32_Programmer_CLI
-    Write-Host "Flashing binary to external flash..." -ForegroundColor Yellow
+    # Flash the image using STM32_Programmer_CLI
+    Write-Host "Flashing HEX image to external flash..." -ForegroundColor Yellow
     $flashArgs = @(
         "-c", "port=SWD mode=HOTPLUG ap=1"
     )
@@ -239,7 +244,7 @@ function Invoke-BinaryFlash {
         $flashArgs += "-el", $externalLoader
     }
     
-    $flashArgs += "-hardRst", "-w", $SignedBinFile, $Address
+    $flashArgs += "-hardRst", "-w", $SignedBinFile
     
     try {
         $output = & $Script:FlashTool $flashArgs 2>&1
@@ -272,6 +277,7 @@ function Invoke-ProjectProcessing {
     $fullProjectName = "$Script:ProjectNamePrefix$ProjectName"
     $binFile = Join-Path $buildDir "$fullProjectName.bin"
     $signedBinFile = Join-Path $buildDir "$fullProjectName-trusted.bin"
+    $signedHexFile = Join-Path $buildDir "$fullProjectName-trusted.hex"
     
     # Build
     try {
@@ -286,10 +292,27 @@ function Invoke-ProjectProcessing {
     if (-not (Invoke-BinarySign -ProjectName $ProjectName -BinFile $binFile -SignedBinFile $signedBinFile -ProjectConfig $ProjectConfig)) {
         return $false
     }
-    
-    # Flash (if enabled)
+
+    # Convert the signed binary to an Intel HEX file with the correct base address
+    Write-SectionHeader "Converting signed binary to HEX (base address $($ProjectConfig.FlashAddress))"
+
+    # Remove existing HEX if present
+    if (Test-Path $signedHexFile) {
+        Remove-Item $signedHexFile -Force
+    }
+
+    # arm-none-eabi-objcopy -I binary -O ihex --change-addresses <flash_addr> in.bin out.hex
+    & $Script:ObjCopyTool -I binary -O ihex --change-addresses $ProjectConfig.FlashAddress $signedBinFile $signedHexFile
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $signedHexFile)) {
+        Write-Error "Failed to convert signed binary to HEX for $ProjectName"
+        return $false
+    }
+
+    Write-Host "HEX image created: $signedHexFile" -ForegroundColor Green
+    $imageForFlashing = $signedHexFile
+
     if ($Script:Flash) {
-        if (-not (Invoke-BinaryFlash -ProjectName $ProjectName -SignedBinFile $signedBinFile -Address $ProjectConfig.FlashAddress)) {
+        if (-not (Invoke-BinaryFlash -ProjectName $ProjectName -SignedBinFile $imageForFlashing -Address $ProjectConfig.FlashAddress)) {
             return $false
         }
     }

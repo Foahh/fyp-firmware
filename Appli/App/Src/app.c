@@ -20,6 +20,7 @@
 #include "app_buffers.h"
 #include "app_cam.h"
 #include "app_config.h"
+#include "app_event_bus.h"
 #include "app_lcd.h"
 #include "app_ui.h"
 #include "cmw_camera.h"
