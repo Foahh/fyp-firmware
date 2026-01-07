@@ -2,4 +2,4 @@ build/
 .cache/
 *.tmp
 .idea/
-Writings/Midterm/
+cmake-build-debug/

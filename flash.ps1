@@ -442,8 +442,6 @@ if (-not (Test-Prerequisites)) {
     exit 1
 }
 
-# Process projects in order: FSBL first, then Appli
-# According to README: FSBL -> Network Data -> Application
 $allSucceeded = $true
 
 # Process FSBL first
