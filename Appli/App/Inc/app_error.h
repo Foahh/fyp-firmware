@@ -55,11 +55,6 @@ static inline void APP_Panic(const char *file, uint32_t line) {
     }                                          \
   } while (0)
 
-/**
- * @brief  Helper to require an expression equals an expected value.
- *         Useful for HAL/ThreadX/BSP status checks without including their headers.
- */
-#define APP_REQUIRE_EQ(expr, expected) APP_REQUIRE((expr) == (expected))
 
 #ifdef __cplusplus
 }

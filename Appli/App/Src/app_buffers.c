@@ -21,16 +21,25 @@
 #include "utils.h"
 #include <string.h>
 
+/* ============================================================================
+ * Global State Variables
+ * ============================================================================ */
+
 uint8_t camera_display_buffers[3][DISPLAY_LETTERBOX_WIDTH * DISPLAY_LETTERBOX_HEIGHT * DISPLAY_BPP] ALIGN_32 IN_PSRAM;
 uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4] ALIGN_32 IN_PSRAM;
 
-/* Accessed from ISR context */
+/* Buffer indices - accessed from ISR context */
 volatile int camera_display_idx = 1;
 volatile int camera_capture_idx = 0;
 volatile int ui_display_idx = 0;
 
+/* ============================================================================
+ * Public API Functions
+ * ============================================================================ */
+
 /**
  * @brief  Initialize all buffers and cache
+ *         Clears buffers and invalidates cache for proper initialization
  */
 void Buffer_Init(void) {
   memset(camera_display_buffers, 0, sizeof(camera_display_buffers));

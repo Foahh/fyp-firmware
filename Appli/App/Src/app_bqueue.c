@@ -19,15 +19,19 @@
 #include "app_bqueue.h"
 #include "stm32n6xx_hal.h"
 #include "app_error.h"
+#include "utils.h"
+
+/* ============================================================================
+ * Public API Functions
+ * ============================================================================ */
 
 /**
- * @brief  Check if currently in interrupt context
- * @retval 1 if in ISR, 0 otherwise
+ * @brief  Initialize a buffer queue
+ * @param  bq: Pointer to buffer queue structure
+ * @param  buffer_nb: Number of buffers (1 to BQUEUE_MAX_BUFFERS)
+ * @param  buffers: Array of buffer pointers
+ * @retval 0 on success, -1 on error
  */
-static inline int is_in_isr(void) {
-  return (__get_IPSR() != 0);
-}
-
 int bqueue_init(bqueue_t *bq, int buffer_nb, uint8_t *buffers[]) {
   UINT status;
 
@@ -39,13 +43,11 @@ int bqueue_init(bqueue_t *bq, int buffer_nb, uint8_t *buffers[]) {
     return -1;
   }
 
-  /* Create free semaphore - initially all buffers are free */
   status = tx_semaphore_create(&bq->free_sem, "bq_free", (ULONG)buffer_nb);
   if (status != TX_SUCCESS) {
     return -1;
   }
 
-  /* Create ready semaphore - initially no buffers are ready */
   status = tx_semaphore_create(&bq->ready_sem, "bq_ready", 0);
   if (status != TX_SUCCESS) {
     tx_semaphore_delete(&bq->free_sem);
@@ -64,6 +66,12 @@ int bqueue_init(bqueue_t *bq, int buffer_nb, uint8_t *buffers[]) {
   return 0;
 }
 
+/**
+ * @brief  Get a free buffer from the queue (producer side)
+ * @param  bq: Pointer to buffer queue
+ * @param  is_blocking: 1 to wait forever, 0 to return immediately
+ * @retval Pointer to free buffer, or NULL if none available (non-blocking)
+ */
 uint8_t *bqueue_get_free(bqueue_t *bq, int is_blocking) {
   uint8_t *result;
   UINT status;
@@ -76,7 +84,6 @@ uint8_t *bqueue_get_free(bqueue_t *bq, int is_blocking) {
     return NULL;
   }
 
-  /* Protect index update with critical section */
   TX_DISABLE
   result = bq->buffers[bq->free_idx];
   bq->free_idx = (bq->free_idx + 1) % bq->buffer_nb;
@@ -85,14 +92,21 @@ uint8_t *bqueue_get_free(bqueue_t *bq, int is_blocking) {
   return result;
 }
 
+/**
+ * @brief  Release a buffer back to free pool (consumer side, after processing)
+ * @param  bq: Pointer to buffer queue
+ */
 void bqueue_put_free(bqueue_t *bq) {
   UINT status;
-
   status = tx_semaphore_put(&bq->free_sem);
   APP_REQUIRE(status == TX_SUCCESS);
-  (void)status; /* Suppress unused warning in release builds */
 }
 
+/**
+ * @brief  Get a ready buffer from the queue (consumer side)
+ * @param  bq: Pointer to buffer queue
+ * @retval Pointer to ready buffer (blocking call)
+ */
 uint8_t *bqueue_get_ready(bqueue_t *bq) {
   uint8_t *result;
   UINT status;
@@ -103,7 +117,6 @@ uint8_t *bqueue_get_ready(bqueue_t *bq) {
   APP_REQUIRE(status == TX_SUCCESS);
   (void)status;
 
-  /* Protect index update with critical section */
   TX_DISABLE
   result = bq->buffers[bq->ready_idx];
   bq->ready_idx = (bq->ready_idx + 1) % bq->buffer_nb;
@@ -112,11 +125,15 @@ uint8_t *bqueue_get_ready(bqueue_t *bq) {
   return result;
 }
 
+/**
+ * @brief  Mark a buffer as ready (producer side, after filling)
+ * @param  bq: Pointer to buffer queue
+ * @note   ISR-safe: can be called from interrupt context
+ */
 void bqueue_put_ready(bqueue_t *bq) {
   UINT status;
 
-  if (is_in_isr()) {
-    /* Use ceiling put for ISR context - increments count without scheduling */
+  if (IS_IRQ_MODE()) {
     status = tx_semaphore_ceiling_put(&bq->ready_sem, (ULONG)bq->buffer_nb);
   } else {
     status = tx_semaphore_put(&bq->ready_sem);

@@ -3,8 +3,8 @@
  * @file    app_lcd.c
  * @author  Long Liangmao
  * @brief   LTDC display pipeline implementation for STM32N6570-DK
- *          Layer 0: Live DCMI/camera preview (RGB565)
- *          Layer 1: UI (ARGB8888 with alpha blending)
+ *          Layer 0: DCMIPP preview (RGB565)
+ *          Layer 1: UI (ARGB8888)
  ******************************************************************************
  * @attention
  *
@@ -24,16 +24,34 @@
 #include "stm32_lcd.h"
 #include "stm32n6570_discovery_lcd.h"
 
+/* ============================================================================
+ * Forward Declarations
+ * ============================================================================ */
+
+static void LCD_ConfigLayer(uint32_t layer, uint16_t x0, uint16_t y0,
+                            uint16_t x1, uint16_t y1,
+                            uint32_t format, void *buffer);
+static void LCD_SetLayerVisible(uint32_t layer, uint8_t enable);
+
+/* ============================================================================
+ * Global State Variables
+ * ============================================================================ */
+
 static uint8_t lcd_initialized = 0;
+
+/* ============================================================================
+ * Internal Helper Functions
+ * ============================================================================ */
 
 /**
  * @brief  Configure an LCD layer
  * @param  layer: Layer index
- * @param  x0, y0: Top-left corner
- * @param  x1, y1: Bottom-right corner
+ * @param  x0: Top-left X coordinate
+ * @param  y0: Top-left Y coordinate
+ * @param  x1: Bottom-right X coordinate
+ * @param  y1: Bottom-right Y coordinate
  * @param  format: Pixel format
  * @param  buffer: Frame buffer address
- * @note   Fail-fast: panics on unrecoverable failures
  */
 static void LCD_ConfigLayer(uint32_t layer, uint16_t x0, uint16_t y0,
                             uint16_t x1, uint16_t y1,
@@ -51,8 +69,22 @@ static void LCD_ConfigLayer(uint32_t layer, uint16_t x0, uint16_t y0,
 }
 
 /**
+ * @brief  Set layer visibility
+ * @param  layer: Layer index
+ * @param  enable: 1 to enable, 0 to disable
+ */
+static void LCD_SetLayerVisible(uint32_t layer, uint8_t enable) {
+  APP_REQUIRE(lcd_initialized);
+  APP_REQUIRE(BSP_LCD_SetLayerVisible(0, layer, enable ? ENABLE : DISABLE) == BSP_ERROR_NONE);
+  APP_REQUIRE(BSP_LCD_Reload(0, BSP_LCD_RELOAD_VERTICAL_BLANKING) == BSP_ERROR_NONE);
+}
+
+/* ============================================================================
+ * Public API Functions
+ * ============================================================================ */
+
+/**
  * @brief  Initialize LTDC with dual-layer configuration
- * @note   Fail-fast: panics on unrecoverable failures
  */
 void LCD_Init(void) {
   uint8_t *camera_buf, *ui_buf;
@@ -65,7 +97,7 @@ void LCD_Init(void) {
                              LCD_PIXEL_FORMAT_RGB565,
                              LCD_WIDTH, LCD_HEIGHT) == BSP_ERROR_NONE);
 
-  /* Configure Layer 0: Camera preview (letterboxed) */
+  /* Configure Layer 0: DCMIPP preview */
   camera_buf = Buffer_GetCameraDisplayBuffer(0);
   APP_REQUIRE(camera_buf != NULL);
   LCD_ConfigLayer(LCD_LAYER_0_CAMERA,
@@ -73,12 +105,12 @@ void LCD_Init(void) {
                   DISPLAY_LETTERBOX_X1, LCD_HEIGHT,
                   LCD_PIXEL_FORMAT_RGB565, camera_buf);
 
-  /* Configure Layer 1: UI overlay (top half) */
+  /* Configure Layer 1: UI overlay */
   ui_buf = Buffer_GetUIFrontBuffer();
   APP_REQUIRE(ui_buf != NULL);
   LCD_ConfigLayer(LCD_LAYER_1_UI,
                   0, 0,
-                  LCD_WIDTH, LCD_HEIGHT / 2,
+                  LCD_WIDTH, LCD_HEIGHT,
                   LCD_PIXEL_FORMAT_ARGB8888, ui_buf);
 
   /* Enable layers, set UI transparent initially */
@@ -105,9 +137,9 @@ void LCD_DeInit(void) {
 }
 
 /**
- * @brief  Reload Layer 0 (Camera) with new buffer address (buffering)
+ * @brief  Reload Layer 0 with buffer address (buffering)
+ *         Called from frame event callback
  * @param  frame_buffer: Pointer to the next display buffer
- * @note   Fail-fast: panics on unrecoverable failures
  */
 void LCD_ReloadCameraLayer(uint8_t *frame_buffer) {
   HAL_StatusTypeDef status;
@@ -120,17 +152,17 @@ void LCD_ReloadCameraLayer(uint8_t *frame_buffer) {
 
   status = HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
                                         LCD_LAYER_0_CAMERA);
-  APP_REQUIRE_EQ(status, HAL_OK);
+  APP_REQUIRE(status == HAL_OK);
 
   status = HAL_LTDC_ReloadLayer(&hlcd_ltdc, LTDC_RELOAD_VERTICAL_BLANKING,
                                 LCD_LAYER_0_CAMERA);
-  APP_REQUIRE_EQ(status, HAL_OK);
+  APP_REQUIRE(status == HAL_OK);
 }
 
 /**
  * @brief  Set UI layer buffer address for drawing (without reloading display)
+ *         Use this before drawing to the back buffer
  * @param  frame_buffer: Pointer to the buffer to draw to
- * @note   Fail-fast: panics on unrecoverable failures
  */
 void LCD_SetUILayerAddress(uint8_t *frame_buffer) {
   HAL_StatusTypeDef status;
@@ -142,13 +174,13 @@ void LCD_SetUILayerAddress(uint8_t *frame_buffer) {
   status = HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
                                         LCD_LAYER_1_UI);
   __enable_irq();
-  APP_REQUIRE_EQ(status, HAL_OK);
+  APP_REQUIRE(status == HAL_OK);
 }
 
 /**
- * @brief  Reload Layer 1 (UI) with new buffer address (buffering)
+ * @brief  Reload Layer 1 (UI) with buffer address (double buffering)
+ *         Called after UI rendering is complete
  * @param  frame_buffer: Pointer to the next UI display buffer
- * @note   Fail-fast: panics on unrecoverable failures
  */
 void LCD_ReloadUILayer(uint8_t *frame_buffer) {
   HAL_StatusTypeDef status;
@@ -162,19 +194,18 @@ void LCD_ReloadUILayer(uint8_t *frame_buffer) {
   status = HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
                                         LCD_LAYER_1_UI);
   __enable_irq();
-  APP_REQUIRE_EQ(status, HAL_OK);
+  APP_REQUIRE(status == HAL_OK);
 
   __disable_irq();
   status = HAL_LTDC_ReloadLayer(&hlcd_ltdc, LTDC_RELOAD_VERTICAL_BLANKING,
                                 LCD_LAYER_1_UI);
   __enable_irq();
-  APP_REQUIRE_EQ(status, HAL_OK);
+  APP_REQUIRE(status == HAL_OK);
 }
 
 /**
- * @brief  Set Layer 1 (UI) transparency
- * @param  alpha: 0 = transparent, 255 = opaque
- * @note   Fail-fast: panics on unrecoverable failures
+ * @brief  Set Layer 1 (UI) transparency/alpha
+ * @param  alpha: Alpha value (0-255, 0 = fully transparent, 255 = fully opaque)
  */
 void LCD_SetUIAlpha(uint8_t alpha) {
   APP_REQUIRE(lcd_initialized);
@@ -183,21 +214,8 @@ void LCD_SetUIAlpha(uint8_t alpha) {
 }
 
 /**
- * @brief  Set layer visibility
- * @param  layer: Layer index
- * @param  enable: 1 to enable, 0 to disable
- * @note   Fail-fast: panics on unrecoverable failures
- */
-static void LCD_SetLayerVisible(uint32_t layer, uint8_t enable) {
-  APP_REQUIRE(lcd_initialized);
-  APP_REQUIRE(BSP_LCD_SetLayerVisible(0, layer, enable ? ENABLE : DISABLE) == BSP_ERROR_NONE);
-  APP_REQUIRE(BSP_LCD_Reload(0, BSP_LCD_RELOAD_VERTICAL_BLANKING) == BSP_ERROR_NONE);
-}
-
-/**
  * @brief  Enable or disable Layer 1 (UI)
  * @param  enable: 1 to enable, 0 to disable
- * @note   Fail-fast: panics on unrecoverable failures
  */
 void LCD_SetUILayerVisible(uint8_t enable) {
   LCD_SetLayerVisible(LCD_LAYER_1_UI, enable);
@@ -206,16 +224,14 @@ void LCD_SetUILayerVisible(uint8_t enable) {
 /**
  * @brief  Enable or disable Layer 0 (Camera)
  * @param  enable: 1 to enable, 0 to disable
- * @note   Fail-fast: panics on unrecoverable failures
  */
 void LCD_SetCameraLayerVisible(uint8_t enable) {
   LCD_SetLayerVisible(LCD_LAYER_0_CAMERA, enable);
 }
 
 /**
- * @brief  Trigger LTDC reload
+ * @brief  Handle LTDC reload (call after frame buffer updates)
  * @param  reload_type: BSP_LCD_RELOAD_IMMEDIATE or BSP_LCD_RELOAD_VERTICAL_BLANKING
- * @note   Fail-fast: panics on unrecoverable failures
  */
 void LCD_Reload(uint32_t reload_type) {
   APP_REQUIRE(lcd_initialized);

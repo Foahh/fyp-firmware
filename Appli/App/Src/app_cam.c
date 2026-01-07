@@ -30,9 +30,33 @@
 #include "utils.h"
 #include "app_error.h"
 
+/* ============================================================================
+ * Forward Declarations
+ * ============================================================================ */
+
+static void CAM_CalcCropRoi(CMW_Manual_roi_area_t *roi,
+                            uint32_t sensor_w, uint32_t sensor_h,
+                            uint32_t output_w, uint32_t output_h);
+static void CAM_ConfigPipe(uint32_t pipe,
+                          uint32_t sensor_w, uint32_t sensor_h,
+                          uint32_t out_w, uint32_t out_h,
+                          uint32_t format, uint32_t bpp,
+                          int swap_enabled);
+static void cam_display_pipe_frame_event(void);
+static void cam_nn_pipe_frame_event(void);
+static void isp_thread_entry(ULONG arg);
+
+/* ============================================================================
+ * Configuration Constants
+ * ============================================================================ */
+
 /* ISP update thread configuration */
 #define ISP_THREAD_STACK_SIZE 2048
 #define ISP_THREAD_PRIORITY 5
+
+/* ============================================================================
+ * Global State Variables
+ * ============================================================================ */
 
 /* ISP thread resources */
 static struct {
@@ -41,7 +65,12 @@ static struct {
   UCHAR stack[ISP_THREAD_STACK_SIZE];
 } isp_ctx;
 
+/* NN pipe running state */
 static volatile uint8_t nn_pipe_running = 0;
+
+/* ============================================================================
+ * Internal Helper Functions
+ * ============================================================================ */
 
 /**
  * @brief  Calculate centered crop ROI maintaining aspect ratio
@@ -77,7 +106,6 @@ static void CAM_CalcCropRoi(CMW_Manual_roi_area_t *roi,
  * @param  format: Output pixel format
  * @param  bpp: Bytes per pixel
  * @param  swap_enabled: Enable byte swap (for RGB888)
- * @note   Fail-fast: panics on unrecoverable failures
  */
 static void CAM_ConfigPipe(uint32_t pipe,
                           uint32_t sensor_w, uint32_t sensor_h,
@@ -97,13 +125,19 @@ static void CAM_ConfigPipe(uint32_t pipe,
 
   CAM_CalcCropRoi(&conf.manual_conf, sensor_w, sensor_h, out_w, out_h);
 
-  APP_REQUIRE_EQ(CMW_CAMERA_SetPipeConfig(pipe, &conf, &hw_pitch), HAL_OK);
+  APP_REQUIRE(CMW_CAMERA_SetPipeConfig(pipe, &conf, &hw_pitch) == HAL_OK);
 
   APP_REQUIRE(hw_pitch == out_w * bpp);
 }
 
+/* ============================================================================
+ * HAL Callback Functions
+ * ============================================================================ */
+
 /**
  * @brief  DCMIPP clock configuration callback
+ * @param  hdcmipp: DCMIPP handle
+ * @retval HAL_OK on success, HAL_ERROR on failure
  */
 HAL_StatusTypeDef MX_DCMIPP_ClockConfig(DCMIPP_HandleTypeDef *hdcmipp) {
   UNUSED(hdcmipp);
@@ -127,9 +161,13 @@ HAL_StatusTypeDef MX_DCMIPP_ClockConfig(DCMIPP_HandleTypeDef *hdcmipp) {
   return HAL_OK;
 }
 
+/* ============================================================================
+ * Public API Functions
+ * ============================================================================ */
+
 /**
  * @brief  Initialize the camera module
- * @note   Fail-fast: panics on unrecoverable failures
+ *         Configures camera sensor and both DCMIPP pipes
  */
 void CAM_Init(void) {
   CMW_CameraInit_t cam_conf = {
@@ -158,7 +196,7 @@ void CAM_Init(void) {
 
 /**
  * @brief  Start the display pipe capture
- * @param  cam_mode: CMW_MODE_CONTINUOUS or CMW_MODE_SNAPSHOT
+ * @param  cam_mode: Camera mode (CMW_MODE_CONTINUOUS or CMW_MODE_SNAPSHOT)
  */
 void CAM_DisplayPipe_Start(uint32_t cam_mode) {
   uint8_t *buffer;
@@ -170,9 +208,9 @@ void CAM_DisplayPipe_Start(uint32_t cam_mode) {
 }
 
 /**
- * @brief  Start the ML pipe capture
- * @param  ml_buffer: Pointer to the ML output buffer
- * @param  cam_mode: CMW_MODE_CONTINUOUS or CMW_MODE_SNAPSHOT
+ * @brief  Start the neural network pipe capture
+ * @param  ml_buffer: Pointer to the NN buffer
+ * @param  cam_mode: Camera mode (CMW_MODE_CONTINUOUS or CMW_MODE_SNAPSHOT)
  */
 void CAM_MLPipe_Start(uint8_t *ml_buffer, uint32_t cam_mode) {
   APP_REQUIRE(ml_buffer != NULL);
@@ -181,7 +219,7 @@ void CAM_MLPipe_Start(uint8_t *ml_buffer, uint32_t cam_mode) {
 }
 
 /**
- * @brief  Stop the ML pipe capture
+ * @brief  Stop the neural network pipe capture
  */
 void CAM_MLPipe_Stop(void) {
   nn_pipe_running = 0;
@@ -189,14 +227,34 @@ void CAM_MLPipe_Stop(void) {
 }
 
 /**
- * @brief  Update ISP parameters (auto exposure, white balance)
+ * @brief  Update ISP parameters (call periodically for auto exposure/white balance)
  */
 void CAM_IspUpdate(void) {
   APP_REQUIRE(CMW_CAMERA_Run() == CMW_ERROR_NONE);
 }
 
 /**
+ * @brief  Initialize and create the ISP update thread
+ * @param  memory_ptr: Memory pointer (unused, thread uses static allocation)
+ */
+void Thread_IspUpdate_Init(VOID *memory_ptr) {
+  UNUSED(memory_ptr);
+  APP_REQUIRE(tx_semaphore_create(&isp_ctx.vsync_sem, "isp_vsync", 0) == TX_SUCCESS);
+
+  APP_REQUIRE(tx_thread_create(&isp_ctx.thread, "isp_update",
+                               isp_thread_entry, 0,
+                               isp_ctx.stack, ISP_THREAD_STACK_SIZE,
+                               ISP_THREAD_PRIORITY, ISP_THREAD_PRIORITY,
+                               TX_NO_TIME_SLICE, TX_AUTO_START) == TX_SUCCESS);
+}
+
+/* ============================================================================
+ * Frame Event Handlers
+ * ============================================================================ */
+
+/**
  * @brief  Handle display pipe (PIPE1) frame event
+ *         Updates DCMIPP capture buffer and LCD display buffer
  */
 static void cam_display_pipe_frame_event(void) {
   DCMIPP_HandleTypeDef *hdcmipp = CMW_CAMERA_GetDCMIPPHandle();
@@ -249,6 +307,10 @@ static void cam_nn_pipe_frame_event(void) {
   }
 }
 
+/* ============================================================================
+ * CMW Camera Callback Functions
+ * ============================================================================ */
+
 /**
  * @brief  Frame event callback (ISR context) - handles buffering
  * @param  pipe: Pipe that triggered the event
@@ -276,8 +338,14 @@ int CMW_CAMERA_PIPE_VsyncEventCallback(uint32_t pipe) {
   return HAL_OK;
 }
 
+/* ============================================================================
+ * Thread Entry Points
+ * ============================================================================ */
+
 /**
  * @brief  ISP update thread entry
+ *         Waits for vsync events and updates ISP parameters
+ * @param  arg: Thread argument (unused)
  */
 static void isp_thread_entry(ULONG arg) {
   UNUSED(arg);
@@ -286,28 +354,4 @@ static void isp_thread_entry(ULONG arg) {
     tx_semaphore_get(&isp_ctx.vsync_sem, TX_WAIT_FOREVER);
     CAM_IspUpdate();
   }
-}
-
-/**
- * @brief  Initialize ISP semaphore
- * @note   Fail-fast: panics on unrecoverable failures
- */
-void CAM_InitIspSemaphore(void) {
-  APP_REQUIRE_EQ(tx_semaphore_create(&isp_ctx.vsync_sem, "isp_vsync", 0), TX_SUCCESS);
-}
-
-/**
- * @brief  Initialize and start the ISP update thread
- * @param  memory_ptr: Unused (static allocation)
- * @note   Fail-fast: panics on unrecoverable failures
- */
-void Thread_IspUpdate_Init(VOID *memory_ptr) {
-  UNUSED(memory_ptr);
-
-  APP_REQUIRE_EQ(tx_thread_create(&isp_ctx.thread, "isp_update",
-                                 isp_thread_entry, 0,
-                                 isp_ctx.stack, ISP_THREAD_STACK_SIZE,
-                                 ISP_THREAD_PRIORITY, ISP_THREAD_PRIORITY,
-                                 TX_NO_TIME_SLICE, TX_AUTO_START),
-                 TX_SUCCESS);
 }

@@ -29,7 +29,6 @@ extern "C" {
 
 /**
  * @brief  Initialize the camera module
- * @note   Fail-fast: panics on unrecoverable failures
  */
 void CAM_Init(void);
 
@@ -62,15 +61,9 @@ void CAM_MLPipe_Stop(void);
 void CAM_IspUpdate(void);
 
 /**
- * @brief  Initialize ISP semaphore for vsync callback
- * @note   Fail-fast: panics on unrecoverable failures
- */
-void CAM_InitIspSemaphore(void);
-
-/**
  * @brief  Initialize and create the ISP update thread
  * @param  memory_ptr: Memory pointer (unused, thread uses static allocation)
- * @note   Fail-fast: panics on unrecoverable failures
+ * @note   Also initializes the ISP semaphore internally
  */
 void Thread_IspUpdate_Init(VOID *memory_ptr);
 

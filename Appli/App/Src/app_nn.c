@@ -30,8 +30,16 @@
 /* Include generated network header */
 #include "od_yolo_x_person.h"
 
-/* Declare NN instance */
-LL_ATON_DECLARE_NAMED_NN_INSTANCE_AND_INTERFACE(od_yolo_x_person);
+/* ============================================================================
+ * Forward Declarations
+ * ============================================================================ */
+
+static void NN_RunInference(void);
+static void nn_thread_entry(ULONG arg);
+
+/* ============================================================================
+ * Configuration Constants
+ * ============================================================================ */
 
 /* Thread configuration */
 #define NN_THREAD_STACK_SIZE 4096
@@ -58,6 +66,13 @@ LL_ATON_DECLARE_NAMED_NN_INSTANCE_AND_INTERFACE(od_yolo_x_person);
 /* NN input buffer size */
 #define NN_INPUT_SIZE (ML_WIDTH * ML_HEIGHT * ML_BPP)
 
+/* ============================================================================
+ * Global State Variables
+ * ============================================================================ */
+
+/* Declare NN instance */
+LL_ATON_DECLARE_NAMED_NN_INSTANCE_AND_INTERFACE(od_yolo_x_person);
+
 /* Thread resources */
 static struct {
   TX_THREAD thread;
@@ -81,8 +96,13 @@ static const uint32_t nn_out_sizes[NN_OUT_MAX_NB] = {
 /* Timing statistics (volatile for cross-thread access) */
 static volatile nn_timing_t nn_timing;
 
+/* ============================================================================
+ * Internal Helper Functions
+ * ============================================================================ */
+
 /**
  * @brief  Run ATON inference with WFE support
+ *         Handles wait-for-event (WFE) during inference for power efficiency
  */
 static void NN_RunInference(void) {
   LL_ATON_RT_RetValues_t ret;
@@ -98,8 +118,14 @@ static void NN_RunInference(void) {
   LL_ATON_RT_Reset_Network(&NN_Instance_od_yolo_x_person);
 }
 
+/* ============================================================================
+ * Thread Entry Points
+ * ============================================================================ */
+
 /**
  * @brief  NN thread entry function
+ *         Main inference loop: waits for input, runs inference, signals output
+ * @param  arg: Thread argument (unused)
  */
 static void nn_thread_entry(ULONG arg) {
   UNUSED(arg);
@@ -153,7 +179,7 @@ static void nn_thread_entry(ULONG arg) {
     out_ptrs[1] = out_ptrs[0] + NN_OUT0_SIZE_ALIGN;
     out_ptrs[2] = out_ptrs[1] + NN_OUT1_SIZE_ALIGN;
 
-    /* Set input buffer (no cache ops needed - hardware only) */
+    /* Set input buffer */
     ret = LL_ATON_Set_User_Input_Buffer_od_yolo_x_person(0, capture_buffer, nn_in_len);
     APP_REQUIRE(ret == LL_ATON_User_IO_NOERROR);
 
@@ -179,14 +205,30 @@ static void nn_thread_entry(ULONG arg) {
   }
 }
 
+/* ============================================================================
+ * Public API Functions
+ * ============================================================================ */
+
+/**
+ * @brief  Get pointer to NN input buffer queue
+ * @retval Pointer to input queue
+ */
 bqueue_t *NN_GetInputQueue(void) {
   return &nn_input_queue;
 }
 
+/**
+ * @brief  Get pointer to NN output buffer queue
+ * @retval Pointer to output queue
+ */
 bqueue_t *NN_GetOutputQueue(void) {
   return &nn_output_queue;
 }
 
+/**
+ * @brief  Get current NN timing statistics
+ * @param  timing: Pointer to timing structure to fill
+ */
 void NN_GetTiming(nn_timing_t *timing) {
   if (timing != NULL) {
     timing->nn_period_ms = nn_timing.nn_period_ms;
@@ -194,14 +236,26 @@ void NN_GetTiming(nn_timing_t *timing) {
   }
 }
 
+/**
+ * @brief  Get number of NN outputs
+ * @retval Number of output buffers
+ */
 int NN_GetOutputCount(void) {
   return NN_OUT_NB;
 }
 
+/**
+ * @brief  Get NN output buffer sizes
+ * @retval Pointer to array of output sizes
+ */
 const uint32_t *NN_GetOutputSizes(void) {
   return nn_out_sizes;
 }
 
+/**
+ * @brief  Initialize NN thread and resources
+ * @param  memory_ptr: ThreadX memory pool (unused, static allocation)
+ */
 void NN_Thread_Init(VOID *memory_ptr) {
   UNUSED(memory_ptr);
   UINT status;
@@ -229,5 +283,5 @@ void NN_Thread_Init(VOID *memory_ptr) {
                             nn_ctx.stack, NN_THREAD_STACK_SIZE,
                             NN_THREAD_PRIORITY, NN_THREAD_PRIORITY,
                             TX_NO_TIME_SLICE, TX_AUTO_START);
-  APP_REQUIRE_EQ(status, TX_SUCCESS);
+  APP_REQUIRE(status == TX_SUCCESS);
 }

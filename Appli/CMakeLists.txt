@@ -159,7 +159,6 @@ set(APP_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_lcd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_nn.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_ui.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_event_bus.c
 )
 
 set(NETWORK_Src

@@ -3,7 +3,7 @@
  * @file    app_bqueue.h
  * @author  Long Liangmao
  * @brief   ThreadX-based buffer queue for pipeline communication
- *          Port of X-CUBE bqueue_t pattern to ThreadX RTOS
+ *          Port of https://github.com/STMicroelectronics/x-cube-n6-ai-people-detection-tracking bqueue_t pattern to ThreadX RTOS
  ******************************************************************************
  * @attention
  *

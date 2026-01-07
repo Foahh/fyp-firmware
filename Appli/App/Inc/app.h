@@ -2,7 +2,7 @@
  ******************************************************************************
  * @file    app.h
  * @author  Long Liangmao
- * @brief   Centralized buffer management for display and camera pipelines
+ * @brief   Application entry point
  ******************************************************************************
  * @attention
  *

@@ -2,7 +2,7 @@
  ******************************************************************************
  * @file    app.c
  * @author  Long Liangmao
- * @brief   Centralized buffer management for display and camera pipelines
+ * @brief   Application entry point
  ******************************************************************************
  * @attention
  *
@@ -22,7 +22,6 @@
 #include "app_cam.h"
 #include "app_config.h"
 #include "app_detection.h"
-#include "app_event_bus.h"
 #include "app_lcd.h"
 #include "app_nn.h"
 #include "app_ui.h"
@@ -35,96 +34,26 @@
 #include "utils.h"
 #include "app_error.h"
 
-/* UI thread configuration */
-#define UI_THREAD_STACK_SIZE 2048
-#define UI_THREAD_PRIORITY 10  /* Low priority for UI updates */
-
-/* Idle measurement thread configuration */
-#define IDLE_THREAD_STACK_SIZE 512
-#define IDLE_THREAD_PRIORITY 31  /* Lowest priority (runs when truly idle) */
-
-/* UI thread resources */
-static struct {
-  TX_THREAD thread;
-  UCHAR stack[UI_THREAD_STACK_SIZE];
-} ui_ctx;
-
-/* Idle measurement thread resources */
-static struct {
-  TX_THREAD thread;
-  UCHAR stack[IDLE_THREAD_STACK_SIZE];
-} idle_ctx;
-
-/**
- * @brief  Idle measurement thread entry
- *         Runs at lowest priority to measure idle time via DWT cycle counter
- */
-static void idle_measure_thread_entry(ULONG arg) {
-  UNUSED(arg);
-
-  while (1) {
-    /* Mark entry into idle state */
-    UI_IdleThread_Enter();
-
-    /* Yield to higher priority threads */
-    tx_thread_relinquish();
-
-    /* Mark exit from idle state */
-    UI_IdleThread_Exit();
-  }
-}
-
-/**
- * @brief  UI update thread entry
- *         Periodically updates the diagnostic overlay
- */
-static void ui_thread_entry(ULONG arg) {
-  UNUSED(arg);
-
-  while (1) {
-    UI_Update();
-    tx_thread_sleep(10);
-  }
-}
-
 void App_Init(VOID *memory_ptr) {
-  UINT tx_status;
   bqueue_t *nn_input_queue;
   uint8_t *first_nn_buffer;
 
   Buffer_Init();
+
   LCD_Init();
+
   UI_Init();
 
-  /* Create idle measurement thread (lowest priority) */
-  tx_status = tx_thread_create(&idle_ctx.thread, "idle_measure",
-                               idle_measure_thread_entry, 0,
-                               idle_ctx.stack, IDLE_THREAD_STACK_SIZE,
-                               IDLE_THREAD_PRIORITY, IDLE_THREAD_PRIORITY,
-                               TX_NO_TIME_SLICE, TX_AUTO_START);
-  APP_REQUIRE(tx_status == TX_SUCCESS);
-
-  /* Create UI update thread */
-  tx_status = tx_thread_create(&ui_ctx.thread, "ui_update",
-                               ui_thread_entry, 0,
-                               ui_ctx.stack, UI_THREAD_STACK_SIZE,
-                               UI_THREAD_PRIORITY, UI_THREAD_PRIORITY,
-                               TX_NO_TIME_SLICE, TX_AUTO_START);
-  APP_REQUIRE(tx_status == TX_SUCCESS);
-
-  /* Initialize camera */
-  CAM_InitIspSemaphore();
   CAM_Init();
+
   Thread_IspUpdate_Init(memory_ptr);
 
-  // /* Initialize NN pipeline threads (creates buffer queues internally) */
-  NN_Thread_Init(memory_ptr);
-  Detection_Thread_Init(memory_ptr);
-
-  /* Start camera pipes */
   CAM_DisplayPipe_Start(CMW_MODE_CONTINUOUS);
 
-  /* Start NN pipe with first buffer from queue */
+  NN_Thread_Init(memory_ptr);
+
+  Detection_Thread_Init(memory_ptr);
+
   nn_input_queue = NN_GetInputQueue();
   first_nn_buffer = bqueue_get_free(nn_input_queue, 0);
   APP_REQUIRE(first_nn_buffer != NULL);

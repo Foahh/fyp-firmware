@@ -152,7 +152,6 @@ extern uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4];
 
 /**
  * @brief  Initialize all buffers and cache
- * @note   Fail-fast: panics on unrecoverable issues (if any are added later)
  */
 void Buffer_Init(void);
 

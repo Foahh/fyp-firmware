@@ -30,6 +30,19 @@
 #include "app_error.h"
 #include <string.h>
 
+/* ============================================================================
+ * Forward Declarations
+ * ============================================================================ */
+
+static void clamp_point(int *x, int *y);
+static void draw_detection(const od_pp_outBuffer_t *det);
+static void pp_thread_entry(ULONG arg);
+static void overlay_thread_entry(ULONG arg);
+
+/* ============================================================================
+ * Configuration Constants
+ * ============================================================================ */
+
 /* Thread configurations */
 #define PP_THREAD_STACK_SIZE     4096
 #define PP_THREAD_PRIORITY       8   /* Lower than NN */
@@ -59,6 +72,12 @@ static const uint32_t colors[NUMBER_COLORS] = {
   0xFFFFA500,  /* Orange */
 };
 
+#define NN_MODEL_DETECTION
+
+/* ============================================================================
+ * Global State Variables
+ * ============================================================================ */
+
 /* Thread resources */
 static struct {
   TX_THREAD thread;
@@ -70,7 +89,7 @@ static struct {
   UCHAR stack[OVERLAY_THREAD_STACK_SIZE];
 } overlay_ctx;
 
-/* Synchronization */
+/* Synchronization primitives */
 static TX_MUTEX detection_mutex;
 static TX_SEMAPHORE update_sem;
 
@@ -80,10 +99,10 @@ static detection_info_t detection_info;
 /* Postprocess parameters */
 static od_st_yolox_pp_static_param_t pp_params;
 
-#define  NN_MODEL_DETECTION
-
 /**
  * @brief  Clamp a point to display bounds
+ * @param  x: Pointer to X coordinate (modified in place)
+ * @param  y: Pointer to Y coordinate (modified in place)
  */
 static void clamp_point(int *x, int *y) {
   if (*x < 0) *x = 0;
@@ -94,6 +113,7 @@ static void clamp_point(int *x, int *y) {
 
 /**
  * @brief  Draw a single detection bounding box
+ * @param  det: Pointer to detection result
  */
 static void draw_detection(const od_pp_outBuffer_t *det) {
   int xc, yc, x0, y0, x1, y1, w, h;
@@ -141,8 +161,14 @@ static void draw_detection(const od_pp_outBuffer_t *det) {
   UTIL_LCD_DisplayStringAt(x1 - 40, y0 + 2, (uint8_t *)conf_str, LEFT_MODE);
 }
 
+/* ============================================================================
+ * Thread Entry Points
+ * ============================================================================ */
+
 /**
  * @brief  Postprocess thread entry function
+ *         Processes NN outputs and updates detection state
+ * @param  arg: Thread argument (unused)
  */
 static void pp_thread_entry(ULONG arg) {
   UNUSED(arg);
@@ -206,6 +232,8 @@ static void pp_thread_entry(ULONG arg) {
 
 /**
  * @brief  Overlay drawing thread entry function
+ *         Renders detection overlays on UI layer
+ * @param  arg: Thread argument (unused)
  */
 static void overlay_thread_entry(ULONG arg) {
   UNUSED(arg);
@@ -268,27 +296,49 @@ static void overlay_thread_entry(ULONG arg) {
   }
 }
 
+/* ============================================================================
+ * Public API Functions
+ * ============================================================================ */
+
+/**
+ * @brief  Signal that new detection results are available
+ *         Called by postprocess after updating detection state
+ */
 void Detection_SignalUpdate(void) {
   /* Use ceiling put to avoid overflow if overlay is slower than PP */
   tx_semaphore_ceiling_put(&update_sem, 1);
 }
 
+/**
+ * @brief  Lock detection state mutex for reading/writing
+ */
 void Detection_Lock(void) {
   UINT status = tx_mutex_get(&detection_mutex, TX_WAIT_FOREVER);
   APP_REQUIRE(status == TX_SUCCESS);
   (void)status;
 }
 
+/**
+ * @brief  Unlock detection state mutex
+ */
 void Detection_Unlock(void) {
   UINT status = tx_mutex_put(&detection_mutex);
   APP_REQUIRE(status == TX_SUCCESS);
   (void)status;
 }
 
+/**
+ * @brief  Get pointer to detection info structure
+ * @retval Pointer to detection_info_t (lock before accessing)
+ */
 detection_info_t *Detection_GetInfo(void) {
   return &detection_info;
 }
 
+/**
+ * @brief  Initialize detection module (threads, sync primitives)
+ * @param  memory_ptr: ThreadX memory pool (unused, static allocation)
+ */
 void Detection_Thread_Init(VOID *memory_ptr) {
   UNUSED(memory_ptr);
   UINT status;
@@ -298,10 +348,10 @@ void Detection_Thread_Init(VOID *memory_ptr) {
 
   /* Create synchronization primitives */
   status = tx_mutex_create(&detection_mutex, "detection_lock", TX_NO_INHERIT);
-  APP_REQUIRE_EQ(status, TX_SUCCESS);
+  APP_REQUIRE(status == TX_SUCCESS);
 
   status = tx_semaphore_create(&update_sem, "detection_update", 0);
-  APP_REQUIRE_EQ(status, TX_SUCCESS);
+  APP_REQUIRE(status == TX_SUCCESS);
 
   /* Create postprocess thread */
   status = tx_thread_create(&pp_ctx.thread, "postprocess",
@@ -309,7 +359,7 @@ void Detection_Thread_Init(VOID *memory_ptr) {
                             pp_ctx.stack, PP_THREAD_STACK_SIZE,
                             PP_THREAD_PRIORITY, PP_THREAD_PRIORITY,
                             TX_NO_TIME_SLICE, TX_AUTO_START);
-  APP_REQUIRE_EQ(status, TX_SUCCESS);
+  APP_REQUIRE(status == TX_SUCCESS);
 
   /* Create overlay thread */
   status = tx_thread_create(&overlay_ctx.thread, "overlay",
@@ -317,6 +367,6 @@ void Detection_Thread_Init(VOID *memory_ptr) {
                             overlay_ctx.stack, OVERLAY_THREAD_STACK_SIZE,
                             OVERLAY_THREAD_PRIORITY, OVERLAY_THREAD_PRIORITY,
                             TX_NO_TIME_SLICE, TX_AUTO_START);
-  APP_REQUIRE_EQ(status, TX_SUCCESS);
+  APP_REQUIRE(status == TX_SUCCESS);
 }
 
