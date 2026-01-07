@@ -340,6 +340,95 @@ function Test-Prerequisites {
     
     return $allValid
 }
+
+function Invoke-FlashNetworkModel {
+    param(
+        [string]$NetworkHexFile
+    )
+    
+    Write-SectionHeader "Flashing Network Model: $(Split-Path $NetworkHexFile -Leaf)"
+    
+    if (-not (Test-Path $NetworkHexFile)) {
+        Write-Error "Network HEX file not found: $NetworkHexFile"
+        return $false
+    }
+    
+    Write-Host "Using network HEX file: $NetworkHexFile" -ForegroundColor Green
+    
+    # Get external loader for XSPI flash
+    $externalLoader = Get-ExternalLoader
+    if (-not $externalLoader) {
+        Write-Warning "External loader not found. Attempting to flash without external loader (may fail for external flash)."
+        Write-Warning "Expected location: ...\STM32CubeProgrammer\bin\ExternalLoader\$Script:ExternalLoaderName"
+    }
+    else {
+        Write-Host "Using external loader: $externalLoader" -ForegroundColor Green
+    }
+    
+    # Flash the network HEX image using STM32_Programmer_CLI
+    # Note: HEX files embed addresses, so we don't need to specify address explicitly
+    Write-Host "Flashing network HEX image to external flash..." -ForegroundColor Yellow
+    $flashArgs = @(
+        "-c", "port=SWD mode=HOTPLUG ap=1"
+    )
+    
+    if ($externalLoader) {
+        $flashArgs += "-el", $externalLoader
+    }
+    
+    $flashArgs += "-hardRst", "-w", $NetworkHexFile
+    
+    try {
+        $output = & $Script:FlashTool $flashArgs 2>&1
+        $exitCode = $LASTEXITCODE
+        $output | ForEach-Object { Write-Host $_ }
+        
+        if ($exitCode -ne 0) {
+            Write-Error "Failed to flash network model (exit code: $exitCode)"
+            return $false
+        }
+        
+        Write-Host "Network model flashed successfully: $(Split-Path $NetworkHexFile -Leaf)" -ForegroundColor Green
+        return $true
+    }
+    catch {
+        Write-Error "Error executing flash tool: $_"
+        return $false
+    }
+}
+
+function Invoke-FlashAllNetworkModels {
+    Write-SectionHeader "Flashing Network Models"
+    
+    $networkBinDir = Join-Path $Script:ProjectRoot "Networks\Bin"
+    
+    if (-not (Test-Path $networkBinDir)) {
+        Write-Warning "Network Bin directory not found: $networkBinDir"
+        Write-Warning "Skipping network model flash. Please generate the network models first."
+        return $false
+    }
+    
+    # Find all .hex files in the Networks/Bin directory
+    $networkHexFiles = Get-ChildItem -Path $networkBinDir -Filter "*.hex" -File
+    
+    if ($networkHexFiles.Count -eq 0) {
+        Write-Warning "No network HEX files found in: $networkBinDir"
+        Write-Warning "Skipping network model flash. Please generate the network models first."
+        return $false
+    }
+    
+    Write-Host "Found $($networkHexFiles.Count) network HEX file(s) to flash" -ForegroundColor Green
+    
+    $allSucceeded = $true
+    foreach ($hexFile in $networkHexFiles) {
+        if (-not (Invoke-FlashNetworkModel -NetworkHexFile $hexFile.FullName)) {
+            $allSucceeded = $false
+        }
+    }
+    
+    return $allSucceeded
+}
+
 #endregion
 
 #region Main Execution
@@ -353,11 +442,30 @@ if (-not (Test-Prerequisites)) {
     exit 1
 }
 
-# Process all projects
+# Process projects in order: FSBL first, then Appli
+# According to README: FSBL -> Network Data -> Application
 $allSucceeded = $true
-foreach ($projectName in $Script:Projects.Keys) {
-    Write-SectionHeader "Processing $projectName" -Color Magenta
-    if (-not (Invoke-ProjectProcessing -ProjectName $projectName -ProjectConfig $Script:Projects[$projectName])) {
+
+# Process FSBL first
+if ($Script:Projects.ContainsKey("FSBL")) {
+    Write-SectionHeader "Processing FSBL" -Color Magenta
+    if (-not (Invoke-ProjectProcessing -ProjectName "FSBL" -ProjectConfig $Script:Projects["FSBL"])) {
+        $allSucceeded = $false
+    }
+}
+
+# Flash network models after FSBL, before Appli (as per README documentation)
+if ($Script:Flash) {
+    if (-not (Invoke-FlashAllNetworkModels)) {
+        Write-Warning "Network model flash failed or was skipped, but continuing..."
+        # Don't fail the entire script if network flash fails
+    }
+}
+
+# Process Appli after network models
+if ($Script:Projects.ContainsKey("Appli")) {
+    Write-SectionHeader "Processing Appli" -Color Magenta
+    if (-not (Invoke-ProjectProcessing -ProjectName "Appli" -ProjectConfig $Script:Projects["Appli"])) {
         $allSucceeded = $false
     }
 }

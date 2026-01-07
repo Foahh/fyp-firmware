@@ -22,7 +22,7 @@
 #include <assert.h>
 
 #if POSTPROCESS_TYPE == POSTPROCESS_OD_ST_YOLOX_UF
-#define MAX(a,b) (((a)>(b))?(a):(b))
+
 static od_pp_outBuffer_t out_detections[MAX(AI_OD_ST_YOLOX_PP_MAX_BOXES_LIMIT,
                                             AI_OD_ST_YOLOX_PP_L_GRID_WIDTH * AI_OD_ST_YOLOX_PP_L_GRID_HEIGHT +
                                             AI_OD_ST_YOLOX_PP_M_GRID_WIDTH * AI_OD_ST_YOLOX_PP_M_GRID_HEIGHT +
