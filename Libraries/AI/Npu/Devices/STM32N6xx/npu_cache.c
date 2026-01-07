@@ -98,15 +98,14 @@ void npu_cache_clean_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 
 /* 
   Weak functions called by HAL_CACHEAXI_Init/DeInit implementations 
-  These are weak so they can be overridden by user implementation in cacheaxi.c
 */
-__weak void HAL_CACHEAXI_MspInit(CACHEAXI_HandleTypeDef *hcacheaxi)
+void HAL_CACHEAXI_MspInit(CACHEAXI_HandleTypeDef *hcacheaxi)
 {
   (void)hcacheaxi;
   npu_cache_enable_clocks_and_reset();
 }
 
-__weak void HAL_CACHEAXI_MspDeInit(CACHEAXI_HandleTypeDef *hcacheaxi){
+void HAL_CACHEAXI_MspDeInit(CACHEAXI_HandleTypeDef *hcacheaxi){
   (void)hcacheaxi;
   npu_cache_disable_clocks_and_reset();
 }

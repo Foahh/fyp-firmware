@@ -170,7 +170,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/evision/Lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Lib/GCC/ARMCortexM55
 )
 
 # Add linked libraries (using plain signature to match mx-generated.cmake)
