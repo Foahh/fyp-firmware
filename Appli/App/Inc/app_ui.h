@@ -27,18 +27,21 @@ extern "C" {
 #include "tx_api.h"
 #include <stdint.h>
 
-/* CPU load history depth for averaging */
-#define CPU_LOAD_HISTORY_DEPTH 8
+/* EMA smoothing factor (0.0 - 1.0)
+ * Lower values = more smoothing, higher values = more responsive
+ * 0.2 provides good balance for 10Hz display refresh rate
+ */
+#define CPU_LOAD_EMA_ALPHA 0.2f
 
 /**
- * @brief  CPU load measurement structure
+ * @brief  CPU load measurement structure (EMA-based)
  */
 typedef struct {
-  struct {
-    uint32_t total; /* Total execution cycles */
-    uint32_t idle;  /* Idle thread cycles */
-    uint32_t tick;  /* Timestamp (ms) */
-  } history[CPU_LOAD_HISTORY_DEPTH];
+  uint32_t last_total;  /* Last total cycle count */
+  uint32_t last_idle;   /* Last idle cycle count */
+  uint32_t last_tick;   /* Last update timestamp (ms) */
+  float cpu_load_ema;   /* Exponential moving average of CPU load (%) */
+  uint8_t initialized;  /* Flag to indicate first sample */
 } cpuload_info_t;
 
 /**
@@ -54,16 +57,11 @@ void UI_CPULoad_Init(cpuload_info_t *cpu_load);
 void UI_CPULoad_Update(cpuload_info_t *cpu_load);
 
 /**
- * @brief  Get CPU load percentages
+ * @brief  Get smoothed CPU load percentage (EMA)
  * @param  cpu_load: Pointer to CPU load info structure
- * @param  cpu_load_last: Output for last sample CPU load (can be NULL)
- * @param  cpu_load_last_second: Output for 1-second average (can be NULL)
- * @param  cpu_load_last_five_seconds: Output for 5-second average (can be NULL)
+ * @retval Smoothed CPU load percentage (0.0 - 100.0)
  */
-void UI_CPULoad_GetInfo(cpuload_info_t *cpu_load,
-                        float *cpu_load_last,
-                        float *cpu_load_last_second,
-                        float *cpu_load_last_five_seconds);
+float UI_CPULoad_GetSmoothed(const cpuload_info_t *cpu_load);
 
 /**
  * @brief  Initialize the UI diagnostic display

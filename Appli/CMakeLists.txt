@@ -197,6 +197,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     m
 )
 
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
+
 # Remove wrong libob.a library dependency when using cpp files
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 

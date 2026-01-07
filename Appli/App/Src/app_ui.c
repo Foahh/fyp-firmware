@@ -66,7 +66,10 @@ static const uint16_t g_line_y[] = {
 /* Global CPU load tracker */
 static cpuload_info_t g_cpu_load;
 
-/* Idle time accumulator (updated from idle thread hooks) */
+/* Idle time accumulator
+ * Using volatile for basic thread-safety
+ * For diagnostic display, occasional glitches are acceptable
+ */
 static volatile uint32_t g_idle_cycles_total = 0;
 static volatile uint32_t g_idle_enter_cycle = 0;
 static volatile uint8_t g_in_idle = 0;
@@ -74,9 +77,6 @@ static volatile uint8_t g_in_idle = 0;
 /* UI state */
 static uint8_t g_ui_visible = 1;
 static uint8_t g_ui_initialized = 0;
-
-/* Cached last history update tick to avoid unnecessary shifts */
-static uint32_t g_last_history_update_tick = 0;
 
 /**
  * @brief  Initialize DWT cycle counter for profiling
@@ -127,151 +127,62 @@ void UI_IdleThread_Exit(void) {
 void UI_CPULoad_Init(cpuload_info_t *cpu_load) {
   memset(cpu_load, 0, sizeof(cpuload_info_t));
   g_idle_cycles_total = 0;
-  g_last_history_update_tick = 0;
+  cpu_load->cpu_load_ema = 0.0f;
+  cpu_load->initialized = 0;
 }
 
 /**
- * @brief  Update CPU load measurement
+ * @brief  Update CPU load measurement (called at display refresh rate)
+ *         Uses EMA for smoothing and samples only when UI updates
  */
 void UI_CPULoad_Update(cpuload_info_t *cpu_load) {
   uint32_t current_tick = HAL_GetTick();
   uint32_t current_total = GET_CYCLE_COUNT();
   uint32_t current_idle = g_idle_cycles_total;
+  float instant_load = 0.0f;
 
-  cpu_load->history[1] = cpu_load->history[0];
-  cpu_load->history[0].total = current_total;
-  cpu_load->history[0].idle = current_idle;
-  cpu_load->history[0].tick = current_tick;
-
-  if (current_tick - g_last_history_update_tick >= 1000) {
-    g_last_history_update_tick = current_tick;
-    /* Shift history[2..6] -> history[3..7] using memmove */
-    memmove(&cpu_load->history[3], &cpu_load->history[2],
-            (CPU_LOAD_HISTORY_DEPTH - 3) * sizeof(cpu_load->history[0]));
-    cpu_load->history[2] = cpu_load->history[1];
+  if (!cpu_load->initialized) {
+    /* First sample: initialize values */
+    cpu_load->last_total = current_total;
+    cpu_load->last_idle = current_idle;
+    cpu_load->last_tick = current_tick;
+    cpu_load->cpu_load_ema = 0.0f;
+    cpu_load->initialized = 1;
+    return;
   }
+
+  /* Calculate instant CPU load from delta */
+  uint32_t total_delta = current_total - cpu_load->last_total;
+  if (total_delta > 0) {
+    uint32_t idle_delta = current_idle - cpu_load->last_idle;
+    instant_load = 100.0f * (1.0f - (float)idle_delta / (float)total_delta);
+    /* Clamp to valid range */
+    if (instant_load < 0.0f) instant_load = 0.0f;
+    if (instant_load > 100.0f) instant_load = 100.0f;
+  }
+
+  /* new_ema = alpha * instant + (1 - alpha) * old_ema */
+  cpu_load->cpu_load_ema = CPU_LOAD_EMA_ALPHA * instant_load +
+                            (1.0f - CPU_LOAD_EMA_ALPHA) * cpu_load->cpu_load_ema;
+
+  /* Update last values for next sample */
+  cpu_load->last_total = current_total;
+  cpu_load->last_idle = current_idle;
+  cpu_load->last_tick = current_tick;
 }
 
 /**
- * @brief  Get instantaneous CPU load percentage
+ * @brief  Get smoothed CPU load percentage (EMA)
  * @param  cpu_load: Pointer to CPU load info structure
- * @retval CPU load percentage (0.0 - 100.0)
+ * @retval Smoothed CPU load percentage (0.0 - 100.0)
  */
-__STATIC_FORCEINLINE float UI_CPULoad_GetInstant(const cpuload_info_t *cpu_load) {
-  uint32_t total_delta = cpu_load->history[0].total - cpu_load->history[1].total;
-  if (total_delta == 0) {
+float UI_CPULoad_GetSmoothed(const cpuload_info_t *cpu_load) {
+  if (!cpu_load->initialized) {
     return 0.0f;
   }
-  uint32_t idle_delta = cpu_load->history[0].idle - cpu_load->history[1].idle;
-  return 100.0f * (1.0f - (float)idle_delta / (float)total_delta);
+  return cpu_load->cpu_load_ema;
 }
 
-/**
- * @brief  Get CPU load percentages
- */
-void UI_CPULoad_GetInfo(cpuload_info_t *cpu_load,
-                        float *cpu_load_last,
-                        float *cpu_load_last_second,
-                        float *cpu_load_last_five_seconds) {
-  uint32_t total_delta, idle_delta;
-
-  if (cpu_load_last) {
-    *cpu_load_last = UI_CPULoad_GetInstant(cpu_load);
-  }
-
-  if (cpu_load_last_second) {
-    total_delta = cpu_load->history[2].total - cpu_load->history[3].total;
-    if (total_delta > 0) {
-      idle_delta = cpu_load->history[2].idle - cpu_load->history[3].idle;
-      *cpu_load_last_second = 100.0f * (1.0f - (float)idle_delta / (float)total_delta);
-    } else {
-      *cpu_load_last_second = 0.0f;
-    }
-  }
-
-  if (cpu_load_last_five_seconds) {
-    total_delta = cpu_load->history[2].total - cpu_load->history[7].total;
-    if (total_delta > 0) {
-      idle_delta = cpu_load->history[2].idle - cpu_load->history[7].idle;
-      *cpu_load_last_five_seconds = 100.0f * (1.0f - (float)idle_delta / (float)total_delta);
-    } else {
-      *cpu_load_last_five_seconds = 0.0f;
-    }
-  }
-}
-
-/**
- * @brief  Fast integer-to-string for runtime display
- * @param  buf: Output buffer (must be at least 16 bytes)
- * @param  min: Minutes value
- * @param  sec: Seconds value (0-59)
- * @retval Pointer to formatted string
- */
-static char *UI_FormatRuntime(char *buf, uint32_t min, uint32_t sec) {
-  char *p = buf;
-  /* Format minutes */
-  if (min >= 100) {
-    *p++ = '0' + (min / 100);
-    min %= 100;
-    *p++ = '0' + (min / 10);
-    *p++ = '0' + (min % 10);
-  } else if (min >= 10) {
-    *p++ = '0' + (min / 10);
-    *p++ = '0' + (min % 10);
-  } else {
-    *p++ = '0' + min;
-  }
-  *p++ = ':';
-  /* Format seconds (always 2 digits) */
-  *p++ = '0' + (sec / 10);
-  *p++ = '0' + (sec % 10);
-  *p = '\0';
-  return buf;
-}
-
-/**
- * @brief  Fast float-to-string for percentage
- * @param  buf: Output buffer (must be at least 8 bytes)
- * @param  value: Percentage value (0.0 - 100.0)
- * @retval Pointer to formatted string
- */
-static char *UI_FormatPercent(char *buf, float value) {
-  char *p = buf;
-  int integer_part, decimal_part;
-
-  /* Clamp value */
-  if (value < 0.0f)
-    value = 0.0f;
-  if (value > 100.0f)
-    value = 100.0f;
-
-  integer_part = (int)value;
-  decimal_part = (int)((value - integer_part) * 10.0f + 0.5f); /* Round to 1 decimal */
-
-  /* Handle rounding overflow */
-  if (decimal_part >= 10) {
-    decimal_part = 0;
-    integer_part++;
-  }
-
-  /* Format integer part */
-  if (integer_part >= 100) {
-    *p++ = '1';
-    *p++ = '0';
-    *p++ = '0';
-  } else if (integer_part >= 10) {
-    *p++ = '0' + (integer_part / 10);
-    *p++ = '0' + (integer_part % 10);
-  } else {
-    *p++ = '0' + integer_part;
-  }
-
-  *p++ = '.';
-  *p++ = '0' + decimal_part;
-  *p++ = '%';
-  *p = '\0';
-  return buf;
-}
 
 /**
  * @brief  Draw a horizontal progress bar
@@ -333,9 +244,9 @@ void UI_Update(void) {
     return;
   }
 
-  /* Update CPU load measurement */
+  /* Update CPU load measurement (sampled at display refresh rate) */
   UI_CPULoad_Update(&g_cpu_load);
-  cpu_load_pct = UI_CPULoad_GetInstant(&g_cpu_load);
+  cpu_load_pct = UI_CPULoad_GetSmoothed(&g_cpu_load);
 
   /* Get back buffer for drawing (double buffering) */
   ui_buffer = Buffer_GetUIBackBuffer();
@@ -379,7 +290,7 @@ void UI_Update(void) {
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
 
   /* CPU load value */
-  UI_FormatPercent(text_buf, cpu_load_pct);
+  snprintf(text_buf, sizeof(text_buf), "%.1f%%", cpu_load_pct);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[3],
                            (uint8_t *)text_buf, LEFT_MODE);
 
@@ -388,7 +299,7 @@ void UI_Update(void) {
   sec = tick / 1000;
   min = sec / 60;
   sec = sec % 60;
-  UI_FormatRuntime(text_buf, min, sec);
+  snprintf(text_buf, sizeof(text_buf), "%lu:%02lu", (unsigned long)min, (unsigned long)sec);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[6],
                            (uint8_t *)text_buf, LEFT_MODE);
 
