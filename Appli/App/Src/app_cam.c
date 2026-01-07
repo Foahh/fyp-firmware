@@ -18,15 +18,17 @@
  */
 
 #include "app_cam.h"
+#include "app_bqueue.h"
 #include "app_buffers.h"
 #include "app_config.h"
 #include "app_error.h"
 #include "app_lcd.h"
+#include "app_nn.h"
 #include "cmw_camera.h"
 #include "main.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
-#include <assert.h>
+#include "app_error.h"
 
 /* ISP update thread configuration */
 #define ISP_THREAD_STACK_SIZE 2048
@@ -38,6 +40,8 @@ static struct {
   TX_THREAD thread;
   UCHAR stack[ISP_THREAD_STACK_SIZE];
 } isp_ctx;
+
+static volatile uint8_t nn_pipe_running = 0;
 
 /**
  * @brief  Calculate centered crop ROI maintaining aspect ratio
@@ -55,7 +59,7 @@ static void CAM_CalcCropRoi(CMW_Manual_roi_area_t *roi,
   const uint32_t scale_y = (sensor_h << 10) / output_h;
   const uint32_t scale = MIN(scale_x, scale_y);
 
-  assert(scale >= (1 << 10)); /* Scale must be >= 1.0 */
+  APP_REQUIRE(scale >= (1 << 10)); /* Scale must be >= 1.0 */
 
   roi->width = MIN((output_w * scale) >> 10, sensor_w);
   roi->height = MIN((output_h * scale) >> 10, sensor_h);
@@ -95,7 +99,7 @@ static void CAM_ConfigPipe(uint32_t pipe,
 
   APP_REQUIRE_EQ(CMW_CAMERA_SetPipeConfig(pipe, &conf, &hw_pitch), HAL_OK);
 
-  assert(hw_pitch == out_w * bpp);
+  APP_REQUIRE(hw_pitch == out_w * bpp);
 }
 
 /**
@@ -173,6 +177,15 @@ void CAM_DisplayPipe_Start(uint32_t cam_mode) {
 void CAM_MLPipe_Start(uint8_t *ml_buffer, uint32_t cam_mode) {
   APP_REQUIRE(ml_buffer != NULL);
   APP_REQUIRE(CMW_CAMERA_Start(DCMIPP_PIPE2, ml_buffer, cam_mode) == CMW_ERROR_NONE);
+  nn_pipe_running = 1;
+}
+
+/**
+ * @brief  Stop the ML pipe capture
+ */
+void CAM_MLPipe_Stop(void) {
+  nn_pipe_running = 0;
+  CMW_CAMERA_Suspend(DCMIPP_PIPE2);
 }
 
 /**
@@ -183,15 +196,9 @@ void CAM_IspUpdate(void) {
 }
 
 /**
- * @brief  Frame event callback (ISR context) - handles buffering
- * @param  pipe: Pipe that triggered the event
- * @retval HAL_OK
+ * @brief  Handle display pipe (PIPE1) frame event
  */
-int CMW_CAMERA_PIPE_FrameEventCallback(uint32_t pipe) {
-  if (pipe != DCMIPP_PIPE1) {
-    return HAL_OK;
-  }
-
+static void cam_display_pipe_frame_event(void) {
   DCMIPP_HandleTypeDef *hdcmipp = CMW_CAMERA_GetDCMIPPHandle();
   int next_disp = Buffer_GetNextCameraDisplayIndex();
   int next_capt = Buffer_GetNextCameraCaptureIndex();
@@ -211,6 +218,48 @@ int CMW_CAMERA_PIPE_FrameEventCallback(uint32_t pipe) {
   /* Advance buffer indices */
   Buffer_SetCameraDisplayIndex(next_disp);
   Buffer_SetCameraCaptureIndex(next_capt);
+}
+
+/**
+ * @brief  Handle NN pipe (PIPE2) frame event
+ *         Gets next free buffer from NN input queue and programs DCMIPP
+ */
+static void cam_nn_pipe_frame_event(void) {
+  bqueue_t *nn_input_queue;
+  uint8_t *next_buffer;
+
+  if (!nn_pipe_running) {
+    return;
+  }
+
+  nn_input_queue = NN_GetInputQueue();
+  if (nn_input_queue == NULL) {
+    return;
+  }
+
+  next_buffer = bqueue_get_free(nn_input_queue, 0);
+  if (next_buffer != NULL) {
+    DCMIPP_HandleTypeDef *hdcmipp = CMW_CAMERA_GetDCMIPPHandle();
+    if (hdcmipp != NULL) {
+      HAL_DCMIPP_PIPE_SetMemoryAddress(hdcmipp, DCMIPP_PIPE2,
+                                       DCMIPP_MEMORY_ADDRESS_0,
+                                       (uint32_t)next_buffer);
+    }
+    bqueue_put_ready(nn_input_queue);
+  }
+}
+
+/**
+ * @brief  Frame event callback (ISR context) - handles buffering
+ * @param  pipe: Pipe that triggered the event
+ * @retval HAL_OK
+ */
+int CMW_CAMERA_PIPE_FrameEventCallback(uint32_t pipe) {
+  if (pipe == DCMIPP_PIPE1) {
+    cam_display_pipe_frame_event();
+  } else if (pipe == DCMIPP_PIPE2) {
+    cam_nn_pipe_frame_event();
+  }
 
   return HAL_OK;
 }

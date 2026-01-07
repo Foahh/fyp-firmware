@@ -24,7 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "app.h"
-#include <assert.h>
+#include "app_error.h"
 #include "utils.h"
 /* USER CODE END Includes */
 
@@ -105,7 +105,7 @@ void MX_ThreadX_Init(void)
  * @retval None
  */
 void HAL_Delay(uint32_t Delay) {
-  assert(!IS_IRQ_MODE());
+  APP_REQUIRE(!IS_IRQ_MODE());
 
   uint32_t ticks = (Delay * TX_TIMER_TICKS_PER_SECOND) / 1000;
   tx_thread_sleep(ticks);

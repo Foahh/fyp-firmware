@@ -16,6 +16,7 @@
   *
   ******************************************************************************
   */
+#define HAL_RAMCFG_MODULE_ENABLED
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/

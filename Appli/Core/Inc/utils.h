@@ -21,6 +21,7 @@
 
 #define ALIGN_32 __attribute__((aligned(32)))
 #define IN_PSRAM __attribute__((section(".psram_bss")))
+#define ALIGN_VALUE(v, a) (((v) + (a) - 1) & ~((a) - 1))
 
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))

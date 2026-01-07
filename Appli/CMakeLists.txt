@@ -79,12 +79,13 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lcd
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/Fonts
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/ai-postprocessing-wrapper/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lock-free-ring-buffer/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/ai-postprocessing-wrapper
     # AI Library includes
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/Devices/STM32N6xx
+    # Network model includes
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Networks/Src
 )
 
 # Camera Middleware sources
@@ -109,19 +110,22 @@ set(BSP_Driver_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_bus.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_xspi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_lcd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_ramcfg.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/aps256xx/aps256xx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/mx66uw1g45g/mx66uw1g45g.c
 )
 
 set(LIBRARIES_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lcd/stm32_lcd.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lock-free-ring-buffer/src/ring_buf.c
 )
 
 set(AI_POSTPROCESSING_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/ai-postprocessing-wrapper/app_postprocess_od_st_yolox_uf.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Src/od_pp_st_yolox.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Src/vision_models_pp.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Src/vision_models_pp_maxi_if32.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Src/vision_models_pp_maxi_is8.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Src/vision_models_pp_maxi_iu8.c
 )
 
 # AI NPU Library sources
@@ -148,11 +152,18 @@ set(AI_NPU_Src
 
 set(APP_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_bqueue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_buffers.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cam.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_detection.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_lcd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_nn.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_ui.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_event_bus.c
+)
+
+set(NETWORK_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Networks/Src/od_yolo_x_person.c
 )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
@@ -164,6 +175,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${LIBRARIES_Src}
     ${AI_POSTPROCESSING_Src}
     ${AI_NPU_Src}
+    ${NETWORK_Src}
 )
 
 # Link directories setup

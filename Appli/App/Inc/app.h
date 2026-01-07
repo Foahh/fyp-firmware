@@ -16,8 +16,8 @@
  ******************************************************************************
  */
 
-#ifndef __APP_H
-#define __APP_H
+#ifndef APP_H
+#define APP_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,5 +38,5 @@ void App_Init(VOID *memory_ptr);
 }
 #endif
 
-#endif /* __APP_H */
+#endif /* APP_H */
 

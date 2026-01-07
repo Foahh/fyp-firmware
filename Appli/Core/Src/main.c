@@ -27,9 +27,10 @@
 #include "app_cam.h"
 #include "tx_api.h"
 #include "app_lcd.h"
-#include "stm32n6570_discovery_xspi.h"
 #include "npu_cache.h"
-#include <assert.h>
+#include "app_error.h"
+#include "stm32n6570_discovery_xspi.h"
+#include "stm32n6xx_hal_ramcfg.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -110,10 +111,12 @@ int main(void)
   MX_GPIO_Init();
   SystemIsolation_Config();
   /* USER CODE BEGIN 2 */
-  NPU_Config();
   IAC_Config();
+  NPU_Config();
+  npu_cache_enable();
   XSPI_Config();
   LED_Config();
+  ClockSleep_Config();
   /* USER CODE END 2 */
 
   MX_ThreadX_Init();
@@ -246,10 +249,10 @@ static void XSPI_Config(void) {
   int32_t ret = BSP_ERROR_NONE;
 
   ret = BSP_XSPI_RAM_Init(0);
-  assert(ret == BSP_ERROR_NONE);
+  APP_REQUIRE(ret == BSP_ERROR_NONE);
 
   ret = BSP_XSPI_RAM_EnableMemoryMappedMode(0);
-  assert(ret == BSP_ERROR_NONE);
+  APP_REQUIRE(ret == BSP_ERROR_NONE);
 }
 
 static void LED_Config(void) {
@@ -417,26 +420,33 @@ void ClockSleep_Config(void)
   __HAL_RCC_USART1_CLK_SLEEP_ENABLE();
   // LP clocks APB4: None
   // LP clocks APB5: None
+
+  __HAL_RCC_LTDC_CLK_SLEEP_ENABLE();
+  __HAL_RCC_DMA2D_CLK_SLEEP_ENABLE();
+  __HAL_RCC_DCMIPP_CLK_SLEEP_ENABLE();
+  __HAL_RCC_CSI_CLK_SLEEP_ENABLE();
 }
 
-void NPU_Config(void)
-{
-    __HAL_RCC_AXISRAM2_MEM_CLK_ENABLE();
-    __HAL_RCC_AXISRAM3_MEM_CLK_ENABLE();
-    __HAL_RCC_AXISRAM4_MEM_CLK_ENABLE();
-    __HAL_RCC_AXISRAM5_MEM_CLK_ENABLE();
-    __HAL_RCC_AXISRAM6_MEM_CLK_ENABLE();
-    RAMCFG_SRAM2_AXI->CR &= ~RAMCFG_CR_SRAMSD;
-    RAMCFG_SRAM3_AXI->CR &= ~RAMCFG_CR_SRAMSD;
-    RAMCFG_SRAM4_AXI->CR &= ~RAMCFG_CR_SRAMSD;
-    RAMCFG_SRAM5_AXI->CR &= ~RAMCFG_CR_SRAMSD;
-    RAMCFG_SRAM6_AXI->CR &= ~RAMCFG_CR_SRAMSD;
-    ClockSleep_Config();
-    __HAL_RCC_NPU_CLK_ENABLE();
-    __HAL_RCC_NPU_FORCE_RESET();
-    __HAL_RCC_NPU_RELEASE_RESET();
+void NPU_Config(void) {
+  __HAL_RCC_NPU_CLK_ENABLE();
+  __HAL_RCC_NPU_FORCE_RESET();
+  __HAL_RCC_NPU_RELEASE_RESET();
 
-    npu_cache_enable();
+  /* Enable NPU RAMs (4x448KB) */
+  __HAL_RCC_AXISRAM3_MEM_CLK_ENABLE();
+  __HAL_RCC_AXISRAM4_MEM_CLK_ENABLE();
+  __HAL_RCC_AXISRAM5_MEM_CLK_ENABLE();
+  __HAL_RCC_AXISRAM6_MEM_CLK_ENABLE();
+  __HAL_RCC_RAMCFG_CLK_ENABLE();
+  RAMCFG_HandleTypeDef hramcfg = {0};
+  hramcfg.Instance =  RAMCFG_SRAM3_AXI;
+  HAL_RAMCFG_EnableAXISRAM(&hramcfg);
+  hramcfg.Instance =  RAMCFG_SRAM4_AXI;
+  HAL_RAMCFG_EnableAXISRAM(&hramcfg);
+  hramcfg.Instance =  RAMCFG_SRAM5_AXI;
+  HAL_RAMCFG_EnableAXISRAM(&hramcfg);
+  hramcfg.Instance =  RAMCFG_SRAM6_AXI;
+  HAL_RAMCFG_EnableAXISRAM(&hramcfg);
 }
 
 /* USER CODE END 4 */

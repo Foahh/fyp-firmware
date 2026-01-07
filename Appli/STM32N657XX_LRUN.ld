@@ -38,8 +38,8 @@ ENTRY(Reset_Handler)
 /* Memories definition */
 MEMORY
 {
-  ROM    (xrw)    : ORIGIN = 0x34000400,   LENGTH = 511K
-  RAM    (xrw)    : ORIGIN = 0x34080000,   LENGTH = 1536K
+  ROM    (xrw)    : ORIGIN = 0x34000400,   LENGTH = 0x9FC00
+  RAM    (xrw)    : ORIGIN = 0x340A0000,   LENGTH = 0x160000
   PSRAM  (xrw)    : ORIGIN = 0x91000000,   LENGTH = 16M
 }
 /* Highest address of the user mode stack */

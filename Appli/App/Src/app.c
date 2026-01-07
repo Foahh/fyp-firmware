@@ -17,11 +17,14 @@
  */
 
 #include "app.h"
+#include "app_bqueue.h"
 #include "app_buffers.h"
 #include "app_cam.h"
 #include "app_config.h"
+#include "app_detection.h"
 #include "app_event_bus.h"
 #include "app_lcd.h"
+#include "app_nn.h"
 #include "app_ui.h"
 #include "cmw_camera.h"
 #include "main.h"
@@ -30,7 +33,7 @@
 #include "stm32n6xx_hal.h"
 #include "stm32n6xx_hal_rif.h"
 #include "utils.h"
-#include <assert.h>
+#include "app_error.h"
 
 /* UI thread configuration */
 #define UI_THREAD_STACK_SIZE 2048
@@ -51,8 +54,6 @@ static struct {
   TX_THREAD thread;
   UCHAR stack[IDLE_THREAD_STACK_SIZE];
 } idle_ctx;
-
-
 
 /**
  * @brief  Idle measurement thread entry
@@ -88,6 +89,8 @@ static void ui_thread_entry(ULONG arg) {
 
 void App_Init(VOID *memory_ptr) {
   UINT tx_status;
+  bqueue_t *nn_input_queue;
+  uint8_t *first_nn_buffer;
 
   Buffer_Init();
   LCD_Init();
@@ -99,7 +102,7 @@ void App_Init(VOID *memory_ptr) {
                                idle_ctx.stack, IDLE_THREAD_STACK_SIZE,
                                IDLE_THREAD_PRIORITY, IDLE_THREAD_PRIORITY,
                                TX_NO_TIME_SLICE, TX_AUTO_START);
-  assert(tx_status == TX_SUCCESS);
+  APP_REQUIRE(tx_status == TX_SUCCESS);
 
   /* Create UI update thread */
   tx_status = tx_thread_create(&ui_ctx.thread, "ui_update",
@@ -107,10 +110,23 @@ void App_Init(VOID *memory_ptr) {
                                ui_ctx.stack, UI_THREAD_STACK_SIZE,
                                UI_THREAD_PRIORITY, UI_THREAD_PRIORITY,
                                TX_NO_TIME_SLICE, TX_AUTO_START);
-  assert(tx_status == TX_SUCCESS);
+  APP_REQUIRE(tx_status == TX_SUCCESS);
 
+  /* Initialize camera */
   CAM_InitIspSemaphore();
   CAM_Init();
   Thread_IspUpdate_Init(memory_ptr);
+
+  // /* Initialize NN pipeline threads (creates buffer queues internally) */
+  NN_Thread_Init(memory_ptr);
+  Detection_Thread_Init(memory_ptr);
+
+  /* Start camera pipes */
   CAM_DisplayPipe_Start(CMW_MODE_CONTINUOUS);
+
+  /* Start NN pipe with first buffer from queue */
+  nn_input_queue = NN_GetInputQueue();
+  first_nn_buffer = bqueue_get_free(nn_input_queue, 0);
+  APP_REQUIRE(first_nn_buffer != NULL);
+  CAM_MLPipe_Start(first_nn_buffer, CMW_MODE_CONTINUOUS);
 }

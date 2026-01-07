@@ -49,6 +49,12 @@ void CAM_DisplayPipe_Start(uint32_t cam_mode);
 void CAM_MLPipe_Start(uint8_t *ml_pipe_dst, uint32_t cam_mode);
 
 /**
+ * @brief  Stop the neural network pipe capture
+ * @retval None
+ */
+void CAM_MLPipe_Stop(void);
+
+/**
  * @brief  Update ISP parameters (call periodically for auto exposure/white
  * balance)
  * @retval None

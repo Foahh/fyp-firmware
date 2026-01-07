@@ -16,8 +16,8 @@
  ******************************************************************************
  */
 
-#ifndef APP_Buffer_H
-#define APP_Buffer_H
+#ifndef APP_BUFFERS_H
+#define APP_BUFFERS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -160,4 +160,4 @@ void Buffer_Init(void);
 }
 #endif
 
-#endif /* APP_Buffer_H */
+#endif /* APP_BUFFERS_H */

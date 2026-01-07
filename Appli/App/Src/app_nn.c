@@ -1,0 +1,233 @@
+/**
+ ******************************************************************************
+ * @file    app_nn.c
+ * @author  Long Liangmao
+ * @brief   Neural network thread and ATON runtime implementation
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2026 Long Liangmao.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
+
+#include "app_nn.h"
+#include "app_config.h"
+#include "app_error.h"
+#include "stm32n6xx_hal.h"
+#include "utils.h"
+#include "app_error.h"
+#include <string.h>
+
+/* Include ATON runtime API */
+#include "ll_aton_rt_user_api.h"
+
+/* Include generated network header */
+#include "od_yolo_x_person.h"
+
+/* Declare NN instance */
+LL_ATON_DECLARE_NAMED_NN_INSTANCE_AND_INTERFACE(od_yolo_x_person);
+
+/* Thread configuration */
+#define NN_THREAD_STACK_SIZE 4096
+#define NN_THREAD_PRIORITY 6 /* Higher than postprocess, lower than ISP */
+
+/* Align macro */
+#define ALIGN_VALUE(v, a) (((v) + (a) - 1) & ~((a) - 1))
+
+/* NN output sizes from model header */
+#define NN_OUT_NB LL_ATON_OD_YOLO_X_PERSON_OUT_NUM
+
+#define NN_OUT0_SIZE LL_ATON_OD_YOLO_X_PERSON_OUT_1_SIZE_BYTES
+#define NN_OUT0_SIZE_ALIGN ALIGN_VALUE(NN_OUT0_SIZE, LL_ATON_OD_YOLO_X_PERSON_OUT_1_ALIGNMENT)
+
+#define NN_OUT1_SIZE LL_ATON_OD_YOLO_X_PERSON_OUT_2_SIZE_BYTES
+#define NN_OUT1_SIZE_ALIGN ALIGN_VALUE(NN_OUT1_SIZE, LL_ATON_OD_YOLO_X_PERSON_OUT_2_ALIGNMENT)
+
+#define NN_OUT2_SIZE LL_ATON_OD_YOLO_X_PERSON_OUT_3_SIZE_BYTES
+#define NN_OUT2_SIZE_ALIGN ALIGN_VALUE(NN_OUT2_SIZE, LL_ATON_OD_YOLO_X_PERSON_OUT_3_ALIGNMENT)
+
+/* Total output buffer size */
+#define NN_OUT_BUFFER_SIZE (NN_OUT0_SIZE_ALIGN + NN_OUT1_SIZE_ALIGN + NN_OUT2_SIZE_ALIGN)
+
+/* NN input buffer size */
+#define NN_INPUT_SIZE (ML_WIDTH * ML_HEIGHT * ML_BPP)
+
+/* Thread resources */
+static struct {
+  TX_THREAD thread;
+  UCHAR stack[NN_THREAD_STACK_SIZE];
+} nn_ctx;
+
+/* Buffer queues */
+static bqueue_t nn_input_queue;
+static bqueue_t nn_output_queue;
+
+/* NN input buffers - in PSRAM for DCMIPP access */
+static uint8_t nn_input_buffers[2][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
+
+/* NN output buffers - in internal RAM for fast CPU access */
+static uint8_t nn_output_buffers[2][NN_OUT_BUFFER_SIZE] ALIGN_32;
+
+/* Output sizes array */
+static const uint32_t nn_out_sizes[NN_OUT_MAX_NB] = {
+    NN_OUT0_SIZE, NN_OUT1_SIZE, NN_OUT2_SIZE, 0};
+
+/* Timing statistics (volatile for cross-thread access) */
+static volatile nn_timing_t nn_timing;
+
+/**
+ * @brief  Run ATON inference with WFE support
+ */
+static void NN_RunInference(void) {
+  LL_ATON_RT_RetValues_t ret;
+
+  do {
+    ret = LL_ATON_RT_RunEpochBlock(&NN_Instance_od_yolo_x_person);
+
+    if (ret == LL_ATON_RT_WFE) {
+      LL_ATON_OSAL_WFE();
+    }
+  } while (ret != LL_ATON_RT_DONE);
+
+  LL_ATON_RT_Reset_Network(&NN_Instance_od_yolo_x_person);
+}
+
+/**
+ * @brief  NN thread entry function
+ */
+static void nn_thread_entry(ULONG arg) {
+  UNUSED(arg);
+
+  const LL_Buffer_InfoTypeDef *nn_in_info = LL_ATON_Input_Buffers_Info(&NN_Instance_od_yolo_x_person);
+  const LL_Buffer_InfoTypeDef *nn_out_info = LL_ATON_Output_Buffers_Info(&NN_Instance_od_yolo_x_person);
+  uint32_t nn_in_len;
+  uint32_t nn_period[2];
+  int ret;
+
+  /* Initialize ATON runtime */
+  LL_ATON_RT_RuntimeInit();
+  LL_ATON_RT_Init_Network(&NN_Instance_od_yolo_x_person);
+
+  /* Get input buffer length */
+  nn_in_len = LL_Buffer_len(&nn_in_info[0]);
+  APP_REQUIRE(nn_in_len <= NN_INPUT_SIZE);
+
+  /* Verify output configuration matches model */
+  int out_count = 0;
+  while (nn_out_info[out_count].name != NULL) {
+    out_count++;
+  }
+  APP_REQUIRE(out_count == NN_OUT_NB);
+
+  /* Initialize timing */
+  nn_period[1] = HAL_GetTick();
+
+  /* Main inference loop */
+  while (1) {
+    uint8_t *capture_buffer;
+    uint8_t *output_buffer;
+    uint8_t *out_ptrs[NN_OUT_NB];
+    uint32_t ts;
+
+    /* Update period tracking */
+    nn_period[0] = nn_period[1];
+    nn_period[1] = HAL_GetTick();
+    nn_timing.nn_period_ms = nn_period[1] - nn_period[0];
+
+    /* Get input buffer (blocking) */
+    capture_buffer = bqueue_get_ready(&nn_input_queue);
+    APP_REQUIRE(capture_buffer != NULL);
+
+    /* Get output buffer (blocking) */
+    output_buffer = bqueue_get_free(&nn_output_queue, 1);
+    APP_REQUIRE(output_buffer != NULL);
+
+    /* Calculate output buffer pointers */
+    out_ptrs[0] = output_buffer;
+    out_ptrs[1] = out_ptrs[0] + NN_OUT0_SIZE_ALIGN;
+    out_ptrs[2] = out_ptrs[1] + NN_OUT1_SIZE_ALIGN;
+
+    /* Set input buffer (no cache ops needed - hardware only) */
+    ret = LL_ATON_Set_User_Input_Buffer_od_yolo_x_person(0, capture_buffer, nn_in_len);
+    APP_REQUIRE(ret == LL_ATON_User_IO_NOERROR);
+
+    /* Invalidate output buffer before hardware access */
+    SCB_InvalidateDCache_by_Addr(output_buffer, NN_OUT_BUFFER_SIZE);
+
+    /* Set output buffers */
+    for (int i = 0; i < NN_OUT_NB; i++) {
+      ret = LL_ATON_Set_User_Output_Buffer_od_yolo_x_person(i, out_ptrs[i], nn_out_sizes[i]);
+      APP_REQUIRE(ret == LL_ATON_User_IO_NOERROR);
+    }
+
+    /* Run inference */
+    ts = HAL_GetTick();
+    NN_RunInference();
+    nn_timing.inference_ms = HAL_GetTick() - ts;
+
+    /* Release input buffer back to free pool */
+    bqueue_put_free(&nn_input_queue);
+
+    /* Mark output buffer as ready for postprocess */
+    bqueue_put_ready(&nn_output_queue);
+  }
+}
+
+bqueue_t *NN_GetInputQueue(void) {
+  return &nn_input_queue;
+}
+
+bqueue_t *NN_GetOutputQueue(void) {
+  return &nn_output_queue;
+}
+
+void NN_GetTiming(nn_timing_t *timing) {
+  if (timing != NULL) {
+    timing->nn_period_ms = nn_timing.nn_period_ms;
+    timing->inference_ms = nn_timing.inference_ms;
+  }
+}
+
+int NN_GetOutputCount(void) {
+  return NN_OUT_NB;
+}
+
+const uint32_t *NN_GetOutputSizes(void) {
+  return nn_out_sizes;
+}
+
+void NN_Thread_Init(VOID *memory_ptr) {
+  UNUSED(memory_ptr);
+  UINT status;
+  int ret;
+
+  /* Initialize input buffer queue */
+  uint8_t *in_bufs[2] = {nn_input_buffers[0], nn_input_buffers[1]};
+  ret = bqueue_init(&nn_input_queue, 2, in_bufs);
+  APP_REQUIRE(ret == 0);
+
+  /* Initialize output buffer queue */
+  uint8_t *out_bufs[2] = {nn_output_buffers[0], nn_output_buffers[1]};
+  ret = bqueue_init(&nn_output_queue, 2, out_bufs);
+  APP_REQUIRE(ret == 0);
+
+  /* Clear buffers */
+  memset(nn_input_buffers, 0, sizeof(nn_input_buffers));
+  SCB_CleanInvalidateDCache_by_Addr((void *)nn_input_buffers, sizeof(nn_input_buffers));
+  memset(nn_output_buffers, 0, sizeof(nn_output_buffers));
+  SCB_CleanInvalidateDCache_by_Addr((void *)nn_output_buffers, sizeof(nn_output_buffers));
+
+  /* Create NN thread */
+  status = tx_thread_create(&nn_ctx.thread, "nn_inference",
+                            nn_thread_entry, 0,
+                            nn_ctx.stack, NN_THREAD_STACK_SIZE,
+                            NN_THREAD_PRIORITY, NN_THREAD_PRIORITY,
+                            TX_NO_TIME_SLICE, TX_AUTO_START);
+  APP_REQUIRE_EQ(status, TX_SUCCESS);
+}
