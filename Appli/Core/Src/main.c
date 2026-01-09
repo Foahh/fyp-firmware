@@ -73,6 +73,9 @@ static void XSPI_Config(void);
 static void LED_Config(void);
 static void ClockSleep_Config(void);
 static void NPU_Config(void);
+#if (USE_BSP_COM_FEATURE > 0)
+static void COM_Config(void);
+#endif /* USE_BSP_COM_FEATURE */
 void Peripheral_Init(void *memory_ptr);
 /* USER CODE END PFP */
 
@@ -115,6 +118,9 @@ int main(void)
   MX_GPIO_Init();
   SystemIsolation_Config();
   /* USER CODE BEGIN 2 */
+#if (USE_BSP_COM_FEATURE > 0)
+  COM_Config();
+#endif /* USE_BSP_COM_FEATURE */
   /* USER CODE END 2 */
 
   MX_ThreadX_Init();
@@ -259,6 +265,34 @@ static void LED_Config(void) {
   BSP_LED_Off(LED_GREEN);
   BSP_LED_Off(LED_RED);
 }
+
+#if (USE_BSP_COM_FEATURE > 0)
+static void COM_Config(void) {
+  COM_InitTypeDef COM_Init = {0};
+  int32_t ret = BSP_ERROR_NONE;
+
+  /* Configure COM1 (USART1) for logging */
+  COM_Init.BaudRate   = 115200U;
+  COM_Init.WordLength = COM_WORDLENGTH_8B;
+  COM_Init.StopBits   = COM_STOPBITS_1;
+  COM_Init.Parity     = COM_PARITY_NONE;
+  COM_Init.HwFlowCtl  = COM_HWCONTROL_NONE;
+
+  ret = BSP_COM_Init(COM1, &COM_Init);
+  if (ret != BSP_ERROR_NONE) {
+    Error_Handler();
+  }
+
+#if (USE_COM_LOG > 0)
+  /* Select COM1 as the logging port */
+  ret = BSP_COM_SelectLogPort(COM1);
+  if (ret != BSP_ERROR_NONE) {
+    Error_Handler();
+  }
+#endif /* USE_COM_LOG */
+}
+
+#endif /* USE_BSP_COM_FEATURE */
 
 static void SystemClock_Config(void) {
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
