@@ -63,7 +63,7 @@ static void nn_thread_entry(ULONG arg);
 #define NN_OUT_BUFFER_SIZE (NN_OUT0_SIZE_ALIGN + NN_OUT1_SIZE_ALIGN + NN_OUT2_SIZE_ALIGN)
 
 /* NN input buffer size */
-#define NN_INPUT_SIZE (ML_WIDTH * ML_HEIGHT * ML_BPP)
+#define NN_INPUT_SIZE (NN_WIDTH * NN_HEIGHT * NN_BPP)
 
 /* ============================================================================
  * Global State Variables

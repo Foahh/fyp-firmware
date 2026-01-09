@@ -34,7 +34,8 @@
  * ============================================================================ */
 
 static void clamp_point(int *x, int *y);
-static void draw_detection(const od_pp_outBuffer_t *det);
+static void draw_detection(const od_pp_outBuffer_t *det,
+                           int roi_x0, int roi_y0, int roi_w, int roi_h);
 static void overlay_thread_entry(ULONG arg);
 
 /* ============================================================================
@@ -101,17 +102,23 @@ static void clamp_point(int *x, int *y) {
 /**
  * @brief  Draw a single detection bounding box
  * @param  det: Pointer to detection result
+ * @param  roi_x0: ROI top-left X coordinate (pre-computed, passed from caller)
+ * @param  roi_y0: ROI top-left Y coordinate (pre-computed, passed from caller)
+ * @param  roi_w: ROI width (pre-computed, passed from caller)
+ * @param  roi_h: ROI height (pre-computed, passed from caller)
  */
-static void draw_detection(const od_pp_outBuffer_t *det) {
+static void draw_detection(const od_pp_outBuffer_t *det,
+                           int roi_x0, int roi_y0, int roi_w, int roi_h) {
   int xc, yc, x0, y0, x1, y1, w, h;
   uint32_t color;
   int class_idx;
 
-  /* Convert normalized coordinates to pixel coordinates */
-  xc = (int)(det->x_center * DISPLAY_LETTERBOX_WIDTH) + DISPLAY_LETTERBOX_X0;
-  yc = (int)(det->y_center * DISPLAY_LETTERBOX_HEIGHT);
-  w = (int)(det->width * DISPLAY_LETTERBOX_WIDTH);
-  h = (int)(det->height * DISPLAY_LETTERBOX_HEIGHT);
+  /* Convert normalized coordinates (relative to NN input 480x480) to ROI pixel coordinates */
+  /* Detections are normalized (0-1) relative to NN input size, scale to ROI size */
+  xc = (int)(det->x_center * roi_w) + roi_x0 + DISPLAY_LETTERBOX_X0;
+  yc = (int)(det->y_center * roi_h) + roi_y0;
+  w = (int)(det->width * roi_w);
+  h = (int)(det->height * roi_h);
 
   x0 = xc - (w + 1) / 2;
   y0 = yc - (h + 1) / 2;
@@ -160,10 +167,17 @@ static void draw_detection(const od_pp_outBuffer_t *det) {
 static void overlay_thread_entry(ULONG arg) {
   UNUSED(arg);
 
-  detection_info_t local_info;
   uint8_t *ui_buffer;
   char stats_str[32];
   UINT status;
+
+  /* Set drawing layer */
+  UTIL_LCD_SetLayer(LCD_LAYER_1_UI);
+  UTIL_LCD_SetFont(&Font16);
+  UTIL_LCD_SetBackColor(0x00000000); /* Transparent */
+
+  /* Get NN crop ROI */
+  const nn_crop_info_display_t *roi_info = CAM_GetNNCropROI_Display();
 
   while (1) {
     /* Wait for detection update */
@@ -175,10 +189,8 @@ static void overlay_thread_entry(ULONG arg) {
       continue;
     }
 
-    /* Copy detection info under lock */
-    Postprocess_Lock();
-    local_info = *Postprocess_GetInfo();
-    Postprocess_Unlock();
+    /* Get detection info pointer */
+    const detection_info_t *info = Postprocess_GetInfo();
 
     /* Get back buffer for drawing */
     ui_buffer = Buffer_GetUIBackBuffer();
@@ -189,11 +201,6 @@ static void overlay_thread_entry(ULONG arg) {
     /* Set layer buffer address */
     LCD_SetUILayerAddress(ui_buffer);
 
-    /* Set drawing layer */
-    UTIL_LCD_SetLayer(LCD_LAYER_1_UI);
-    UTIL_LCD_SetFont(&Font16);
-    UTIL_LCD_SetBackColor(0x00000000); /* Transparent */
-
     /* Clear overlay area - only the detection overlay region */
     /* Leave the diagnostic panel area (left side) untouched */
     UTIL_LCD_FillRect(DISPLAY_LETTERBOX_X0, 0,
@@ -203,31 +210,27 @@ static void overlay_thread_entry(ULONG arg) {
     /* Draw detection info at top */
     UTIL_LCD_SetTextColor(0xFFFFFFFF); /* White */
 
-    snprintf(stats_str, sizeof(stats_str), "Objects: %d", (int)local_info.nb_detect);
+    snprintf(stats_str, sizeof(stats_str), "Objects: %d", (int)info->nb_detect);
     UTIL_LCD_DisplayStringAt(DISPLAY_LETTERBOX_X0 + 10, 10,
                              (uint8_t *)stats_str, LEFT_MODE);
 
     snprintf(stats_str, sizeof(stats_str), "Inf: %ums FPS: %.1f",
-             (unsigned int)local_info.inference_ms,
-             local_info.nn_period_ms > 0 ? 1000.0f / local_info.nn_period_ms : 0.0f);
+             (unsigned int)info->inference_ms,
+             info->nn_period_ms > 0 ? 1000.0f / info->nn_period_ms : 0.0f);
     UTIL_LCD_DisplayStringAt(DISPLAY_LETTERBOX_X0 + 10, 30,
                              (uint8_t *)stats_str, LEFT_MODE);
 
     /* Draw bounding boxes */
     UTIL_LCD_SetTextColor(0xFF00FF00); /* Green for boxes */
-    for (int i = 0; i < local_info.nb_detect; i++) {
-      draw_detection(&local_info.detects[i]);
+    for (int i = 0; i < info->nb_detect; i++) {
+      draw_detection(&info->detects[i], roi_info->roi_x0, roi_info->roi_y0, roi_info->roi_w, roi_info->roi_h);
     }
 
     /* Draw NN crop ROI rectangle */
-    int roi_x0, roi_y0, roi_x1, roi_y1;
-    if (CAM_GetNNCropROI_Display(&roi_x0, &roi_y0, &roi_x1, &roi_y1)) {
-      /* Draw rectangle in cyan to show NN crop region */
-      UTIL_LCD_SetTextColor(0xFF00FFFF); /* Cyan */
-      UTIL_LCD_DrawRect(DISPLAY_LETTERBOX_X0 + roi_x0, roi_y0,
-                        roi_x1 - roi_x0, roi_y1 - roi_y0,
-                        0xFF00FFFF);
-    }
+    UTIL_LCD_SetTextColor(0xFF00FFFF); /* Cyan */
+    UTIL_LCD_DrawRect(DISPLAY_LETTERBOX_X0 + roi_info->roi_x0, roi_info->roi_y0,
+                      roi_info->roi_w, roi_info->roi_h,
+                      0xFF00FFFF);
 
     /* Commit buffer to display */
     Buffer_SetUIDisplayIndex(Buffer_GetNextUIDisplayIndex());

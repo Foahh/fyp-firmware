@@ -30,7 +30,7 @@ extern "C" {
 extern volatile int camera_display_idx;
 extern volatile int camera_capture_idx;
 extern volatile int ui_display_idx;
-extern uint8_t camera_display_buffers[3][DISPLAY_LETTERBOX_WIDTH * DISPLAY_LETTERBOX_HEIGHT * DISPLAY_BPP];
+extern uint8_t camera_display_buffers[2][DISPLAY_LETTERBOX_WIDTH * DISPLAY_LETTERBOX_HEIGHT * DISPLAY_BPP];
 extern uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4];
 
 /**
@@ -50,24 +50,24 @@ extern uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4];
  * @retval Next display buffer index
  */
 #define Buffer_GetNextCameraDisplayIndex() \
-  (((camera_display_idx) + 1) % 3)
+  ((camera_display_idx) ^ 1)
 
 /**
  * @brief  Get next capture buffer index (wraps around)
  * @retval Next capture buffer index
  */
 #define Buffer_GetNextCameraCaptureIndex() \
-  (((camera_capture_idx) + 1) % 3)
+  ((camera_capture_idx) ^ 1)
 
 /**
  * @brief  Get pointer to a specific camera display buffer
- * @param  idx: Buffer index (0 to 2)
+ * @param  idx: Buffer index (0 to 1)
  * @retval Pointer to the buffer, NULL if index is invalid
  */
 #define Buffer_GetCameraDisplayBuffer(idx)                       \
   ({                                                             \
     int _idx = (idx);                                            \
-    ((unsigned)_idx >= 3) ? NULL : camera_display_buffers[_idx]; \
+    ((unsigned)_idx >= 2) ? NULL : camera_display_buffers[_idx]; \
   })
 
 /**
@@ -78,7 +78,7 @@ extern uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4];
 #define Buffer_SetCameraDisplayIndex(idx)      \
   ({                                           \
     int _idx = (idx);                          \
-    int _ret = ((unsigned)_idx >= 3) ? -1 : 0; \
+    int _ret = ((unsigned)_idx >= 2) ? -1 : 0; \
     if (_ret == 0) {                           \
       camera_display_idx = _idx;               \
     }                                          \
@@ -93,7 +93,7 @@ extern uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4];
 #define Buffer_SetCameraCaptureIndex(idx)      \
   ({                                           \
     int _idx = (idx);                          \
-    int _ret = ((unsigned)_idx >= 3) ? -1 : 0; \
+    int _ret = ((unsigned)_idx >= 2) ? -1 : 0; \
     if (_ret == 0) {                           \
       camera_capture_idx = _idx;               \
     }                                          \

@@ -68,14 +68,22 @@ void CAM_IspUpdate(void);
 void Thread_IspUpdate_Init(VOID *memory_ptr);
 
 /**
- * @brief  Get NN crop ROI in display coordinates
- * @param  x0: Output X coordinate of top-left corner (relative to letterbox)
- * @param  y0: Output Y coordinate of top-left corner
- * @param  x1: Output X coordinate of bottom-right corner (relative to letterbox)
- * @param  y1: Output Y coordinate of bottom-right corner
- * @retval 1 if ROI is valid, 0 otherwise
+ * @brief  NN crop ROI information in display coordinates
  */
-int CAM_GetNNCropROI_Display(int *x0, int *y0, int *x1, int *y1);
+typedef struct {
+  int roi_x0;  /**< X coordinate of top-left corner (relative to letterbox) */
+  int roi_y0;  /**< Y coordinate of top-left corner */
+  int roi_x1;  /**< X coordinate of bottom-right corner (relative to letterbox) */
+  int roi_y1;  /**< Y coordinate of bottom-right corner */
+  int roi_w;   /**< ROI width */
+  int roi_h;   /**< ROI height */
+} nn_crop_info_display_t;
+
+/**
+ * @brief  Get NN crop ROI in display coordinates
+ * @retval Pointer to nn_crop_info_display_t struct if initialized, NULL otherwise
+ */
+nn_crop_info_display_t *CAM_GetNNCropROI_Display(void);
 
 #ifdef __cplusplus
 }

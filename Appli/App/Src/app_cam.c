@@ -74,6 +74,8 @@ static struct {
   CMW_Manual_roi_area_t nn_roi;
 } nn_crop_info = {0};
 
+static nn_crop_info_display_t roi_info_d = {0};
+
 /* ============================================================================
  * Internal Helper Functions
  * ============================================================================ */
@@ -100,6 +102,20 @@ static void CAM_CalcCropRoi(CMW_Manual_roi_area_t *roi,
   roi->height = MIN((output_h * scale) >> 10, sensor_h);
   roi->offset_x = (sensor_w - roi->width) / 2;
   roi->offset_y = (sensor_h - roi->height) / 2;
+}
+
+static void CAM_UpdateDisplayROI(CMW_Manual_roi_area_t *roi,
+                                 uint32_t sensor_w, uint32_t sensor_h) {
+  /* Map sensor coordinates to display letterbox coordinates */
+  float scale_x = (float)DISPLAY_LETTERBOX_WIDTH / (float)sensor_w;
+  float scale_y = (float)DISPLAY_LETTERBOX_HEIGHT / (float)sensor_h;
+
+  roi_info_d.roi_x0 = (int)(roi->offset_x * scale_x + 0.5f);
+  roi_info_d.roi_y0 = (int)(roi->offset_y * scale_y + 0.5f);
+  roi_info_d.roi_x1 = (int)((roi->offset_x + roi->width) * scale_x + 0.5f);
+  roi_info_d.roi_y1 = (int)((roi->offset_y + roi->height) * scale_y + 0.5f);
+  roi_info_d.roi_w = roi_info_d.roi_x1 - roi_info_d.roi_x0;
+  roi_info_d.roi_h = roi_info_d.roi_y1 - roi_info_d.roi_y0;
 }
 
 /**
@@ -196,15 +212,17 @@ void CAM_Init(void) {
   /* Configure NN pipe (Pipe2) */
   CAM_ConfigPipe(DCMIPP_PIPE2,
                  cam_conf.width, cam_conf.height,
-                 ML_WIDTH, ML_HEIGHT,
-                 ML_FORMAT, ML_BPP, 1);
+                 NN_WIDTH, NN_HEIGHT,
+                 NN_FORMAT, NN_BPP, 1);
 
   /* Store NN crop ROI info for overlay visualization */
   nn_crop_info.sensor_w = cam_conf.width;
   nn_crop_info.sensor_h = cam_conf.height;
   CAM_CalcCropRoi(&nn_crop_info.nn_roi,
                   cam_conf.width, cam_conf.height,
-                  ML_WIDTH, ML_HEIGHT);
+                  NN_WIDTH, NN_HEIGHT);
+
+  CAM_UpdateDisplayROI(&nn_crop_info.nn_roi, cam_conf.width, cam_conf.height);
 }
 
 /**
@@ -241,27 +259,13 @@ void CAM_NNPipe_Stop(void) {
 
 /**
  * @brief  Get NN crop ROI in display coordinates
- * @param  x0: Output X coordinate of top-left corner (relative to letterbox)
- * @param  y0: Output Y coordinate of top-left corner
- * @param  x1: Output X coordinate of bottom-right corner (relative to letterbox)
- * @param  y1: Output Y coordinate of bottom-right corner
- * @retval 1 if ROI is valid, 0 otherwise
+ * @retval Pointer to nn_crop_info_display_t struct if initialized, NULL otherwise
  */
-int CAM_GetNNCropROI_Display(int *x0, int *y0, int *x1, int *y1) {
+nn_crop_info_display_t *CAM_GetNNCropROI_Display(void) {
   if (nn_crop_info.sensor_w == 0 || nn_crop_info.sensor_h == 0) {
-    return 0; /* Not initialized */
+    return NULL;
   }
-
-  /* Map sensor coordinates to display letterbox coordinates */
-  float scale_x = (float)DISPLAY_LETTERBOX_WIDTH / (float)nn_crop_info.sensor_w;
-  float scale_y = (float)DISPLAY_LETTERBOX_HEIGHT / (float)nn_crop_info.sensor_h;
-
-  *x0 = (int)(nn_crop_info.nn_roi.offset_x * scale_x + 0.5f);
-  *y0 = (int)(nn_crop_info.nn_roi.offset_y * scale_y + 0.5f);
-  *x1 = (int)((nn_crop_info.nn_roi.offset_x + nn_crop_info.nn_roi.width) * scale_x + 0.5f);
-  *y1 = (int)((nn_crop_info.nn_roi.offset_y + nn_crop_info.nn_roi.height) * scale_y + 0.5f);
-
-  return 1;
+  return &roi_info_d;
 }
 
 /**

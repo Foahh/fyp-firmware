@@ -43,11 +43,11 @@
 #define DISPLAY_FORMAT DCMIPP_PIXEL_PACKER_FORMAT_RGB565_1
 #define DISPLAY_BPP 2
 
-/* Machine Learning pipeline configuration for AI inference */
-#define ML_WIDTH 480
-#define ML_HEIGHT 480
-#define ML_FORMAT DCMIPP_PIXEL_PACKER_FORMAT_RGB888_YUV444_1
-#define ML_BPP 3
+/* Neural Network pipeline configuration */
+#define NN_WIDTH 480
+#define NN_HEIGHT 480
+#define NN_FORMAT DCMIPP_PIXEL_PACKER_FORMAT_RGB888_YUV444_1
+#define NN_BPP 3
 
 /* ===========================================================================
  * Post-processing configuration for ST YOLO-X person detection model

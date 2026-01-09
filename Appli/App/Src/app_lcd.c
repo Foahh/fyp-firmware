@@ -193,12 +193,10 @@ void LCD_ReloadUILayer(uint8_t *frame_buffer) {
   __disable_irq();
   status = HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
                                         LCD_LAYER_1_UI);
-  __enable_irq();
-  APP_REQUIRE(status == HAL_OK);
-
-  __disable_irq();
-  status = HAL_LTDC_ReloadLayer(&hlcd_ltdc, LTDC_RELOAD_VERTICAL_BLANKING,
-                                LCD_LAYER_1_UI);
+  if (status == HAL_OK) {
+    status = HAL_LTDC_ReloadLayer(&hlcd_ltdc, LTDC_RELOAD_VERTICAL_BLANKING,
+                                  LCD_LAYER_1_UI);
+  }
   __enable_irq();
   APP_REQUIRE(status == HAL_OK);
 }

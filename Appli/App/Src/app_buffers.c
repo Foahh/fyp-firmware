@@ -25,7 +25,7 @@
  * Global State Variables
  * ============================================================================ */
 
-uint8_t camera_display_buffers[3][DISPLAY_LETTERBOX_WIDTH * DISPLAY_LETTERBOX_HEIGHT * DISPLAY_BPP] ALIGN_32 IN_PSRAM;
+uint8_t camera_display_buffers[2][DISPLAY_LETTERBOX_WIDTH * DISPLAY_LETTERBOX_HEIGHT * DISPLAY_BPP] ALIGN_32 IN_PSRAM;
 uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4] ALIGN_32 IN_PSRAM;
 
 /* Buffer indices - accessed from ISR context */

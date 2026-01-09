@@ -63,11 +63,12 @@ static struct {
 } pp_ctx;
 
 /* Synchronization primitives */
-static TX_MUTEX detection_mutex;
 static TX_EVENT_FLAGS_GROUP update_event_flags;
 
-/* Shared detection state */
-static detection_info_t detection_info;
+/* Double-buffered detection state for lock-free access */
+static detection_info_t detection_info_buffers[2];
+static volatile detection_info_t *detection_info_read_ptr = &detection_info_buffers[0];
+static int write_buffer_idx = 1;
 
 /* Postprocess parameters */
 static od_st_yolox_pp_static_param_t pp_params;
@@ -122,16 +123,21 @@ static void pp_thread_entry(ULONG arg) {
     /* Get NN timing */
     NN_GetTiming(&nn_timing);
 
-    /* Update shared detection state */
-    Postprocess_Lock();
-    detection_info.nb_detect = pp_output.nb_detect;
+    /* Write to the inactive buffer */
+    detection_info_t *write_buf = &detection_info_buffers[write_buffer_idx];
+    write_buf->nb_detect = pp_output.nb_detect;
     for (int i = 0; i < pp_output.nb_detect && i < DETECTION_MAX_BOXES; i++) {
-      detection_info.detects[i] = pp_output.pOutBuff[i];
+      write_buf->detects[i] = pp_output.pOutBuff[i];
     }
-    detection_info.nn_period_ms = nn_timing.nn_period_ms;
-    detection_info.inference_ms = nn_timing.inference_ms;
-    detection_info.postprocess_ms = pp_ts[1] - pp_ts[0];
-    Postprocess_Unlock();
+    write_buf->nn_period_ms = nn_timing.nn_period_ms;
+    write_buf->inference_ms = nn_timing.inference_ms;
+    write_buf->postprocess_ms = pp_ts[1] - pp_ts[0];
+
+    /* Atomically swap read pointer (single pointer assignment is atomic on ARM) */
+    detection_info_read_ptr = write_buf;
+    
+    /* Switch to other buffer for next write */
+    write_buffer_idx = write_buffer_idx ^ 1;
 
     /* Release output buffer */
     bqueue_put_free(output_queue);
@@ -154,29 +160,12 @@ void Postprocess_SignalUpdate(void) {
 }
 
 /**
- * @brief  Lock detection state mutex for reading/writing
- */
-void Postprocess_Lock(void) {
-  UINT status = tx_mutex_get(&detection_mutex, TX_WAIT_FOREVER);
-  APP_REQUIRE(status == TX_SUCCESS);
-  (void)status;
-}
-
-/**
- * @brief  Unlock detection state mutex
- */
-void Postprocess_Unlock(void) {
-  UINT status = tx_mutex_put(&detection_mutex);
-  APP_REQUIRE(status == TX_SUCCESS);
-  (void)status;
-}
-
-/**
- * @brief  Get pointer to detection info structure
- * @retval Pointer to detection_info_t (lock before accessing)
+ * @brief  Get pointer to detection info structure (lock-free, read-only)
+ * @retval Pointer to detection_info_t (read-only, no lock needed)
+ * @note   Uses double buffering for lock-free access
  */
 detection_info_t *Postprocess_GetInfo(void) {
-  return &detection_info;
+  return (detection_info_t *)detection_info_read_ptr;
 }
 
 /**
@@ -195,13 +184,14 @@ void Postprocess_Thread_Init(VOID *memory_ptr) {
   UNUSED(memory_ptr);
   UINT status;
 
-  /* Initialize detection state */
-  memset(&detection_info, 0, sizeof(detection_info));
+  /* Initialize detection state buffers */
+  memset(detection_info_buffers, 0, sizeof(detection_info_buffers));
+  
+  /* Initialize read pointer to first buffer */
+  detection_info_read_ptr = &detection_info_buffers[0];
+  write_buffer_idx = 1;
 
   /* Create synchronization primitives */
-  status = tx_mutex_create(&detection_mutex, "detection_lock", TX_NO_INHERIT);
-  APP_REQUIRE(status == TX_SUCCESS);
-
   status = tx_event_flags_create(&update_event_flags, "detection_update");
   APP_REQUIRE(status == TX_SUCCESS);
 

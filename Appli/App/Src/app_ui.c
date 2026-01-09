@@ -379,7 +379,6 @@ void UI_SetVisible(uint8_t visible) {
     if (ui_buffer != NULL) {
       LCD_SetUILayerAddress(ui_buffer);
       memset(ui_buffer, 0, LCD_WIDTH * LCD_HEIGHT * 4);
-      SCB_CleanDCache_by_Addr((void *)ui_buffer, LCD_WIDTH * LCD_HEIGHT * 4);
       Buffer_SetUIDisplayIndex(Buffer_GetNextUIDisplayIndex());
       LCD_ReloadUILayer(ui_buffer);
     }

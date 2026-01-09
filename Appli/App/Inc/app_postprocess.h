@@ -54,18 +54,8 @@ void Postprocess_Thread_Init(VOID *memory_ptr);
 void Postprocess_SignalUpdate(void);
 
 /**
- * @brief  Lock detection state mutex for reading/writing
- */
-void Postprocess_Lock(void);
-
-/**
- * @brief  Unlock detection state mutex
- */
-void Postprocess_Unlock(void);
-
-/**
- * @brief  Get pointer to detection info structure
- * @retval Pointer to detection_info_t (lock before accessing)
+ * @brief  Get pointer to detection info structure (lock-free, read-only)
+ * @retval Pointer to detection_info_t (read-only, no lock needed)
  */
 detection_info_t *Postprocess_GetInfo(void);
 
