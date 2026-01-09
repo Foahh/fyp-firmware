@@ -118,9 +118,6 @@ int main(void)
   MX_GPIO_Init();
   SystemIsolation_Config();
   /* USER CODE BEGIN 2 */
-#if (USE_BSP_COM_FEATURE > 0)
-  COM_Config();
-#endif /* USE_BSP_COM_FEATURE */
   /* USER CODE END 2 */
 
   MX_ThreadX_Init();
@@ -281,11 +278,11 @@ static void COM_Config(void) {
   int32_t ret = BSP_ERROR_NONE;
 
   /* Configure COM1 (USART1) for logging */
-  COM_Init.BaudRate   = 115200U;
+  COM_Init.BaudRate = 115200U;
   COM_Init.WordLength = COM_WORDLENGTH_8B;
-  COM_Init.StopBits   = COM_STOPBITS_1;
-  COM_Init.Parity     = COM_PARITY_NONE;
-  COM_Init.HwFlowCtl  = COM_HWCONTROL_NONE;
+  COM_Init.StopBits = COM_STOPBITS_1;
+  COM_Init.Parity = COM_PARITY_NONE;
+  COM_Init.HwFlowCtl = COM_HWCONTROL_NONE;
 
   ret = BSP_COM_Init(COM1, &COM_Init);
   if (ret != BSP_ERROR_NONE) {
@@ -473,18 +470,35 @@ void NPU_Config(void) {
   HAL_RAMCFG_EnableAXISRAM(&hramcfg);
 }
 
+void Priority_Config(void) {
+  uint32_t preemptPriority;
+  uint32_t subPriority;
+  IRQn_Type i;
+
+  HAL_NVIC_GetPriority(SysTick_IRQn, HAL_NVIC_GetPriorityGrouping(), &preemptPriority, &subPriority);
+  for (i = PVD_PVM_IRQn; i <= LTDC_UP_ERR_IRQn; i++) {
+    HAL_NVIC_SetPriority(i, preemptPriority, subPriority);
+  }
+}
+
 void Peripheral_Init(void *memory_ptr) {
   bqueue_t *nn_input_queue;
   uint8_t *first_nn_buffer;
 
+  Priority_Config();
+
   SMPS_Config();
-  
+
   IAC_Config();
 
   NPU_Config();
 
   npu_cache_init();
   npu_cache_enable();
+
+#if (USE_BSP_COM_FEATURE > 0)
+  COM_Config();
+#endif /* USE_BSP_COM_FEATURE */
 
   XSPI_Config();
 
@@ -512,6 +526,21 @@ void Peripheral_Init(void *memory_ptr) {
   first_nn_buffer = bqueue_get_free(nn_input_queue, 0);
   APP_REQUIRE(first_nn_buffer != NULL);
   CAM_NNPipe_Start(first_nn_buffer, CMW_MODE_CONTINUOUS);
+}
+
+void HAL_CACHEAXI_MspInit(CACHEAXI_HandleTypeDef *hcacheaxi)
+{
+  __HAL_RCC_CACHEAXIRAM_MEM_CLK_ENABLE();
+  __HAL_RCC_CACHEAXI_CLK_ENABLE();
+  __HAL_RCC_CACHEAXI_FORCE_RESET();
+  __HAL_RCC_CACHEAXI_RELEASE_RESET();
+}
+
+void HAL_CACHEAXI_MspDeInit(CACHEAXI_HandleTypeDef *hcacheaxi)
+{
+  __HAL_RCC_CACHEAXIRAM_MEM_CLK_DISABLE();
+  __HAL_RCC_CACHEAXI_CLK_DISABLE();
+  __HAL_RCC_CACHEAXI_FORCE_RESET();
 }
 
 /* USER CODE END 4 */
