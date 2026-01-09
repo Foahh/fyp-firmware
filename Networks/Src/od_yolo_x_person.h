@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file    od_yolo_x_person.h
   * @author  STEdgeAI
-  * @date    2026-01-09 13:44:21
+  * @date    2026-01-09 19:08:49
   * @brief   Minimal description of the generated c-implemention of the network
   ******************************************************************************
   * @attention

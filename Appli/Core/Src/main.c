@@ -257,6 +257,15 @@ static void XSPI_Config(void) {
 
   ret = BSP_XSPI_RAM_EnableMemoryMappedMode(0);
   APP_REQUIRE(ret == BSP_ERROR_NONE);
+
+  BSP_XSPI_NOR_Init_t NOR_Init;
+  NOR_Init.InterfaceMode = BSP_XSPI_NOR_OPI_MODE;
+  NOR_Init.TransferRate = BSP_XSPI_NOR_DTR_TRANSFER;
+  ret = BSP_XSPI_NOR_Init(0, &NOR_Init);
+  APP_REQUIRE(ret == BSP_ERROR_NONE);
+
+  ret = BSP_XSPI_NOR_EnableMemoryMappedMode(0);
+  APP_REQUIRE(ret == BSP_ERROR_NONE);
 }
 
 static void LED_Config(void) {
