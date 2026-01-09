@@ -74,6 +74,8 @@ void Error_Handler(void);
 /* USER CODE BEGIN EFP */
 extern volatile uint8_t *g_error_file;
 extern volatile uint32_t g_error_line;
+
+void Peripheral_Init(void *memory_ptr);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

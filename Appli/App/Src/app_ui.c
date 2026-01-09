@@ -24,6 +24,7 @@
 #include "stm32_lcd.h"
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"
+#include "tx_user.h"  /* For TX_TIMER_TICKS_PER_SECOND */
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -81,6 +82,12 @@ static void UI_Update(void);
 /* Buffer sizes */
 #define UI_TEXT_BUFFER_SIZE 48
 #define UI_PROGRESS_BAR_HEIGHT 12
+
+/* Update rate */
+#define UI_UPDATE_FPS 20
+
+/* Calculate sleep ticks from FPS */
+#define UI_UPDATE_SLEEP_TICKS (TX_TIMER_TICKS_PER_SECOND / UI_UPDATE_FPS)
 
 /* ============================================================================
  * Pre-computed Layout Constants
@@ -394,7 +401,7 @@ static void ui_thread_entry(ULONG arg) {
 
   while (1) {
     UI_Update();
-    tx_thread_sleep(10);
+    tx_thread_sleep(UI_UPDATE_SLEEP_TICKS);
   }
 }
 

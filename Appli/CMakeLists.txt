@@ -149,7 +149,6 @@ set(AI_NPU_Src
 )
 
 set(APP_Src
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_bqueue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_buffers.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cam.c
