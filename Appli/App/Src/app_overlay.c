@@ -44,7 +44,7 @@ static void overlay_thread_entry(ULONG arg);
 
 /* Thread configurations */
 #define OVERLAY_THREAD_STACK_SIZE 4096
-#define OVERLAY_THREAD_PRIORITY 10 /* Lower than PP, same as UI */
+#define OVERLAY_THREAD_PRIORITY 9
 
 /* Class names table - single class for person detection */
 static const char *classes_table[] = {"person"};

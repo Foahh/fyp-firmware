@@ -42,7 +42,7 @@ static void nn_thread_entry(ULONG arg);
 
 /* Thread configuration */
 #define NN_THREAD_STACK_SIZE 4096
-#define NN_THREAD_PRIORITY 6 /* Higher than postprocess, lower than ISP */
+#define NN_THREAD_PRIORITY 6
 
 /* Align macro */
 #define ALIGN_VALUE(v, a) (((v) + (a) - 1) & ~((a) - 1))
@@ -186,6 +186,7 @@ static void nn_thread_entry(ULONG arg) {
     }
 
     /* Set input buffer */
+    /* Note that we don't need to clean/invalidate those input buffers since they are only access in hardware */
     ret = LL_ATON_Set_User_Input_Buffer_od_yolo_x_person(0, capture_buffer, nn_in_len);
     APP_REQUIRE(ret == LL_ATON_User_IO_NOERROR);
 

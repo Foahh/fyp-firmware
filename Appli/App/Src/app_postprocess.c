@@ -47,7 +47,7 @@ static void pp_thread_entry(ULONG arg);
 
 /* Thread configurations */
 #define PP_THREAD_STACK_SIZE 4096
-#define PP_THREAD_PRIORITY 8 /* Lower than NN */
+#define PP_THREAD_PRIORITY 7
 
 /* Align macro */
 #define ALIGN_VALUE(v, a) (((v) + (a) - 1) & ~((a) - 1))

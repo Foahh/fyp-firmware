@@ -109,7 +109,7 @@ static uint8_t g_ui_initialized = 0;
 
 /* UI update thread */
 #define UI_THREAD_STACK_SIZE 2048
-#define UI_THREAD_PRIORITY 10 /* Low priority for UI updates */
+#define UI_THREAD_PRIORITY 10
 
 /* Idle measurement thread */
 #define IDLE_THREAD_STACK_SIZE 512
