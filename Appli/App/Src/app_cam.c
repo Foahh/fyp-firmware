@@ -67,6 +67,13 @@ static struct {
 /* NN pipe running state */
 static volatile uint8_t nn_pipe_running = 0;
 
+/* NN crop ROI in sensor coordinates (stored for overlay visualization) */
+static struct {
+  uint32_t sensor_w;
+  uint32_t sensor_h;
+  CMW_Manual_roi_area_t nn_roi;
+} nn_crop_info = {0};
+
 /* ============================================================================
  * Internal Helper Functions
  * ============================================================================ */
@@ -191,6 +198,13 @@ void CAM_Init(void) {
                  cam_conf.width, cam_conf.height,
                  ML_WIDTH, ML_HEIGHT,
                  ML_FORMAT, ML_BPP, 1);
+
+  /* Store NN crop ROI info for overlay visualization */
+  nn_crop_info.sensor_w = cam_conf.width;
+  nn_crop_info.sensor_h = cam_conf.height;
+  CAM_CalcCropRoi(&nn_crop_info.nn_roi,
+                  cam_conf.width, cam_conf.height,
+                  ML_WIDTH, ML_HEIGHT);
 }
 
 /**
@@ -223,6 +237,31 @@ void CAM_NNPipe_Start(uint8_t *nn_buffer, uint32_t cam_mode) {
 void CAM_NNPipe_Stop(void) {
   nn_pipe_running = 0;
   CMW_CAMERA_Suspend(DCMIPP_PIPE2);
+}
+
+/**
+ * @brief  Get NN crop ROI in display coordinates
+ * @param  x0: Output X coordinate of top-left corner (relative to letterbox)
+ * @param  y0: Output Y coordinate of top-left corner
+ * @param  x1: Output X coordinate of bottom-right corner (relative to letterbox)
+ * @param  y1: Output Y coordinate of bottom-right corner
+ * @retval 1 if ROI is valid, 0 otherwise
+ */
+int CAM_GetNNCropROI_Display(int *x0, int *y0, int *x1, int *y1) {
+  if (nn_crop_info.sensor_w == 0 || nn_crop_info.sensor_h == 0) {
+    return 0; /* Not initialized */
+  }
+
+  /* Map sensor coordinates to display letterbox coordinates */
+  float scale_x = (float)DISPLAY_LETTERBOX_WIDTH / (float)nn_crop_info.sensor_w;
+  float scale_y = (float)DISPLAY_LETTERBOX_HEIGHT / (float)nn_crop_info.sensor_h;
+
+  *x0 = (int)(nn_crop_info.nn_roi.offset_x * scale_x + 0.5f);
+  *y0 = (int)(nn_crop_info.nn_roi.offset_y * scale_y + 0.5f);
+  *x1 = (int)((nn_crop_info.nn_roi.offset_x + nn_crop_info.nn_roi.width) * scale_x + 0.5f);
+  *y1 = (int)((nn_crop_info.nn_roi.offset_y + nn_crop_info.nn_roi.height) * scale_y + 0.5f);
+
+  return 1;
 }
 
 /**

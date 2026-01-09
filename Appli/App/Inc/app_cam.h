@@ -67,6 +67,16 @@ void CAM_IspUpdate(void);
  */
 void Thread_IspUpdate_Init(VOID *memory_ptr);
 
+/**
+ * @brief  Get NN crop ROI in display coordinates
+ * @param  x0: Output X coordinate of top-left corner (relative to letterbox)
+ * @param  y0: Output Y coordinate of top-left corner
+ * @param  x1: Output X coordinate of bottom-right corner (relative to letterbox)
+ * @param  y1: Output Y coordinate of bottom-right corner
+ * @retval 1 if ROI is valid, 0 otherwise
+ */
+int CAM_GetNNCropROI_Display(int *x0, int *y0, int *x1, int *y1);
+
 #ifdef __cplusplus
 }
 #endif

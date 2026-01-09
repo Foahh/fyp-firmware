@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
- * @file    app_detection.h
+ * @file    app_postprocess.h
  * @author  Long Liangmao
- * @brief   Object detection state management and overlay rendering
+ * @brief   Postprocessing thread and detection state management
  ******************************************************************************
  * @attention
  *
@@ -15,8 +15,8 @@
  *
  ******************************************************************************
  */
-#ifndef APP_DETECTION_H
-#define APP_DETECTION_H
+#ifndef APP_POSTPROCESS_H
+#define APP_POSTPROCESS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,7 +28,7 @@ extern "C" {
 #include <stdint.h>
 
 /* Maximum detections to display */
-#define DETECTION_MAX_BOXES AI_OD_PP_MAX_BOXES_LIMIT
+#define DETECTION_MAX_BOXES AI_OD_ST_YOLOX_PP_MAX_BOXES_LIMIT
 
 /**
  * @brief  Detection info shared between postprocess and display threads
@@ -42,35 +42,41 @@ typedef struct {
 } detection_info_t;
 
 /**
- * @brief  Initialize detection module (threads, sync primitives)
+ * @brief  Initialize postprocessing module (thread, sync primitives)
  * @param  memory_ptr: ThreadX memory pool (unused, static allocation)
  */
-void Detection_Thread_Init(VOID *memory_ptr);
+void Postprocess_Thread_Init(VOID *memory_ptr);
 
 /**
  * @brief  Signal that new detection results are available
  *         Called by postprocess after updating detection state
  */
-void Detection_SignalUpdate(void);
+void Postprocess_SignalUpdate(void);
 
 /**
  * @brief  Lock detection state mutex for reading/writing
  */
-void Detection_Lock(void);
+void Postprocess_Lock(void);
 
 /**
  * @brief  Unlock detection state mutex
  */
-void Detection_Unlock(void);
+void Postprocess_Unlock(void);
 
 /**
  * @brief  Get pointer to detection info structure
  * @retval Pointer to detection_info_t (lock before accessing)
  */
-detection_info_t *Detection_GetInfo(void);
+detection_info_t *Postprocess_GetInfo(void);
+
+/**
+ * @brief  Get pointer to update event flags group (for overlay thread)
+ * @retval Pointer to event flags group
+ */
+TX_EVENT_FLAGS_GROUP *Postprocess_GetUpdateEventFlags(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* APP_DETECTION_H */
+#endif /* APP_POSTPROCESS_H */

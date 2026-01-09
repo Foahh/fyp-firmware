@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
- * @file    app_detection.c
+ * @file    app_overlay.c
  * @author  Long Liangmao
- * @brief   Object detection state management, postprocess thread, and overlay
+ * @brief   Detection overlay rendering thread and drawing functions implementation
  ******************************************************************************
  * @attention
  *
@@ -16,17 +16,17 @@
  ******************************************************************************
  */
 
-#include "app_detection.h"
-#include "app_bqueue.h"
+#include "app_overlay.h"
 #include "app_buffers.h"
+#include "app_cam.h"
 #include "app_config.h"
 #include "app_error.h"
 #include "app_lcd.h"
-#include "app_nn.h"
 #include "app_postprocess.h"
 #include "stm32_lcd.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
+#include <stdio.h>
 #include <string.h>
 
 /* ============================================================================
@@ -35,7 +35,6 @@
 
 static void clamp_point(int *x, int *y);
 static void draw_detection(const od_pp_outBuffer_t *det);
-static void pp_thread_entry(ULONG arg);
 static void overlay_thread_entry(ULONG arg);
 
 /* ============================================================================
@@ -43,14 +42,8 @@ static void overlay_thread_entry(ULONG arg);
  * ============================================================================ */
 
 /* Thread configurations */
-#define PP_THREAD_STACK_SIZE 4096
-#define PP_THREAD_PRIORITY 8 /* Lower than NN */
-
 #define OVERLAY_THREAD_STACK_SIZE 4096
 #define OVERLAY_THREAD_PRIORITY 10 /* Lower than PP, same as UI */
-
-/* Align macro */
-#define ALIGN_VALUE(v, a) (((v) + (a) - 1) & ~((a) - 1))
 
 /* Class names table - single class for person detection */
 static const char *classes_table[] = {"person"};
@@ -71,8 +64,6 @@ static const uint32_t colors[NUMBER_COLORS] = {
     0xFFFFA500, /* Orange */
 };
 
-#define NN_MODEL_DETECTION
-
 /* ============================================================================
  * Global State Variables
  * ============================================================================ */
@@ -80,23 +71,12 @@ static const uint32_t colors[NUMBER_COLORS] = {
 /* Thread resources */
 static struct {
   TX_THREAD thread;
-  UCHAR stack[PP_THREAD_STACK_SIZE];
-} pp_ctx;
-
-static struct {
-  TX_THREAD thread;
   UCHAR stack[OVERLAY_THREAD_STACK_SIZE];
 } overlay_ctx;
 
-/* Synchronization primitives */
-static TX_MUTEX detection_mutex;
-static TX_EVENT_FLAGS_GROUP update_event_flags;
-
-/* Shared detection state */
-static detection_info_t detection_info;
-
-/* Postprocess parameters */
-static od_st_yolox_pp_static_param_t pp_params;
+/* ============================================================================
+ * Internal Helper Functions
+ * ============================================================================ */
 
 /**
  * @brief  Clamp a point to display bounds
@@ -173,71 +153,6 @@ static void draw_detection(const od_pp_outBuffer_t *det) {
  * ============================================================================ */
 
 /**
- * @brief  Postprocess thread entry function
- *         Processes NN outputs and updates detection state
- * @param  arg: Thread argument (unused)
- */
-static void pp_thread_entry(ULONG arg) {
-  UNUSED(arg);
-
-  bqueue_t *output_queue = NN_GetOutputQueue();
-  const uint32_t *out_sizes = NN_GetOutputSizes();
-  int out_count = NN_GetOutputCount();
-  od_pp_out_t pp_output;
-  uint8_t *pp_input[NN_OUT_MAX_NB];
-  uint32_t pp_ts[2];
-  nn_timing_t nn_timing;
-  int ret;
-
-  /* Initialize postprocess with NN instance (object detection model) */
-  LL_ATON_DECLARE_NAMED_NN_INSTANCE_AND_INTERFACE(od_yolo_x_person);
-  ret = app_postprocess_init(&pp_params, &NN_Instance_od_yolo_x_person);
-  APP_REQUIRE(ret == 0);
-
-  while (1) {
-    uint8_t *output_buffer;
-
-    /* Wait for NN output */
-    output_buffer = bqueue_get_ready(output_queue);
-    APP_REQUIRE(output_buffer != NULL);
-
-    /* Calculate output buffer pointers */
-    pp_input[0] = output_buffer;
-    for (int i = 1; i < out_count; i++) {
-      pp_input[i] = pp_input[i - 1] + ALIGN_VALUE(out_sizes[i - 1], 32);
-    }
-
-    pp_output.pOutBuff = NULL;
-
-    /* Run postprocessing */
-    pp_ts[0] = HAL_GetTick();
-    ret = app_postprocess_run((void **)pp_input, out_count, &pp_output, &pp_params);
-    APP_REQUIRE(ret == 0);
-    pp_ts[1] = HAL_GetTick();
-
-    /* Get NN timing */
-    NN_GetTiming(&nn_timing);
-
-    /* Update shared detection state */
-    Detection_Lock();
-    detection_info.nb_detect = pp_output.nb_detect;
-    for (int i = 0; i < pp_output.nb_detect && i < DETECTION_MAX_BOXES; i++) {
-      detection_info.detects[i] = pp_output.pOutBuff[i];
-    }
-    detection_info.nn_period_ms = nn_timing.nn_period_ms;
-    detection_info.inference_ms = nn_timing.inference_ms;
-    detection_info.postprocess_ms = pp_ts[1] - pp_ts[0];
-    Detection_Unlock();
-
-    /* Release output buffer */
-    bqueue_put_free(output_queue);
-
-    /* Signal overlay thread */
-    Detection_SignalUpdate();
-  }
-}
-
-/**
  * @brief  Overlay drawing thread entry function
  *         Renders detection overlays on UI layer
  * @param  arg: Thread argument (unused)
@@ -253,16 +168,17 @@ static void overlay_thread_entry(ULONG arg) {
   while (1) {
     /* Wait for detection update */
     ULONG actual_flags;
-    status = tx_event_flags_get(&update_event_flags, 0x01, TX_OR_CLEAR,
+    TX_EVENT_FLAGS_GROUP *update_flags = Postprocess_GetUpdateEventFlags();
+    status = tx_event_flags_get(update_flags, 0x01, TX_OR_CLEAR,
                                 &actual_flags, TX_WAIT_FOREVER);
     if (status != TX_SUCCESS) {
       continue;
     }
 
     /* Copy detection info under lock */
-    Detection_Lock();
-    local_info = detection_info;
-    Detection_Unlock();
+    Postprocess_Lock();
+    local_info = *Postprocess_GetInfo();
+    Postprocess_Unlock();
 
     /* Get back buffer for drawing */
     ui_buffer = Buffer_GetUIBackBuffer();
@@ -303,6 +219,16 @@ static void overlay_thread_entry(ULONG arg) {
       draw_detection(&local_info.detects[i]);
     }
 
+    /* Draw NN crop ROI rectangle */
+    int roi_x0, roi_y0, roi_x1, roi_y1;
+    if (CAM_GetNNCropROI_Display(&roi_x0, &roi_y0, &roi_x1, &roi_y1)) {
+      /* Draw rectangle in cyan to show NN crop region */
+      UTIL_LCD_SetTextColor(0xFF00FFFF); /* Cyan */
+      UTIL_LCD_DrawRect(DISPLAY_LETTERBOX_X0 + roi_x0, roi_y0,
+                        roi_x1 - roi_x0, roi_y1 - roi_y0,
+                        0xFF00FFFF);
+    }
+
     /* Commit buffer to display */
     Buffer_SetUIDisplayIndex(Buffer_GetNextUIDisplayIndex());
     LCD_ReloadUILayer(ui_buffer);
@@ -314,64 +240,12 @@ static void overlay_thread_entry(ULONG arg) {
  * ============================================================================ */
 
 /**
- * @brief  Signal that new detection results are available
- *         Called by postprocess after updating detection state
- */
-void Detection_SignalUpdate(void) {
-  tx_event_flags_set(&update_event_flags, 0x01, TX_OR);
-}
-
-/**
- * @brief  Lock detection state mutex for reading/writing
- */
-void Detection_Lock(void) {
-  UINT status = tx_mutex_get(&detection_mutex, TX_WAIT_FOREVER);
-  APP_REQUIRE(status == TX_SUCCESS);
-  (void)status;
-}
-
-/**
- * @brief  Unlock detection state mutex
- */
-void Detection_Unlock(void) {
-  UINT status = tx_mutex_put(&detection_mutex);
-  APP_REQUIRE(status == TX_SUCCESS);
-  (void)status;
-}
-
-/**
- * @brief  Get pointer to detection info structure
- * @retval Pointer to detection_info_t (lock before accessing)
- */
-detection_info_t *Detection_GetInfo(void) {
-  return &detection_info;
-}
-
-/**
- * @brief  Initialize detection module (threads, sync primitives)
+ * @brief  Initialize overlay module (thread)
  * @param  memory_ptr: ThreadX memory pool (unused, static allocation)
  */
-void Detection_Thread_Init(VOID *memory_ptr) {
+void Overlay_Thread_Init(VOID *memory_ptr) {
   UNUSED(memory_ptr);
   UINT status;
-
-  /* Initialize detection state */
-  memset(&detection_info, 0, sizeof(detection_info));
-
-  /* Create synchronization primitives */
-  status = tx_mutex_create(&detection_mutex, "detection_lock", TX_NO_INHERIT);
-  APP_REQUIRE(status == TX_SUCCESS);
-
-  status = tx_event_flags_create(&update_event_flags, "detection_update");
-  APP_REQUIRE(status == TX_SUCCESS);
-
-  /* Create postprocess thread */
-  status = tx_thread_create(&pp_ctx.thread, "postprocess",
-                            pp_thread_entry, 0,
-                            pp_ctx.stack, PP_THREAD_STACK_SIZE,
-                            PP_THREAD_PRIORITY, PP_THREAD_PRIORITY,
-                            TX_NO_TIME_SLICE, TX_AUTO_START);
-  APP_REQUIRE(status == TX_SUCCESS);
 
   /* Create overlay thread */
   status = tx_thread_create(&overlay_ctx.thread, "overlay",

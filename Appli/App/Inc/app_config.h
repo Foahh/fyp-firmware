@@ -60,7 +60,7 @@
 
 /* ST YOLO-X specific configuration */
 #define AI_OD_ST_YOLOX_PP_NB_CLASSES 1 /* Single class: person */
-#define AI_OD_ST_YOLOX_PP_NB_ANCHORS 1 /* Anchor-free detection */
+#define AI_OD_ST_YOLOX_PP_NB_ANCHORS 3 /* Number of anchors */
 
 /* Grid sizes for multi-scale detection (480x480 input) */
 /* Large scale: 480/8 = 60 */
@@ -73,17 +73,14 @@
 #define AI_OD_ST_YOLOX_PP_S_GRID_WIDTH 15
 #define AI_OD_ST_YOLOX_PP_S_GRID_HEIGHT 15
 
-/* Anchor values (anchor-free model uses 1.0). */
-static const float32_t AI_OD_ST_YOLOX_PP_L_ANCHORS[2 * AI_OD_ST_YOLOX_PP_NB_ANCHORS] = {1.0f, 1.0f};
-static const float32_t AI_OD_ST_YOLOX_PP_M_ANCHORS[2 * AI_OD_ST_YOLOX_PP_NB_ANCHORS] = {1.0f, 1.0f};
-static const float32_t AI_OD_ST_YOLOX_PP_S_ANCHORS[2 * AI_OD_ST_YOLOX_PP_NB_ANCHORS] = {1.0f, 1.0f};
+/* Anchor values for 480x480 input model */
+static const float32_t AI_OD_ST_YOLOX_PP_L_ANCHORS[2 * AI_OD_ST_YOLOX_PP_NB_ANCHORS] = {30.0f, 30.0f, 4.2f, 15.0f, 13.8f, 42.0f};
+static const float32_t AI_OD_ST_YOLOX_PP_M_ANCHORS[2 * AI_OD_ST_YOLOX_PP_NB_ANCHORS] = {15.0f, 15.0f, 2.1f, 7.5f, 6.9f, 21.0f};
+static const float32_t AI_OD_ST_YOLOX_PP_S_ANCHORS[2 * AI_OD_ST_YOLOX_PP_NB_ANCHORS] = {7.5f, 7.5f, 1.05f, 3.75f, 3.45f, 10.5f};
 
 /* Detection thresholds */
-#define AI_OD_ST_YOLOX_PP_CONF_THRESHOLD 0.5f /* Confidence threshold */
-#define AI_OD_ST_YOLOX_PP_IOU_THRESHOLD 0.4f  /* NMS IoU threshold */
+#define AI_OD_ST_YOLOX_PP_CONF_THRESHOLD 0.6f /* Confidence threshold */
+#define AI_OD_ST_YOLOX_PP_IOU_THRESHOLD 0.5f  /* NMS IoU threshold */
 #define AI_OD_ST_YOLOX_PP_MAX_BOXES_LIMIT 10  /* Maximum detections */
-
-/* Generic max boxes limit (maps to model-specific limit) */
-#define AI_OD_PP_MAX_BOXES_LIMIT AI_OD_ST_YOLOX_PP_MAX_BOXES_LIMIT
 
 #endif

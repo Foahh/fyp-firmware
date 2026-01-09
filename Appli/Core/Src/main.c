@@ -27,7 +27,8 @@
 #include "app_bqueue.h"
 #include "app_buffers.h"
 #include "app_cam.h"
-#include "app_detection.h"
+#include "app_postprocess.h"
+#include "app_overlay.h"
 #include "app_error.h"
 #include "app_lcd.h"
 #include "app_nn.h"
@@ -520,7 +521,8 @@ void Peripheral_Init(void *memory_ptr) {
 
   NN_Thread_Init(memory_ptr);
 
-  Detection_Thread_Init(memory_ptr);
+  Postprocess_Thread_Init(memory_ptr);
+  Overlay_Thread_Init(memory_ptr);
 
   nn_input_queue = NN_GetInputQueue();
   first_nn_buffer = bqueue_get_free(nn_input_queue, 0);
