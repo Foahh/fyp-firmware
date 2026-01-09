@@ -16,6 +16,7 @@
  ******************************************************************************
  */
 
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +32,6 @@
 #include "ll_aton_reloc_network.h"
 
 #include "ll_aton_lib.h"
-#include "ll_aton_util.h"
 
 extern struct ai_reloc_rt_ctx _network_rt_ctx;
 
@@ -206,8 +206,8 @@ int LL_ATON_LIB_DMA_DepthToSpace(const LL_LIB_TensorInfo_TypeDef *inputs, unsign
   return res;
 }
 
-int LL_ATON_LIB_DMA_Transpose(const LL_Buffer_InfoTypeDef *input, const uint32_t *input_axes_offsets,
-                              const LL_Buffer_InfoTypeDef *output, const uint32_t *output_axes_offsets,
+int LL_ATON_LIB_DMA_Transpose(const LL_LIB_TensorShape_TypeDef *input, const uint32_t *input_axes_offsets,
+                              const LL_LIB_TensorShape_TypeDef *output, const uint32_t *output_axes_offsets,
                               const uint8_t *target_pos, const uint8_t *perm_to_use, int dma_in, int dma_out)
 {
   register uint32_t _saved_r9;
@@ -253,8 +253,9 @@ int LL_ATON_LIB_Softmax(const LL_LIB_TensorInfo_TypeDef *input, const LL_LIB_Ten
   return res;
 }
 
-int LL_ATON_LIB_DMA_Outputs_Flat_Copy(const LL_Buffer_InfoTypeDef *input, const LL_Buffer_InfoTypeDef *outputs,
-                                      unsigned int nr_of_outputs, int dma_in, int dma_out)
+int LL_ATON_LIB_DMA_Outputs_Flat_Copy(const LL_LIB_TensorShape_TypeDef *input,
+                                      const LL_LIB_TensorShape_TypeDef *outputs, unsigned int nr_of_outputs, int dma_in,
+                                      int dma_out)
 {
   register uint32_t _saved_r9;
   register const struct ll_aton_reloc_callback *cbs = _network_rt_ctx.cbs;
@@ -268,9 +269,10 @@ int LL_ATON_LIB_DMA_Outputs_Flat_Copy(const LL_Buffer_InfoTypeDef *input, const 
   return res;
 }
 
-int LL_ATON_LIB_DMA_Outputs_Slice_SplitLike(const LL_Buffer_InfoTypeDef *input, const LL_Buffer_InfoTypeDef *output,
-                                            int32_t tot_out_size, int32_t width_in_bytes, int32_t fheight,
-                                            int32_t line_offset, int8_t n_bits, int dma_in, int dma_out)
+int LL_ATON_LIB_DMA_Outputs_Slice_SplitLike(const LL_LIB_TensorShape_TypeDef *input,
+                                            const LL_LIB_TensorShape_TypeDef *output, int32_t tot_out_size,
+                                            int32_t width_in_bytes, int32_t fheight, int32_t line_offset, int8_t n_bits,
+                                            int dma_in, int dma_out)
 {
   register uint32_t _saved_r9;
   register const struct ll_aton_reloc_callback *cbs = _network_rt_ctx.cbs;
@@ -285,9 +287,9 @@ int LL_ATON_LIB_DMA_Outputs_Slice_SplitLike(const LL_Buffer_InfoTypeDef *input, 
   return res;
 }
 
-int LL_ATON_LIB_DMA_Outputs_Channel_Split_Aton(const LL_Buffer_InfoTypeDef *input, const LL_Buffer_InfoTypeDef *outputs,
-                                               unsigned int nr_of_outputs, unsigned int leading_dims, int dma_in,
-                                               int dma_out)
+int LL_ATON_LIB_DMA_Outputs_Channel_Split_Aton(const LL_LIB_TensorShape_TypeDef *input,
+                                               const LL_LIB_TensorShape_TypeDef *outputs, unsigned int nr_of_outputs,
+                                               unsigned int leading_dims, int dma_in, int dma_out)
 {
   register uint32_t _saved_r9;
   register const struct ll_aton_reloc_callback *cbs = _network_rt_ctx.cbs;
@@ -301,8 +303,8 @@ int LL_ATON_LIB_DMA_Outputs_Channel_Split_Aton(const LL_Buffer_InfoTypeDef *inpu
   return res;
 }
 
-int LL_ATON_LIB_DMA_Outputs_Channel_Split_Batched(const LL_Buffer_InfoTypeDef *input,
-                                                  const LL_Buffer_InfoTypeDef *outputs, unsigned int nr_of_outputs,
+int LL_ATON_LIB_DMA_Outputs_Channel_Split_Batched(const LL_LIB_TensorShape_TypeDef *input,
+                                                  const LL_LIB_TensorShape_TypeDef *outputs, unsigned int nr_of_outputs,
                                                   int dma_in, int dma_out)
 {
   register uint32_t _saved_r9;
@@ -317,8 +319,7 @@ int LL_ATON_LIB_DMA_Outputs_Channel_Split_Batched(const LL_Buffer_InfoTypeDef *i
   return res;
 }
 
-int LL_ATON_LIB_DMA_Pad_Memset(void *output, int32_t constant_value, size_t c, __ll_pad_sw_params_t *common_params,
-                               bool deep_copy)
+int LL_ATON_LIB_DMA_Pad_Memset(void *output, int32_t constant_value, size_t c, __ll_pad_sw_params_t *common_params)
 {
   register uint32_t _saved_r9;
   register const struct ll_aton_reloc_callback *cbs = _network_rt_ctx.cbs;
@@ -326,7 +327,7 @@ int LL_ATON_LIB_DMA_Pad_Memset(void *output, int32_t constant_value, size_t c, _
   if (cbs && cbs->ll_aton_lib_dma_pad_memset)
   {
     __asm volatile("MOV %0, R9\n\t" : "=r"(_saved_r9));
-    res = cbs->ll_aton_lib_dma_pad_memset(output, constant_value, constant_value, common_params, deep_copy);
+    res = cbs->ll_aton_lib_dma_pad_memset(output, constant_value, constant_value, common_params);
     __asm volatile("MOV R9, %0\n\t" ::"r"(_saved_r9));
   };
   return res;
@@ -341,35 +342,6 @@ int LL_ATON_LIB_DMA_Pad_Filling(__ll_pad_sw_params_t *init_common_params)
   {
     __asm volatile("MOV %0, R9\n\t" : "=r"(_saved_r9));
     res = cbs->ll_aton_lib_dma_pad_filling(init_common_params);
-    __asm volatile("MOV R9, %0\n\t" ::"r"(_saved_r9));
-  };
-  return res;
-}
-
-int LL_ATON_LIB_Async_Memcpy(unsigned char *input_start, unsigned char *input_end, unsigned char *input_limit,
-                             unsigned char *output_start, int dma_in, int dma_out)
-{
-  register uint32_t _saved_r9;
-  register const struct ll_aton_reloc_callback *cbs = _network_rt_ctx.cbs;
-  int res = -1;
-  if (cbs && cbs->ll_aton_lib_async_memcpy)
-  {
-    __asm volatile("MOV %0, R9\n\t" : "=r"(_saved_r9));
-    res = cbs->ll_aton_lib_async_memcpy(input_start, input_end, input_limit, output_start, dma_in, dma_out);
-    __asm volatile("MOV R9, %0\n\t" ::"r"(_saved_r9));
-  };
-  return res;
-}
-
-int LL_ATON_LIB_DMA_Pad_4Loop_Filling(__ll_pad_sw_params_t *common_params)
-{
-  register uint32_t _saved_r9;
-  register const struct ll_aton_reloc_callback *cbs = _network_rt_ctx.cbs;
-  int res = -1;
-  if (cbs && cbs->ll_aton_lib_dma_pad_4loop_filling)
-  {
-    __asm volatile("MOV %0, R9\n\t" : "=r"(_saved_r9));
-    res = cbs->ll_aton_lib_dma_pad_4loop_filling(common_params);
     __asm volatile("MOV R9, %0\n\t" ::"r"(_saved_r9));
   };
   return res;

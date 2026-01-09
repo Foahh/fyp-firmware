@@ -22,6 +22,7 @@
 #include "app_cam.h"
 #include "app_config.h"
 #include "app_detection.h"
+#include "app_error.h"
 #include "app_lcd.h"
 #include "app_nn.h"
 #include "app_ui.h"
@@ -32,7 +33,6 @@
 #include "stm32n6xx_hal.h"
 #include "stm32n6xx_hal_rif.h"
 #include "utils.h"
-#include "app_error.h"
 
 void App_Init(VOID *memory_ptr) {
   bqueue_t *nn_input_queue;
@@ -57,5 +57,5 @@ void App_Init(VOID *memory_ptr) {
   nn_input_queue = NN_GetInputQueue();
   first_nn_buffer = bqueue_get_free(nn_input_queue, 0);
   APP_REQUIRE(first_nn_buffer != NULL);
-  CAM_MLPipe_Start(first_nn_buffer, CMW_MODE_CONTINUOUS);
+  CAM_NNPipe_Start(first_nn_buffer, CMW_MODE_CONTINUOUS);
 }

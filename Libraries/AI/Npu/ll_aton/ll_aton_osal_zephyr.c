@@ -20,6 +20,7 @@
 
 #if (LL_ATON_OSAL == LL_ATON_OSAL_ZEPHYR)
 
+#include <assert.h>
 #include <limits.h>
 #include <stdbool.h>
 
@@ -43,7 +44,7 @@ static inline int _zephyr_get_irq_nr_from_aton_line_number(int aton_line_number)
   case 3:
     return CDNN3_IRQn;
   default:
-    LL_ATON_ASSERT(0);
+    assert(0);
     return -1;
   }
 }
@@ -55,8 +56,8 @@ static inline int _zephyr_get_irq_nr_from_aton_line_number(int aton_line_number)
 static void aton_osal_zephyr_isr(const void *arg)
 {
   LL_ATON_LIB_UNUSED(arg);
-  LL_ATON_ASSERT(aton_irq_handler != NULL);
-  LL_ATON_ASSERT(aton_irq_number >= 0);
+  assert(aton_irq_handler != NULL);
+  assert(aton_irq_number >= 0);
 
   aton_irq_handler();
 }
@@ -68,8 +69,8 @@ static void aton_osal_zephyr_isr(const void *arg)
  */
 void aton_osal_zephyr_install_irq(int aton_line_number, void (*handler)(void))
 {
-  LL_ATON_ASSERT(aton_irq_handler == NULL);
-  LL_ATON_ASSERT(aton_irq_number < 0);
+  assert(aton_irq_handler == NULL);
+  assert(aton_irq_number < 0);
 
   aton_irq_handler = handler;
   aton_irq_number = _zephyr_get_irq_nr_from_aton_line_number(aton_line_number);
@@ -83,8 +84,8 @@ void aton_osal_zephyr_install_irq(int aton_line_number, void (*handler)(void))
  */
 void aton_osal_zephyr_uninstall_irq(int aton_line_number)
 {
-  LL_ATON_ASSERT(aton_irq_handler != NULL);
-  LL_ATON_ASSERT(aton_irq_number >= 0);
+  assert(aton_irq_handler != NULL);
+  assert(aton_irq_number >= 0);
 
   irq_disable(_zephyr_get_irq_nr_from_aton_line_number(aton_line_number));
   // irq_disconnect_dynamic(_zephyr_get_irq_nr_from_aton_line_number(aton_line_number), 0, aton_osal_zephyr_isr, NULL,
@@ -118,8 +119,8 @@ void aton_osal_zephyr_disable_irq(int aton_line_number)
  */
 void aton_osal_zephyr_enter_cs(void)
 {
-  LL_ATON_ASSERT(aton_irq_handler != NULL);
-  LL_ATON_ASSERT(aton_irq_number >= 0);
+  assert(aton_irq_handler != NULL);
+  assert(aton_irq_number >= 0);
 
   irq_disable(aton_irq_number);
 }
@@ -130,8 +131,8 @@ void aton_osal_zephyr_enter_cs(void)
  */
 void aton_osal_zephyr_exit_cs(void)
 {
-  LL_ATON_ASSERT(aton_irq_handler != NULL);
-  LL_ATON_ASSERT(aton_irq_number >= 0);
+  assert(aton_irq_handler != NULL);
+  assert(aton_irq_number >= 0);
 
   irq_enable(aton_irq_number);
 }

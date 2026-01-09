@@ -25,12 +25,12 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "app_cam.h"
-#include "tx_api.h"
+#include "app_error.h"
 #include "app_lcd.h"
 #include "npu_cache.h"
-#include "app_error.h"
 #include "stm32n6570_discovery_xspi.h"
 #include "stm32n6xx_hal_ramcfg.h"
+#include "tx_api.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,7 +58,8 @@ volatile uint32_t g_error_line = 0;
 static void MPU_Config(void);
 static void SystemIsolation_Config(void);
 /* USER CODE BEGIN PFP */
-void SystemClock_Config(void);
+static void SystemClock_Config(void);
+static void XSPIClock_Config(void);
 static void SMPS_Config(void);
 static void IAC_Config(void);
 static void XSPI_Config(void);
@@ -80,10 +81,13 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
   SMPS_Config();
-  SystemClock_Config();
 
-  MEMSYSCTL->MSCR |= MEMSYSCTL_MSCR_ICACTIVE_Msk;
-  MEMSYSCTL->MSCR |= MEMSYSCTL_MSCR_DCACTIVE_Msk;
+#ifdef DEBUG
+  SystemClock_Config();
+  XSPIClock_Config();
+#else
+  SystemCoreClockUpdate();
+#endif /* DEBUG */
 
   /* USER CODE END 1 */
 
@@ -113,6 +117,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   IAC_Config();
   NPU_Config();
+  npu_cache_init();
   npu_cache_enable();
   XSPI_Config();
   LED_Config();
@@ -262,23 +267,20 @@ static void LED_Config(void) {
   BSP_LED_Off(LED_RED);
 }
 
-void SystemClock_Config(void)
-{
 #ifdef DEBUG
+static void SystemClock_Config(void) {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
   /** Configure the System Power Supply
-  */
-  if (HAL_PWREx_ConfigSupply(PWR_EXTERNAL_SOURCE_SUPPLY) != HAL_OK)
-  {
+   */
+  if (HAL_PWREx_ConfigSupply(PWR_EXTERNAL_SOURCE_SUPPLY) != HAL_OK) {
     Error_Handler();
   }
 
   /** Configure the main internal regulator output voltage
-  */
-  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE0) != HAL_OK)
-  {
+   */
+  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE0) != HAL_OK) {
     Error_Handler();
   }
 
@@ -291,8 +293,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL2.PLLState = RCC_PLL_NONE;
   RCC_OscInitStruct.PLL3.PLLState = RCC_PLL_NONE;
   RCC_OscInitStruct.PLL4.PLLState = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
     Error_Handler();
   }
 
@@ -301,21 +302,19 @@ void SystemClock_Config(void)
   */
   HAL_RCC_GetClockConfig(&RCC_ClkInitStruct);
   if ((RCC_ClkInitStruct.CPUCLKSource == RCC_CPUCLKSOURCE_IC1) ||
-    (RCC_ClkInitStruct.SYSCLKSource == RCC_SYSCLKSOURCE_IC2_IC6_IC11))
-  {
+      (RCC_ClkInitStruct.SYSCLKSource == RCC_SYSCLKSOURCE_IC2_IC6_IC11)) {
     RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_CPUCLK | RCC_CLOCKTYPE_SYSCLK);
     RCC_ClkInitStruct.CPUCLKSource = RCC_CPUCLKSOURCE_HSI;
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct) != HAL_OK)
-    {
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct) != HAL_OK) {
       /* Initialization Error */
       Error_Handler();
     }
   }
 
   /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
+   * in the RCC_OscInitTypeDef structure.
+   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_NONE;
   RCC_OscInitStruct.PLL1.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL1.PLLSource = RCC_PLLSOURCE_HSI;
@@ -333,11 +332,11 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL2.PLLP2 = 1;
   RCC_OscInitStruct.PLL3.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL3.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL3.PLLM = 2;
-  RCC_OscInitStruct.PLL3.PLLN = 25;
+  RCC_OscInitStruct.PLL3.PLLM = 8;
+  RCC_OscInitStruct.PLL3.PLLN = 225;
   RCC_OscInitStruct.PLL3.PLLFractional = 0;
   RCC_OscInitStruct.PLL3.PLLP1 = 1;
-  RCC_OscInitStruct.PLL3.PLLP2 = 1;
+  RCC_OscInitStruct.PLL3.PLLP2 = 2;
   RCC_OscInitStruct.PLL4.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL4.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL4.PLLM = 8;
@@ -346,17 +345,13 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL4.PLLP1 = 6;
   RCC_OscInitStruct.PLL4.PLLP2 = 6;
 
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
     Error_Handler();
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_CPUCLK|RCC_CLOCKTYPE_HCLK
-                              |RCC_CLOCKTYPE_SYSCLK|RCC_CLOCKTYPE_PCLK1
-                              |RCC_CLOCKTYPE_PCLK2|RCC_CLOCKTYPE_PCLK5
-                              |RCC_CLOCKTYPE_PCLK4;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_CPUCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2 | RCC_CLOCKTYPE_PCLK5 | RCC_CLOCKTYPE_PCLK4;
   RCC_ClkInitStruct.CPUCLKSource = RCC_CPUCLKSOURCE_IC1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_IC2_IC6_IC11;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
@@ -373,26 +368,37 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.IC11Selection.ClockSelection = RCC_ICCLKSOURCE_PLL3;
   RCC_ClkInitStruct.IC11Selection.ClockDivider = 1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct) != HAL_OK)
-  {
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct) != HAL_OK) {
     Error_Handler();
   }
-#else
-  SystemCoreClockUpdate();
-#endif /* DEBUG */
 }
 
+static void XSPIClock_Config(void) {
+  RCC_PeriphCLKInitTypeDef RCC_PeriphCLKInitStruct = {0};
 
-void ClockSleep_Config(void)
-{
-  /* Leave clocks enabled in Low Power modes */
-  // Low-power clock enable misc
-#if defined (CPU_IN_SECURE_STATE)
+  RCC_PeriphCLKInitStruct.PeriphClockSelection = 0;
+
+  RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_XSPI1;
+  RCC_PeriphCLKInitStruct.Xspi1ClockSelection = RCC_XSPI1CLKSOURCE_HCLK;
+
+  RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_XSPI2;
+  RCC_PeriphCLKInitStruct.Xspi2ClockSelection = RCC_XSPI2CLKSOURCE_HCLK;
+
+  if (HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct) != HAL_OK) {
+    Error_Handler();
+  }
+}
+
+#endif /* DEBUG */
+
+void ClockSleep_Config(void) {
+  // LP clock misc
+#if defined(CPU_IN_SECURE_STATE)
   __HAL_RCC_DBG_CLK_SLEEP_ENABLE();
 #endif
   __HAL_RCC_XSPIPHYCOMP_CLK_SLEEP_ENABLE();
 
-  // Low-power clock enable for memories
+  // LP clock memories
   __HAL_RCC_AXISRAM1_MEM_CLK_SLEEP_ENABLE();
   __HAL_RCC_AXISRAM2_MEM_CLK_SLEEP_ENABLE();
   __HAL_RCC_AXISRAM3_MEM_CLK_SLEEP_ENABLE();
@@ -401,28 +407,35 @@ void ClockSleep_Config(void)
   __HAL_RCC_AXISRAM6_MEM_CLK_SLEEP_ENABLE();
   __HAL_RCC_FLEXRAM_MEM_CLK_SLEEP_ENABLE();
   __HAL_RCC_CACHEAXIRAM_MEM_CLK_SLEEP_ENABLE();
+
   // LP clock AHB1: None
-  // LP clock AHB2: None
+
+  // LP clock AHB2
+  __HAL_RCC_RAMCFG_CLK_SLEEP_ENABLE();
+
   // LP clock AHB3
-#if defined (CPU_IN_SECURE_STATE)
+#if defined(CPU_IN_SECURE_STATE)
   __HAL_RCC_RIFSC_CLK_SLEEP_ENABLE();
   __HAL_RCC_RISAF_CLK_SLEEP_ENABLE();
   __HAL_RCC_IAC_CLK_SLEEP_ENABLE();
 #endif
   // LP clock AHB4: None
+
   // LP clocks AHB5
   __HAL_RCC_XSPI1_CLK_SLEEP_ENABLE();
   __HAL_RCC_XSPI2_CLK_SLEEP_ENABLE();
   __HAL_RCC_CACHEAXI_CLK_SLEEP_ENABLE();
   __HAL_RCC_NPU_CLK_SLEEP_ENABLE();
+  __HAL_RCC_DMA2D_CLK_SLEEP_ENABLE();
+
   // LP clocks APB1: None
+
   // LP clocks APB2
   __HAL_RCC_USART1_CLK_SLEEP_ENABLE();
   // LP clocks APB4: None
-  // LP clocks APB5: None
 
+  // LP clocks APB5:
   __HAL_RCC_LTDC_CLK_SLEEP_ENABLE();
-  __HAL_RCC_DMA2D_CLK_SLEEP_ENABLE();
   __HAL_RCC_DCMIPP_CLK_SLEEP_ENABLE();
   __HAL_RCC_CSI_CLK_SLEEP_ENABLE();
 }
@@ -439,13 +452,13 @@ void NPU_Config(void) {
   __HAL_RCC_AXISRAM6_MEM_CLK_ENABLE();
   __HAL_RCC_RAMCFG_CLK_ENABLE();
   RAMCFG_HandleTypeDef hramcfg = {0};
-  hramcfg.Instance =  RAMCFG_SRAM3_AXI;
+  hramcfg.Instance = RAMCFG_SRAM3_AXI;
   HAL_RAMCFG_EnableAXISRAM(&hramcfg);
-  hramcfg.Instance =  RAMCFG_SRAM4_AXI;
+  hramcfg.Instance = RAMCFG_SRAM4_AXI;
   HAL_RAMCFG_EnableAXISRAM(&hramcfg);
-  hramcfg.Instance =  RAMCFG_SRAM5_AXI;
+  hramcfg.Instance = RAMCFG_SRAM5_AXI;
   HAL_RAMCFG_EnableAXISRAM(&hramcfg);
-  hramcfg.Instance =  RAMCFG_SRAM6_AXI;
+  hramcfg.Instance = RAMCFG_SRAM6_AXI;
   HAL_RAMCFG_EnableAXISRAM(&hramcfg);
 }
 

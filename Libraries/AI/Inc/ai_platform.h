@@ -828,7 +828,6 @@ typedef struct ai_network_report_ {
   ai_u32                          n_nodes;
 
   ai_signature                    signature;
-
 } ai_network_report;
 
 /*!

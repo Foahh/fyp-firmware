@@ -22,9 +22,9 @@
 extern "C" {
 #endif
 
-#include "tx_api.h"
 #include "app_config.h"
 #include "od_pp_output_if.h"
+#include "tx_api.h"
 #include <stdint.h>
 
 /* Maximum detections to display */
@@ -34,11 +34,11 @@ extern "C" {
  * @brief  Detection info shared between postprocess and display threads
  */
 typedef struct {
-  int32_t nb_detect;                            /**< Number of valid detections */
+  int32_t nb_detect;                              /**< Number of valid detections */
   od_pp_outBuffer_t detects[DETECTION_MAX_BOXES]; /**< Detection results */
-  uint32_t nn_period_ms;                        /**< NN inference period */
-  uint32_t inference_ms;                        /**< Inference time */
-  uint32_t postprocess_ms;                      /**< Postprocess time */
+  uint32_t nn_period_ms;                          /**< NN inference period */
+  uint32_t inference_ms;                          /**< Inference time */
+  uint32_t postprocess_ms;                        /**< Postprocess time */
 } detection_info_t;
 
 /**
@@ -74,4 +74,3 @@ detection_info_t *Detection_GetInfo(void);
 #endif
 
 #endif /* APP_DETECTION_H */
-

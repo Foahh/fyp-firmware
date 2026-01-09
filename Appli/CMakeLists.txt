@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.22)
 #
 
 # Setup compiler settings
-set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
@@ -51,8 +51,6 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 	LL_ATON_RT_MODE=LL_ATON_RT_ASYNC
     APP_HAS_PARALLEL_NETWORKS=0
     LL_ATON_SW_FALLBACK
-    $<$<CONFIG:Debug>:LL_ATON_DUMP_DEBUG_API>
-	$<$<CONFIG:Debug>:LL_ATON_EB_DBG_INFO>
     LL_ATON_DBG_BUFFER_INFO_EXCLUDED=1
 )
 
@@ -191,7 +189,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     :libn6-evision-st-ae_gcc.a
     :libn6-evision-awb_gcc.a
     # AI Network Runtime library
-    :NetworkRuntime1100_CM55_GCC.a
+    :NetworkRuntime1020_CM55_GCC.a
     # Math library required by evision libraries
     m
 )

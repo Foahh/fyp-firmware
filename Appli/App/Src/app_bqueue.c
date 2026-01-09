@@ -17,8 +17,8 @@
  */
 
 #include "app_bqueue.h"
-#include "stm32n6xx_hal.h"
 #include "app_error.h"
+#include "stm32n6xx_hal.h"
 #include "utils.h"
 
 /* ============================================================================
@@ -141,4 +141,3 @@ void bqueue_put_ready(bqueue_t *bq) {
   APP_REQUIRE(status == TX_SUCCESS);
   (void)status;
 }
-

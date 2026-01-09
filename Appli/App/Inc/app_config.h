@@ -59,33 +59,31 @@
 #define POSTPROCESS_TYPE POSTPROCESS_OD_ST_YOLOX_UF
 
 /* ST YOLO-X specific configuration */
-#define AI_OD_ST_YOLOX_PP_NB_CLASSES       1      /* Single class: person */
-#define AI_OD_ST_YOLOX_PP_NB_ANCHORS       1      /* Anchor-free detection */
+#define AI_OD_ST_YOLOX_PP_NB_CLASSES 1 /* Single class: person */
+#define AI_OD_ST_YOLOX_PP_NB_ANCHORS 1 /* Anchor-free detection */
 
 /* Grid sizes for multi-scale detection (480x480 input) */
 /* Large scale: 480/8 = 60 */
-#define AI_OD_ST_YOLOX_PP_L_GRID_WIDTH     60
-#define AI_OD_ST_YOLOX_PP_L_GRID_HEIGHT    60
+#define AI_OD_ST_YOLOX_PP_L_GRID_WIDTH 60
+#define AI_OD_ST_YOLOX_PP_L_GRID_HEIGHT 60
 /* Medium scale: 480/16 = 30 */
-#define AI_OD_ST_YOLOX_PP_M_GRID_WIDTH     30
-#define AI_OD_ST_YOLOX_PP_M_GRID_HEIGHT    30
+#define AI_OD_ST_YOLOX_PP_M_GRID_WIDTH 30
+#define AI_OD_ST_YOLOX_PP_M_GRID_HEIGHT 30
 /* Small scale: 480/32 = 15 */
-#define AI_OD_ST_YOLOX_PP_S_GRID_WIDTH     15
-#define AI_OD_ST_YOLOX_PP_S_GRID_HEIGHT    15
+#define AI_OD_ST_YOLOX_PP_S_GRID_WIDTH 15
+#define AI_OD_ST_YOLOX_PP_S_GRID_HEIGHT 15
 
-/* Anchor values (anchor-free model uses 1.0).
-\
- */
+/* Anchor values (anchor-free model uses 1.0). */
 static const float32_t AI_OD_ST_YOLOX_PP_L_ANCHORS[2 * AI_OD_ST_YOLOX_PP_NB_ANCHORS] = {1.0f, 1.0f};
 static const float32_t AI_OD_ST_YOLOX_PP_M_ANCHORS[2 * AI_OD_ST_YOLOX_PP_NB_ANCHORS] = {1.0f, 1.0f};
 static const float32_t AI_OD_ST_YOLOX_PP_S_ANCHORS[2 * AI_OD_ST_YOLOX_PP_NB_ANCHORS] = {1.0f, 1.0f};
 
 /* Detection thresholds */
-#define AI_OD_ST_YOLOX_PP_CONF_THRESHOLD   0.5f   /* Confidence threshold */
-#define AI_OD_ST_YOLOX_PP_IOU_THRESHOLD    0.4f   /* NMS IoU threshold */
-#define AI_OD_ST_YOLOX_PP_MAX_BOXES_LIMIT  10     /* Maximum detections */
+#define AI_OD_ST_YOLOX_PP_CONF_THRESHOLD 0.5f /* Confidence threshold */
+#define AI_OD_ST_YOLOX_PP_IOU_THRESHOLD 0.4f  /* NMS IoU threshold */
+#define AI_OD_ST_YOLOX_PP_MAX_BOXES_LIMIT 10  /* Maximum detections */
 
 /* Generic max boxes limit (maps to model-specific limit) */
-#define AI_OD_PP_MAX_BOXES_LIMIT           AI_OD_ST_YOLOX_PP_MAX_BOXES_LIMIT
+#define AI_OD_PP_MAX_BOXES_LIMIT AI_OD_ST_YOLOX_PP_MAX_BOXES_LIMIT
 
 #endif

@@ -24,8 +24,8 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "tx_api.h"
 #include "stm32n6xx_hal.h"
+#include "tx_api.h"
 
 /**
  * @brief  Application initialization
@@ -39,4 +39,3 @@ void App_Init(VOID *memory_ptr);
 #endif
 
 #endif /* APP_H */
-

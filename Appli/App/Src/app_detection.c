@@ -27,7 +27,6 @@
 #include "stm32_lcd.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
-#include "app_error.h"
 #include <string.h>
 
 /* ============================================================================
@@ -44,32 +43,32 @@ static void overlay_thread_entry(ULONG arg);
  * ============================================================================ */
 
 /* Thread configurations */
-#define PP_THREAD_STACK_SIZE     4096
-#define PP_THREAD_PRIORITY       8   /* Lower than NN */
+#define PP_THREAD_STACK_SIZE 4096
+#define PP_THREAD_PRIORITY 8 /* Lower than NN */
 
 #define OVERLAY_THREAD_STACK_SIZE 4096
-#define OVERLAY_THREAD_PRIORITY   10  /* Lower than PP, same as UI */
+#define OVERLAY_THREAD_PRIORITY 10 /* Lower than PP, same as UI */
 
 /* Align macro */
 #define ALIGN_VALUE(v, a) (((v) + (a) - 1) & ~((a) - 1))
 
 /* Class names table - single class for person detection */
-static const char *classes_table[] = { "person" };
+static const char *classes_table[] = {"person"};
 #define NB_CLASSES (sizeof(classes_table) / sizeof(classes_table[0]))
 
 /* Colors for bounding boxes (ARGB8888) */
 #define NUMBER_COLORS 10
 static const uint32_t colors[NUMBER_COLORS] = {
-  0xFF00FF00,  /* Green */
-  0xFFFF0000,  /* Red */
-  0xFF00FFFF,  /* Cyan */
-  0xFFFF00FF,  /* Magenta */
-  0xFFFFFF00,  /* Yellow */
-  0xFF808080,  /* Gray */
-  0xFF000000,  /* Black */
-  0xFFA52A2A,  /* Brown */
-  0xFF0000FF,  /* Blue */
-  0xFFFFA500,  /* Orange */
+    0xFF00FF00, /* Green */
+    0xFFFF0000, /* Red */
+    0xFF00FFFF, /* Cyan */
+    0xFFFF00FF, /* Magenta */
+    0xFFFFFF00, /* Yellow */
+    0xFF808080, /* Gray */
+    0xFF000000, /* Black */
+    0xFFA52A2A, /* Brown */
+    0xFF0000FF, /* Blue */
+    0xFFFFA500, /* Orange */
 };
 
 #define NN_MODEL_DETECTION
@@ -91,7 +90,7 @@ static struct {
 
 /* Synchronization primitives */
 static TX_MUTEX detection_mutex;
-static TX_SEMAPHORE update_sem;
+static TX_EVENT_FLAGS_GROUP update_event_flags;
 
 /* Shared detection state */
 static detection_info_t detection_info;
@@ -105,10 +104,18 @@ static od_st_yolox_pp_static_param_t pp_params;
  * @param  y: Pointer to Y coordinate (modified in place)
  */
 static void clamp_point(int *x, int *y) {
-  if (*x < 0) *x = 0;
-  if (*y < 0) *y = 0;
-  if (*x >= (int)DISPLAY_LETTERBOX_WIDTH) *x = DISPLAY_LETTERBOX_WIDTH - 1;
-  if (*y >= (int)DISPLAY_LETTERBOX_HEIGHT) *y = DISPLAY_LETTERBOX_HEIGHT - 1;
+  if (*x < 0) {
+    *x = 0;
+  }
+  if (*y < 0) {
+    *y = 0;
+  }
+  if (*x >= (int)DISPLAY_LETTERBOX_WIDTH) {
+    *x = DISPLAY_LETTERBOX_WIDTH - 1;
+  }
+  if (*y >= (int)DISPLAY_LETTERBOX_HEIGHT) {
+    *y = DISPLAY_LETTERBOX_HEIGHT - 1;
+  }
 }
 
 /**
@@ -186,7 +193,7 @@ static void pp_thread_entry(ULONG arg) {
   LL_ATON_DECLARE_NAMED_NN_INSTANCE_AND_INTERFACE(od_yolo_x_person);
   ret = app_postprocess_init(&pp_params, &NN_Instance_od_yolo_x_person);
   APP_REQUIRE(ret == 0);
-  
+
   while (1) {
     uint8_t *output_buffer;
 
@@ -245,8 +252,12 @@ static void overlay_thread_entry(ULONG arg) {
 
   while (1) {
     /* Wait for detection update */
-    status = tx_semaphore_get(&update_sem, TX_WAIT_FOREVER);
-    if (status != TX_SUCCESS) continue;
+    ULONG actual_flags;
+    status = tx_event_flags_get(&update_event_flags, 0x01, TX_OR_CLEAR,
+                                &actual_flags, TX_WAIT_FOREVER);
+    if (status != TX_SUCCESS) {
+      continue;
+    }
 
     /* Copy detection info under lock */
     Detection_Lock();
@@ -255,7 +266,9 @@ static void overlay_thread_entry(ULONG arg) {
 
     /* Get back buffer for drawing */
     ui_buffer = Buffer_GetUIBackBuffer();
-    if (ui_buffer == NULL) continue;
+    if (ui_buffer == NULL) {
+      continue;
+    }
 
     /* Set layer buffer address */
     LCD_SetUILayerAddress(ui_buffer);
@@ -263,16 +276,16 @@ static void overlay_thread_entry(ULONG arg) {
     /* Set drawing layer */
     UTIL_LCD_SetLayer(LCD_LAYER_1_UI);
     UTIL_LCD_SetFont(&Font16);
-    UTIL_LCD_SetBackColor(0x00000000);  /* Transparent */
+    UTIL_LCD_SetBackColor(0x00000000); /* Transparent */
 
     /* Clear overlay area - only the detection overlay region */
     /* Leave the diagnostic panel area (left side) untouched */
     UTIL_LCD_FillRect(DISPLAY_LETTERBOX_X0, 0,
-                      DISPLAY_LETTERBOX_WIDTH, DISPLAY_LETTERBOX_HEIGHT / 2,
+                      DISPLAY_LETTERBOX_WIDTH, DISPLAY_LETTERBOX_HEIGHT,
                       0x00000000);
 
     /* Draw detection info at top */
-    UTIL_LCD_SetTextColor(0xFFFFFFFF);  /* White */
+    UTIL_LCD_SetTextColor(0xFFFFFFFF); /* White */
 
     snprintf(stats_str, sizeof(stats_str), "Objects: %d", (int)local_info.nb_detect);
     UTIL_LCD_DisplayStringAt(DISPLAY_LETTERBOX_X0 + 10, 10,
@@ -285,7 +298,7 @@ static void overlay_thread_entry(ULONG arg) {
                              (uint8_t *)stats_str, LEFT_MODE);
 
     /* Draw bounding boxes */
-    UTIL_LCD_SetTextColor(0xFF00FF00);  /* Green for boxes */
+    UTIL_LCD_SetTextColor(0xFF00FF00); /* Green for boxes */
     for (int i = 0; i < local_info.nb_detect; i++) {
       draw_detection(&local_info.detects[i]);
     }
@@ -305,8 +318,7 @@ static void overlay_thread_entry(ULONG arg) {
  *         Called by postprocess after updating detection state
  */
 void Detection_SignalUpdate(void) {
-  /* Use ceiling put to avoid overflow if overlay is slower than PP */
-  tx_semaphore_ceiling_put(&update_sem, 1);
+  tx_event_flags_set(&update_event_flags, 0x01, TX_OR);
 }
 
 /**
@@ -350,7 +362,7 @@ void Detection_Thread_Init(VOID *memory_ptr) {
   status = tx_mutex_create(&detection_mutex, "detection_lock", TX_NO_INHERIT);
   APP_REQUIRE(status == TX_SUCCESS);
 
-  status = tx_semaphore_create(&update_sem, "detection_update", 0);
+  status = tx_event_flags_create(&update_event_flags, "detection_update");
   APP_REQUIRE(status == TX_SUCCESS);
 
   /* Create postprocess thread */
@@ -369,4 +381,3 @@ void Detection_Thread_Init(VOID *memory_ptr) {
                             TX_NO_TIME_SLICE, TX_AUTO_START);
   APP_REQUIRE(status == TX_SUCCESS);
 }
-

@@ -119,8 +119,7 @@ extern "C"
     LL_SW_ROUND,
     LL_SW_REDUCELOGSUMEXP,
     LL_SW_SIGN,
-    LL_SW_TILE,
-    LL_SW_GELU
+    LL_SW_TILE
   } NodeType;
 
   // ############################ ############################ ###########################
@@ -322,7 +321,7 @@ extern "C"
     float extrapol_val;                  /**< used in tf_crop_and_resize cas */
     resize_mode mode;                    /**< resize mode */
     nearest_mode nearest_mode;           /**< used in nearest mode */
-    coord_transf_mode coord_transf_mode; /**< coordinate transformation mode */
+    coord_transf_mode coord_transf_mode; /**< coordinate tranformation mode */
   } Resize_sw_info;
 
   typedef struct Activ_sw_info
@@ -562,7 +561,7 @@ extern "C"
     float extrapol_val;                  /**< used in tf_crop_and_resize cas */
     resize_mode mode;                    /**< resize mode */
     nearest_mode nearest_mode;           /**< used in nearest mode */
-    coord_transf_mode coord_transf_mode; /**< coordinate transformation mode */
+    coord_transf_mode coord_transf_mode; /**< coordinate tranformation mode */
   } Resize_integer_sw_info;
 
   // ############################ ########################### ###########################
@@ -591,20 +590,6 @@ extern "C"
     Tensor_info os;
     Tensor_info ozp;
   } Requantizelinear_sw_info;
-  typedef struct Argmax_integer_sw_info
-  {
-    General general;
-    int axis;
-    int keepdims;
-    int select_last_index;
-  } Argmax_integer_sw_info;
-  typedef struct Argmin_integer_sw_info
-  {
-    General general;
-    int axis;
-    int keepdims;
-    int select_last_index;
-  } Argmin_integer_sw_info;
 
 #ifdef __cplusplus
 }

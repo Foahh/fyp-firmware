@@ -37,7 +37,6 @@
 #include "ll_aton_attributes.h"
 #include "ll_aton_osal.h"
 #include "ll_aton_platform.h"
-#include "ll_aton_util.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -60,7 +59,7 @@ extern "C"
 #ifdef NDEBUG
 #define SUCCESS_ASSERT(ret) LL_ATON_LIB_UNUSED(ret)
 #else
-#define SUCCESS_ASSERT(ret) LL_ATON_ASSERT((ret) == TX_SUCCESS)
+#define SUCCESS_ASSERT(ret) assert((ret) == TX_SUCCESS)
 #endif
 
 /*** ThreadX dependent type macros ***/
@@ -103,7 +102,7 @@ extern "C"
   static inline void _my_enable_preemption(void)
   {
     TX_INTERRUPT_SAVE_AREA
-    LL_ATON_ASSERT(_tx_thread_preempt_disable > 0);
+    assert(_tx_thread_preempt_disable > 0);
 
     /* Disable interrupts */
     TX_DISABLE

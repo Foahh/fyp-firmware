@@ -1,3 +1,9 @@
+# Clean up old files
+Remove-Item -Path "./Src/*" -Recurse -Force
+Remove-Item -Path "./Bin/*" -Recurse -Force
+Remove-Item -Path "./st_ai_output/*" -Recurse -Force
+Remove-Item -Path "./st_ai_ws/*" -Recurse -Force
+
 # Generate object detection model
 stedgeai generate --no-inputs-allocation --no-outputs-allocation --model models/st_yolo_x_nano_480_1.0_0.25_3_int8.tflite --target stm32n6 --st-neural-art object_detection@my_neural_art.json --name od_yolo_x_person
 

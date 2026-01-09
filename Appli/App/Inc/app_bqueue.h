@@ -34,12 +34,12 @@ extern "C" {
  *         Uses counting semaphores for free/ready synchronization
  */
 typedef struct {
-  TX_SEMAPHORE free_sem;              /**< Counts available free buffers */
-  TX_SEMAPHORE ready_sem;             /**< Counts buffers ready for consumption */
-  int buffer_nb;                      /**< Number of buffers in the queue */
+  TX_SEMAPHORE free_sem;                /**< Counts available free buffers */
+  TX_SEMAPHORE ready_sem;               /**< Counts buffers ready for consumption */
+  int buffer_nb;                        /**< Number of buffers in the queue */
   uint8_t *buffers[BQUEUE_MAX_BUFFERS]; /**< Array of buffer pointers */
-  volatile int free_idx;              /**< Next free buffer index */
-  volatile int ready_idx;             /**< Next ready buffer index */
+  volatile int free_idx;                /**< Next free buffer index */
+  volatile int ready_idx;               /**< Next ready buffer index */
 } bqueue_t;
 
 /**
@@ -84,4 +84,3 @@ void bqueue_put_ready(bqueue_t *bq);
 #endif
 
 #endif /* APP_BQUEUE_H */
-

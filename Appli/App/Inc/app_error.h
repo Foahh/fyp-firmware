@@ -55,7 +55,6 @@ static inline void APP_Panic(const char *file, uint32_t line) {
     }                                          \
   } while (0)
 
-
 #ifdef __cplusplus
 }
 #endif

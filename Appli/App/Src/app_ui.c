@@ -195,10 +195,12 @@ void UI_CPULoad_Init(cpuload_info_t *cpu_load) {
  * @brief  Clamp CPU load value to valid range [0.0, 100.0]
  */
 static float UI_ClampCPULoad(float load) {
-  if (load < 0.0f)
+  if (load < 0.0f) {
     return 0.0f;
-  if (load > 100.0f)
+  }
+  if (load > 100.0f) {
     return 100.0f;
+  }
   return load;
 }
 
@@ -251,10 +253,12 @@ float UI_CPULoad_GetSmoothed(const cpuload_info_t *cpu_load) {
  * @brief  Clamp percentage value to valid range [0.0, 100.0]
  */
 static float UI_ClampPercentage(float percentage) {
-  if (percentage < 0.0f)
+  if (percentage < 0.0f) {
     return 0.0f;
-  if (percentage > 100.0f)
+  }
+  if (percentage > 100.0f) {
     return 100.0f;
+  }
   return percentage;
 }
 

@@ -426,12 +426,12 @@ const char *ec_get_reloc_id(const ECFileEntry *reloc_table_ptr, unsigned int idx
 }
 
 /**
- * Relocate the value associated with a relocation specified by using an index.
+ * Relocate all the values associated with a relocation specified by using an index.
  *
- * \param[out]    blob         is the pointer to the memory area containing the Epoch Controller
- * blob (that will be patched)
  * \param[in]     reloc_table_ptr is the pointer to the relocation table (contained in an Epoch Controller binary or
  * copied from it)
+ * \param[out]    blob         is the pointer to the memory area containing the Epoch Controller
+ * blob (that will be patched)
  * \param[in]     idx             is the index of the relocation whose values must be
  * relocated
  * \param[in]     base            is the offset that must be added to the values to be relocated
@@ -443,7 +443,7 @@ const char *ec_get_reloc_id(const ECFileEntry *reloc_table_ptr, unsigned int idx
  * \retval \e false otherwise
  */
 
-bool ec_reloc(ECInstr *blob, const ECFileEntry *reloc_table_ptr, unsigned int idx, ECAddr base, ECAddr *prev_base)
+bool ec_reloc(const ECFileEntry *reloc_table_ptr, ECInstr *blob, unsigned int idx, ECAddr base, ECAddr *prev_base)
 {
   if (reloc_table_ptr == NULL)
   {
@@ -492,12 +492,12 @@ bool ec_reloc(ECInstr *blob, const ECFileEntry *reloc_table_ptr, unsigned int id
 }
 
 /**
- * Relocate the value associated with a relocation specified by using an identifier.
+ * Relocate all the values associated with a relocation specified by using an identifier.
  *
- * \param[out]    blob         is the pointer to the memory area containing the Epoch Controller
- * blob (that will be patched)
  * \param[in]     reloc_table_ptr is the pointer to the relocation table (contained in an Epoch Controller binary or
  * copied from it)
+ * \param[out]    blob         is the pointer to the memory area containing the Epoch Controller
+ * blob (that will be patched)
  * \param[in]     id       is the identifier of the relocation whose values must be relocated
  * \param[in]     base            is the offset that must be added to the values to be relocated
  * \param[in,out] prev_base       is the pointer to a memory location containing the previous value of the base address
@@ -508,7 +508,7 @@ bool ec_reloc(ECInstr *blob, const ECFileEntry *reloc_table_ptr, unsigned int id
  * \retval \e false otherwise
  */
 
-bool ec_reloc_by_id(ECInstr *blob, const ECFileEntry *reloc_table_ptr, const char *id, ECAddr base, ECAddr *prev_base)
+bool ec_reloc_by_id(const ECFileEntry *reloc_table_ptr, ECInstr *blob, const char *id, ECAddr base, ECAddr *prev_base)
 {
   if (reloc_table_ptr == NULL)
   {
@@ -752,7 +752,7 @@ const char *ec_get_patch_id(const ECFileEntry *patch_table_ptr, unsigned int idx
 
     if (idx < size)
     {
-      ptr = patch_table_ptr + 5 * idx + 1;
+      ptr = patch_table_ptr + 4 * idx + 1;
 
       ECFileEntry offset = *ptr;
 
@@ -761,39 +761,6 @@ const char *ec_get_patch_id(const ECFileEntry *patch_table_ptr, unsigned int idx
   }
 
   return NULL;
-}
-
-/**
- * Get the number of bits for which the value to apply to the patch contained in an Epoch Controller binary must be
- * shifted right or left.
- *
- * \param[in] patch_table_ptr is the pointer to the patch table (contained in an Epoch Controller binary or
- * copied from it)
- * \param[in] idx      is the index of the patch whose least significant bit must be retrieved
- *
- * \return the number of bits for which the value to apply to the patch having index \e idx among the patches contained
- * in the patch table contained in the memory area starting at \e patch_table_ptr must be shifted right or left, or a
- * value greater than 63 if that patch does not exist
- */
-
-int32_t ec_get_patch_shr(const ECFileEntry *patch_table_ptr, unsigned int idx)
-{
-  // read the patch table, if any
-  if (patch_table_ptr != NULL)
-  {
-    const ECFileEntry *ptr = patch_table_ptr;
-
-    ECFileEntry size = *ptr;
-
-    if (idx < size)
-    {
-      ptr = patch_table_ptr + 5 * idx + 2;
-
-      return (int32_t)*ptr;
-    }
-  }
-
-  return 0;
 }
 
 /**
@@ -818,7 +785,7 @@ uint32_t ec_get_patch_mask(const ECFileEntry *patch_table_ptr, unsigned int idx)
 
     if (idx < size)
     {
-      ptr = patch_table_ptr + 5 * idx + 3;
+      ptr = patch_table_ptr + 4 * idx + 2;
 
       return *ptr;
     }
@@ -828,25 +795,25 @@ uint32_t ec_get_patch_mask(const ECFileEntry *patch_table_ptr, unsigned int idx)
 }
 
 /**
- * Patch the value associated with a patch specified by using an index.
+ * Patch all the values associated with a patch specified by using an index.
  *
- * \param[out]    blob         is the pointer to the memory area containing the Epoch Controller
- * blob (that will be patched)
  * \param[in]     patch_table_ptr is the pointer to the patch table (contained in an Epoch Controller binary or
  * copied from it)
+ * \param[out]    blob         is the pointer to the memory area containing the Epoch Controller
+ * blob (that will be patched)
  * \param[in]     idx             is the index of the patch whose values must be
  * patched
- * \param[in]     value           is the 64-bit value that must be applied to the patch
+ * \param[in]     value           is the value that must be used in the patch
  *
  * \retval \e true  on success
  * \retval \e false otherwise
  */
 
-bool ec_patch(ECInstr *blob, const ECFileEntry *patch_table_ptr, unsigned int idx, uint64_t value)
+bool ec_patch(const ECFileEntry *patch_table_ptr, ECInstr *blob, unsigned int idx, uint32_t value)
 {
   if (patch_table_ptr == NULL)
   {
-    LL_ATON_PRINTF("Error: Cannot patch because the pointer to the Epoch Controller patch table is invalid\n");
+    LL_ATON_PRINTF("Error: Cannot patchate because the pointer to the Epoch Controller patch table is invalid\n");
 
     return false;
   }
@@ -857,9 +824,8 @@ bool ec_patch(ECInstr *blob, const ECFileEntry *patch_table_ptr, unsigned int id
 
   if (idx < size)
   {
-    ptr = patch_table_ptr + 5 * idx + 2;
+    ptr = patch_table_ptr + 4 * idx + 2;
 
-    int32_t shr = *ptr++;
     uint32_t mask = *ptr++;
     ECFileEntry num = *ptr++;
 
@@ -872,26 +838,16 @@ bool ec_patch(ECInstr *blob, const ECFileEntry *patch_table_ptr, unsigned int id
       return false;
     }
 
-    if (shr >= 0)
-      value >>= shr;
-    else
-    {
-      mask <<= (-shr);
-      value <<= (-shr);
-    }
-
-    value &= mask;
-
     ptr = (const ECFileEntry *)((const uint8_t *)patch_table_ptr + offset);
 
     for (unsigned int i = 0; i < num; i++)
     {
-      // offset is from the real beginning of the EC blob, that is, from the first real instruction (the one
-      // following the magic number of the EC blob and its size)
       ECFileEntry offset = *ptr++;
 
+      // offset is from the real beginning of the EC blob, that is, from the first real instruction (the one
+      // following the magic number of the EC blob and its size)
       blob[offset + 2] &= ~mask;
-      blob[offset + 2] |= value;
+      blob[offset + 2] |= (value & mask);
     }
   }
 
@@ -901,22 +857,22 @@ bool ec_patch(ECInstr *blob, const ECFileEntry *patch_table_ptr, unsigned int id
 /**
  * Patch all the values associated with a patch specified by using an identifier.
  *
- * \param[out]    blob         is the pointer to the memory area containing the Epoch Controller
- * blob (that will be patched)
  * \param[in]     patch_table_ptr is the pointer to the patch table (contained in an Epoch Controller binary or
  * copied from it)
+ * \param[out]    blob         is the pointer to the memory area containing the Epoch Controller
+ * blob (that will be patched)
  * \param[in]     id       is the identifier of the patch whose values must be patched
- * \param[in]     value           is the 64-bit value that must be applied to the patch
+ * \param[in]     value           is the value that must be used in the patch
  *
  * \retval \e true  on success
  * \retval \e false otherwise
  */
 
-bool ec_patch_by_id(ECInstr *blob, const ECFileEntry *patch_table_ptr, const char *id, uint64_t value)
+bool ec_patch_by_id(const ECFileEntry *patch_table_ptr, ECInstr *blob, const char *id, uint32_t value)
 {
   if (patch_table_ptr == NULL)
   {
-    LL_ATON_PRINTF("Error: Cannot patch because the pointer to the Epoch Controller patch table is invalid\n");
+    LL_ATON_PRINTF("Error: Cannot patchate because the pointer to the Epoch Controller patch table is invalid\n");
 
     return false;
   }
@@ -925,13 +881,9 @@ bool ec_patch_by_id(ECInstr *blob, const ECFileEntry *patch_table_ptr, const cha
 
   ECFileEntry size = *ptr;
 
-  bool found = false;
-
-  uint64_t orig_value = value;
-
   for (unsigned int n = 0; n < size; n++)
   {
-    ptr = patch_table_ptr + 5 * n + 1;
+    ptr = patch_table_ptr + 4 * n + 1;
 
     ECFileEntry offset = *ptr;
 
@@ -941,7 +893,6 @@ bool ec_patch_by_id(ECInstr *blob, const ECFileEntry *patch_table_ptr, const cha
     {
       ptr++;
 
-      int32_t shr = *ptr++;
       uint32_t mask = *ptr++;
       ECFileEntry num = *ptr++;
 
@@ -954,34 +905,21 @@ bool ec_patch_by_id(ECInstr *blob, const ECFileEntry *patch_table_ptr, const cha
         return false;
       }
 
-      if (shr >= 0)
-        value = orig_value >> shr;
-      else
-      {
-        mask <<= (-shr);
-        value = orig_value << (-shr);
-      }
-
-      value &= mask;
-
       ptr = (const ECFileEntry *)((const uint8_t *)patch_table_ptr + offset);
 
       for (unsigned int i = 0; i < num; i++)
       {
-        // offset is from the real beginning of the EC blob, that is, from the first real instruction (the one
-        // following the magic number of the EC blob and its size)
         ECFileEntry offset = *ptr++;
 
+        // offset is from the real beginning of the EC blob, that is, from the first real instruction (the one
+        // following the magic number of the EC blob and its size)
         blob[offset + 2] &= ~mask;
-        blob[offset + 2] |= value;
+        blob[offset + 2] |= (value & mask);
       }
 
-      found = true;
+      return true;
     }
   }
-
-  if (found)
-    return true;
 
   LL_ATON_PRINTF("Error: Patch '%s' not found in Epoch Controller patch table\n", id);
 

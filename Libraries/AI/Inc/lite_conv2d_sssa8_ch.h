@@ -86,6 +86,7 @@ void forward_lite_conv2d_hsp_1step_sssa8_ch(const ai_i8 *pData_in,
                                       const ai_float in_scale,
                                       const ai_float out_scale,
                                       const ai_float *pWt_scale,
+                                      const ai_layer_format_type out_ch_format,
                                       ai_i8 *pData_out,
                                       const ai_u16 dim_im_out_x,
                                       const ai_u16 dim_im_out_y);
@@ -110,6 +111,7 @@ void forward_lite_conv2d_hsp_2step_sssa8_ch(const ai_i8 *pData_in,
                                       const ai_float in_scale,
                                       const ai_float out_scale,
                                       const ai_float *pWt_scale,
+                                      const ai_layer_format_type out_ch_format,
                                       ai_i8 *pData_out,
                                       const ai_u16 dim_im_out_x,
                                       const ai_u16 dim_im_out_y);
@@ -134,6 +136,7 @@ void forward_lite_conv2d_hsp_3step_sssa8_ch(const ai_i8 *pData_in,
                                       const ai_float in_scale,
                                       const ai_float out_scale,
                                       const ai_float *pWt_scale,
+                                      const ai_layer_format_type out_ch_format,
                                       ai_i8 *pData_out,
                                       const ai_u16 dim_im_out_x,
                                       const ai_u16 dim_im_out_y);
@@ -248,6 +251,7 @@ forward_lite_pw_hsp_2step_sssa8_ch(const ai_i8 *pData_in,
                          const ai_float in_scale,
                          const ai_float out_scale,
                          const ai_float *pWt_scale,
+                         const ai_layer_format_type out_ch_format,
                          ai_i8 *pData_out);
 
 void 
@@ -265,6 +269,7 @@ forward_lite_pw_hsp_1step_sssa8_ch(const ai_i8 *pData_in,
                          const ai_float in_scale,
                          const ai_float out_scale,
                          const ai_float *pWt_scale,
+                         const ai_layer_format_type out_ch_format,
                          ai_i8 *pData_out);
 
 void 
@@ -282,6 +287,7 @@ forward_lite_pw_hsp_3step_sssa8_ch(const ai_i8 *pData_in,
                          const ai_float in_scale,
                          const ai_float out_scale,
                          const ai_float *pWt_scale,
+                         const ai_layer_format_type out_ch_format,
                          ai_i8 *pData_out);
 
 void
@@ -384,7 +390,7 @@ forward_lite_dw_hsp_1step_sssa8_ch(const ai_i8 *Im_in,
                              const ai_u16 dim_im_out_y);
 
 void
-forward_lite_dw_hsp_3step_sssa8_ch(const ai_i8 *Im_in,
+forward_lite_dw_hsp_3Step_sssa8_ch(const ai_i8 *Im_in,
                              const ai_u16 dim_im_in_x,
                              const ai_u16 dim_im_in_y,
                              const ai_u16 ch_im_in,

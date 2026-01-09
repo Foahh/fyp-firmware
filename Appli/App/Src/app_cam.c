@@ -3,7 +3,7 @@
  * @file    app_cam.c
  * @author  Long Liangmao
  * @brief   Camera application implementation for STM32N6570-DK
- *          Dual DCMIPP pipe configuration: Pipe1 for display, Pipe2 for ML
+ *          Dual DCMIPP pipe configuration: Pipe1 for display, Pipe2 for NN
  ******************************************************************************
  * @attention
  *
@@ -28,7 +28,6 @@
 #include "main.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
-#include "app_error.h"
 
 /* ============================================================================
  * Forward Declarations
@@ -38,10 +37,10 @@ static void CAM_CalcCropRoi(CMW_Manual_roi_area_t *roi,
                             uint32_t sensor_w, uint32_t sensor_h,
                             uint32_t output_w, uint32_t output_h);
 static void CAM_ConfigPipe(uint32_t pipe,
-                          uint32_t sensor_w, uint32_t sensor_h,
-                          uint32_t out_w, uint32_t out_h,
-                          uint32_t format, uint32_t bpp,
-                          int swap_enabled);
+                           uint32_t sensor_w, uint32_t sensor_h,
+                           uint32_t out_w, uint32_t out_h,
+                           uint32_t format, uint32_t bpp,
+                           int swap_enabled);
 static void cam_display_pipe_frame_event(void);
 static void cam_nn_pipe_frame_event(void);
 static void isp_thread_entry(ULONG arg);
@@ -60,7 +59,7 @@ static void isp_thread_entry(ULONG arg);
 
 /* ISP thread resources */
 static struct {
-  TX_SEMAPHORE vsync_sem;
+  TX_EVENT_FLAGS_GROUP vsync_flags;
   TX_THREAD thread;
   UCHAR stack[ISP_THREAD_STACK_SIZE];
 } isp_ctx;
@@ -108,10 +107,10 @@ static void CAM_CalcCropRoi(CMW_Manual_roi_area_t *roi,
  * @param  swap_enabled: Enable byte swap (for RGB888)
  */
 static void CAM_ConfigPipe(uint32_t pipe,
-                          uint32_t sensor_w, uint32_t sensor_h,
-                          uint32_t out_w, uint32_t out_h,
-                          uint32_t format, uint32_t bpp,
-                          int swap_enabled) {
+                           uint32_t sensor_w, uint32_t sensor_h,
+                           uint32_t out_w, uint32_t out_h,
+                           uint32_t format, uint32_t bpp,
+                           int swap_enabled) {
   CMW_DCMIPP_Conf_t conf = {
       .output_width = out_w,
       .output_height = out_h,
@@ -187,7 +186,7 @@ void CAM_Init(void) {
                  DISPLAY_LETTERBOX_WIDTH, DISPLAY_LETTERBOX_HEIGHT,
                  DISPLAY_FORMAT, DISPLAY_BPP, 0);
 
-  /* Configure ML pipe (Pipe2) */
+  /* Configure NN pipe (Pipe2) */
   CAM_ConfigPipe(DCMIPP_PIPE2,
                  cam_conf.width, cam_conf.height,
                  ML_WIDTH, ML_HEIGHT,
@@ -209,19 +208,19 @@ void CAM_DisplayPipe_Start(uint32_t cam_mode) {
 
 /**
  * @brief  Start the neural network pipe capture
- * @param  ml_buffer: Pointer to the NN buffer
+ * @param  nn_buffer: Pointer to the NN buffer
  * @param  cam_mode: Camera mode (CMW_MODE_CONTINUOUS or CMW_MODE_SNAPSHOT)
  */
-void CAM_MLPipe_Start(uint8_t *ml_buffer, uint32_t cam_mode) {
-  APP_REQUIRE(ml_buffer != NULL);
-  APP_REQUIRE(CMW_CAMERA_Start(DCMIPP_PIPE2, ml_buffer, cam_mode) == CMW_ERROR_NONE);
+void CAM_NNPipe_Start(uint8_t *nn_buffer, uint32_t cam_mode) {
+  APP_REQUIRE(nn_buffer != NULL);
+  APP_REQUIRE(CMW_CAMERA_Start(DCMIPP_PIPE2, nn_buffer, cam_mode) == CMW_ERROR_NONE);
   nn_pipe_running = 1;
 }
 
 /**
  * @brief  Stop the neural network pipe capture
  */
-void CAM_MLPipe_Stop(void) {
+void CAM_NNPipe_Stop(void) {
   nn_pipe_running = 0;
   CMW_CAMERA_Suspend(DCMIPP_PIPE2);
 }
@@ -239,7 +238,7 @@ void CAM_IspUpdate(void) {
  */
 void Thread_IspUpdate_Init(VOID *memory_ptr) {
   UNUSED(memory_ptr);
-  APP_REQUIRE(tx_semaphore_create(&isp_ctx.vsync_sem, "isp_vsync", 0) == TX_SUCCESS);
+  APP_REQUIRE(tx_event_flags_create(&isp_ctx.vsync_flags, "isp_vsync") == TX_SUCCESS);
 
   APP_REQUIRE(tx_thread_create(&isp_ctx.thread, "isp_update",
                                isp_thread_entry, 0,
@@ -333,7 +332,7 @@ int CMW_CAMERA_PIPE_FrameEventCallback(uint32_t pipe) {
  */
 int CMW_CAMERA_PIPE_VsyncEventCallback(uint32_t pipe) {
   if (pipe == DCMIPP_PIPE1) {
-    tx_semaphore_put(&isp_ctx.vsync_sem);
+    tx_event_flags_set(&isp_ctx.vsync_flags, 0x01, TX_OR);
   }
   return HAL_OK;
 }
@@ -349,9 +348,11 @@ int CMW_CAMERA_PIPE_VsyncEventCallback(uint32_t pipe) {
  */
 static void isp_thread_entry(ULONG arg) {
   UNUSED(arg);
+  ULONG actual_flags;
 
   while (1) {
-    tx_semaphore_get(&isp_ctx.vsync_sem, TX_WAIT_FOREVER);
+    tx_event_flags_get(&isp_ctx.vsync_flags, 0x01, TX_OR_CLEAR,
+                       &actual_flags, TX_WAIT_FOREVER);
     CAM_IspUpdate();
   }
 }

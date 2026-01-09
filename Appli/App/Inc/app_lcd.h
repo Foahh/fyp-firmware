@@ -26,8 +26,8 @@ extern "C" {
 #endif
 
 #include "app_config.h"
-#include <stdint.h>
 #include "tx_api.h"
+#include <stdint.h>
 
 /* Layer definitions */
 #define LCD_LAYER_0_CAMERA 0U /* Camera preview layer */
@@ -90,14 +90,6 @@ void LCD_SetCameraLayerVisible(uint8_t enable);
  * @param  reload_type: BSP_LCD_RELOAD_IMMEDIATE or BSP_LCD_RELOAD_VERTICAL_BLANKING
  */
 void LCD_Reload(uint32_t reload_type);
-
-/**
- * @brief  Process pending LCD events (call from LCD thread)
- * @param  timeout: Timeout in ThreadX ticks (TX_NO_WAIT, TX_WAIT_FOREVER, or ticks)
- * @retval TX_SUCCESS if event processed, TX_QUEUE_EMPTY if no events, error otherwise
- * @note   This function should be called periodically from the LCD thread
- */
-UINT LCD_ProcessEvents(ULONG timeout);
 
 #ifdef __cplusplus
 }

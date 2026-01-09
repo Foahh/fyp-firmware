@@ -41,17 +41,17 @@ void CAM_DisplayPipe_Start(uint32_t cam_mode);
 
 /**
  * @brief  Start the neural network pipe capture
- * @param  ml_pipe_dst: Pointer to the NN buffer
+ * @param  nn_pipe_dst: Pointer to the NN buffer
  * @param  cam_mode: Camera mode (CMW_MODE_CONTINUOUS or CMW_MODE_SNAPSHOT)
  * @retval None
  */
-void CAM_MLPipe_Start(uint8_t *ml_pipe_dst, uint32_t cam_mode);
+void CAM_NNPipe_Start(uint8_t *nn_pipe_dst, uint32_t cam_mode);
 
 /**
  * @brief  Stop the neural network pipe capture
  * @retval None
  */
-void CAM_MLPipe_Stop(void);
+void CAM_NNPipe_Stop(void);
 
 /**
  * @brief  Update ISP parameters (call periodically for auto exposure/white
@@ -63,7 +63,7 @@ void CAM_IspUpdate(void);
 /**
  * @brief  Initialize and create the ISP update thread
  * @param  memory_ptr: Memory pointer (unused, thread uses static allocation)
- * @note   Also initializes the ISP semaphore internally
+ * @note   Also initializes the ISP event flags internally
  */
 void Thread_IspUpdate_Init(VOID *memory_ptr);
 

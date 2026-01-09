@@ -37,8 +37,6 @@ extern "C"
   void ll_sw_forward_gemm_integer(void *sw_info_struct);
   void ll_sw_forward_softmax_integer(void *sw_info_struct);
   void ll_sw_forward_resize_integer(void *sw_info_struct);
-  void ll_sw_forward_argmin_integer(void *sw_info_struct);
-  void ll_sw_forward_argmax_integer(void *sw_info_struct);
 
 #ifdef __cplusplus
 }

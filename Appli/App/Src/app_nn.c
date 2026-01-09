@@ -21,7 +21,6 @@
 #include "app_error.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
-#include "app_error.h"
 #include <string.h>
 
 /* Include ATON runtime API */
@@ -90,8 +89,7 @@ static uint8_t nn_input_buffers[2][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
 static uint8_t nn_output_buffers[2][NN_OUT_BUFFER_SIZE] ALIGN_32;
 
 /* Output sizes array */
-static const uint32_t nn_out_sizes[NN_OUT_MAX_NB] = {
-    NN_OUT0_SIZE, NN_OUT1_SIZE, NN_OUT2_SIZE, 0};
+static const uint32_t nn_out_sizes[NN_OUT_MAX_NB] = {NN_OUT0_SIZE, NN_OUT1_SIZE, NN_OUT2_SIZE};
 
 /* Timing statistics (volatile for cross-thread access) */
 static volatile nn_timing_t nn_timing;
@@ -105,17 +103,27 @@ static volatile nn_timing_t nn_timing;
  *         Handles wait-for-event (WFE) during inference for power efficiency
  */
 static void NN_RunInference(void) {
-  LL_ATON_RT_RetValues_t ret;
+  LL_ATON_RT_RetValues_t ll_aton_rt_ret;
 
   do {
-    ret = LL_ATON_RT_RunEpochBlock(&NN_Instance_od_yolo_x_person);
-
-    if (ret == LL_ATON_RT_WFE) {
+    ll_aton_rt_ret = LL_ATON_RT_RunEpochBlock(&NN_Instance_od_yolo_x_person);
+    if (ll_aton_rt_ret == LL_ATON_RT_WFE) {
       LL_ATON_OSAL_WFE();
     }
-  } while (ret != LL_ATON_RT_DONE);
+  } while (ll_aton_rt_ret != LL_ATON_RT_DONE);
 
   LL_ATON_RT_Reset_Network(&NN_Instance_od_yolo_x_person);
+}
+
+static int model_get_output_nb(const LL_Buffer_InfoTypeDef *nn_out_info) {
+  int nb = 0;
+
+  while (nn_out_info->name) {
+    nb++;
+    nn_out_info++;
+  }
+
+  return nb;
 }
 
 /* ============================================================================
@@ -135,21 +143,18 @@ static void nn_thread_entry(ULONG arg) {
   uint32_t nn_in_len;
   uint32_t nn_period[2];
   int ret;
+  int i;
 
   /* Initialize ATON runtime */
   LL_ATON_RT_RuntimeInit();
   LL_ATON_RT_Init_Network(&NN_Instance_od_yolo_x_person);
 
-  /* Get input buffer length */
+  /* Gsetup buffers size */
   nn_in_len = LL_Buffer_len(&nn_in_info[0]);
-  APP_REQUIRE(nn_in_len <= NN_INPUT_SIZE);
-
-  /* Verify output configuration matches model */
-  int out_count = 0;
-  while (nn_out_info[out_count].name != NULL) {
-    out_count++;
+  APP_REQUIRE(NN_OUT_NB == model_get_output_nb(nn_out_info));
+  for (i = 0; i < NN_OUT_NB; i++) {
+    APP_REQUIRE(LL_Buffer_len(&nn_out_info[i]) == nn_out_sizes[i]);
   }
-  APP_REQUIRE(out_count == NN_OUT_NB);
 
   /* Initialize timing */
   nn_period[1] = HAL_GetTick();
@@ -176,8 +181,9 @@ static void nn_thread_entry(ULONG arg) {
 
     /* Calculate output buffer pointers */
     out_ptrs[0] = output_buffer;
-    out_ptrs[1] = out_ptrs[0] + NN_OUT0_SIZE_ALIGN;
-    out_ptrs[2] = out_ptrs[1] + NN_OUT1_SIZE_ALIGN;
+    for (i = 1; i < NN_OUT_NB; i++) {
+      out_ptrs[i] = out_ptrs[i - 1] + ALIGN_VALUE(nn_out_sizes[i - 1], 32);
+    }
 
     /* Set input buffer */
     ret = LL_ATON_Set_User_Input_Buffer_od_yolo_x_person(0, capture_buffer, nn_in_len);
