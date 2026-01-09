@@ -2,7 +2,7 @@
  ******************************************************************************
  * @file    app_error.h
  * @author  Long Liangmao
- * @brief   Application-level fatal error handling helpers (fail-fast)
+ * @brief   Application-level fatal error handling helpers
  ******************************************************************************
  * @attention
  *

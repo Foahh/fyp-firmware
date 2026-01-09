@@ -65,7 +65,7 @@ static struct {
 /* Synchronization primitives */
 static TX_EVENT_FLAGS_GROUP update_event_flags;
 
-/* Double-buffered detection state for lock-free access */
+/* Double-buffered detection state */
 static detection_info_t detection_info_buffers[2];
 static volatile detection_info_t *detection_info_read_ptr = &detection_info_buffers[0];
 static int write_buffer_idx = 1;
@@ -133,9 +133,9 @@ static void pp_thread_entry(ULONG arg) {
     write_buf->inference_ms = nn_timing.inference_ms;
     write_buf->postprocess_ms = pp_ts[1] - pp_ts[0];
 
-    /* Atomically swap read pointer (single pointer assignment is atomic on ARM) */
+    /* Atomically swap read pointer */
     detection_info_read_ptr = write_buf;
-    
+
     /* Switch to other buffer for next write */
     write_buffer_idx = write_buffer_idx ^ 1;
 

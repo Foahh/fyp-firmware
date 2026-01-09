@@ -2,7 +2,7 @@
  ******************************************************************************
  * @file    app_ui.h
  * @author  Long Liangmao
- * @brief   Diagnostic UI overlay for STM32N6570-DK
+ * @brief   UI for STM32N6570-DK
  ******************************************************************************
  * @attention
  *
@@ -26,22 +26,27 @@ extern "C" {
 #include <stdint.h>
 
 /**
- * @brief  Initialize the UI diagnostic display
- * @note   Must be called after LCD_Init()
+ * @brief  Initialize the UI
+ * @note   Must be called after LCD_Init() and Postprocess_Thread_Init()
  */
 void UI_Init(void);
 
 /**
- * @brief  Show/hide the diagnostic overlay
+ * @brief  Show/hide the UI
  * @param  visible: 1 to show, 0 to hide
  */
 void UI_SetVisible(uint8_t visible);
 
 /**
- * @brief  Check if diagnostic overlay is visible
+ * @brief  Check if UI is visible
  * @retval 1 if visible, 0 if hidden
  */
 uint8_t UI_IsVisible(void);
+
+/**
+ * @brief  Update UI
+ */
+void UI_Update(void);
 
 #ifdef __cplusplus
 }

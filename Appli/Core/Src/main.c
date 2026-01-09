@@ -28,7 +28,6 @@
 #include "app_buffers.h"
 #include "app_cam.h"
 #include "app_postprocess.h"
-#include "app_overlay.h"
 #include "app_error.h"
 #include "app_lcd.h"
 #include "app_nn.h"
@@ -511,8 +510,6 @@ void Peripheral_Init(void *memory_ptr) {
 
   LCD_Init();
 
-  UI_Init();
-
   CAM_Init();
 
   Thread_IspUpdate_Init(memory_ptr);
@@ -522,7 +519,8 @@ void Peripheral_Init(void *memory_ptr) {
   NN_Thread_Init(memory_ptr);
 
   Postprocess_Thread_Init(memory_ptr);
-  Overlay_Thread_Init(memory_ptr);
+  /* UI_Init() must be called after Postprocess_Thread_Init() to access event flags */
+  UI_Init();
 
   nn_input_queue = NN_GetInputQueue();
   first_nn_buffer = bqueue_get_free(nn_input_queue, 0);

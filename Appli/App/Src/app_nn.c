@@ -44,9 +44,6 @@ static void nn_thread_entry(ULONG arg);
 #define NN_THREAD_STACK_SIZE 4096
 #define NN_THREAD_PRIORITY 6
 
-/* Align macro */
-#define ALIGN_VALUE(v, a) (((v) + (a) - 1) & ~((a) - 1))
-
 /* NN output sizes from model header */
 #define NN_OUT_NB LL_ATON_OD_YOLO_X_PERSON_OUT_NUM
 
@@ -82,10 +79,10 @@ static struct {
 static bqueue_t nn_input_queue;
 static bqueue_t nn_output_queue;
 
-/* NN input buffers - in PSRAM for DCMIPP access */
+/* NN input buffers */
 static uint8_t nn_input_buffers[2][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
 
-/* NN output buffers - in internal RAM for fast CPU access */
+/* NN output buffers */
 static uint8_t nn_output_buffers[2][NN_OUT_BUFFER_SIZE] ALIGN_32;
 
 /* Output sizes array */
@@ -186,7 +183,6 @@ static void nn_thread_entry(ULONG arg) {
     }
 
     /* Set input buffer */
-    /* Note that we don't need to clean/invalidate those input buffers since they are only access in hardware */
     ret = LL_ATON_Set_User_Input_Buffer_od_yolo_x_person(0, capture_buffer, nn_in_len);
     APP_REQUIRE(ret == LL_ATON_User_IO_NOERROR);
 

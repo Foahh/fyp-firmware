@@ -155,7 +155,6 @@ set(APP_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cpuload.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_lcd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_nn.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_overlay.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_postprocess.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_ui.c
 )

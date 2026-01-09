@@ -2,7 +2,7 @@
  ******************************************************************************
  * @file    app_ui.c
  * @author  Long Liangmao
- * @brief   Diagnostic UI overlay implementation
+ * @brief   UI overlay implementation
  ******************************************************************************
  * @attention
  *
@@ -18,14 +18,17 @@
 
 #include "app_ui.h"
 #include "app_buffers.h"
+#include "app_cam.h"
 #include "app_config.h"
 #include "app_cpuload.h"
 #include "app_error.h"
 #include "app_lcd.h"
+#include "app_postprocess.h"
 #include "stm32_lcd.h"
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"
 #include "tx_user.h" /* For TX_TIMER_TICKS_PER_SECOND */
+#include "utils.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -38,7 +41,9 @@
  * Forward Declarations
  * ============================================================================ */
 
-static void UI_Update(void);
+static void clamp_point(int *x, int *y);
+static void draw_detection(const od_pp_outBuffer_t *det,
+                           int roi_x0, int roi_y0, int roi_w, int roi_h);
 
 /* ============================================================================
  * UI Configuration Constants
@@ -65,14 +70,33 @@ static void UI_Update(void);
 #define UI_COLOR_BAR_FG 0xFF00CC00 /* Green bar fill */
 
 /* Buffer sizes */
-#define UI_TEXT_BUFFER_SIZE 48
+#define UI_TEXT_BUFFER_SIZE 64
 #define UI_PROGRESS_BAR_HEIGHT 12
 
-/* Update rate */
+/* Update rate for periodic diagnostic updates */
 #define UI_UPDATE_FPS 20
 
 /* Calculate sleep ticks from FPS */
 #define UI_UPDATE_SLEEP_TICKS (TX_TIMER_TICKS_PER_SECOND / UI_UPDATE_FPS)
+
+/* Detection overlay colors (ARGB8888) */
+#define NUMBER_COLORS 10
+static const uint32_t detection_colors[NUMBER_COLORS] = {
+    0xFF00FF00, /* Green */
+    0xFFFF0000, /* Red */
+    0xFF00FFFF, /* Cyan */
+    0xFFFF00FF, /* Magenta */
+    0xFFFFFF00, /* Yellow */
+    0xFF808080, /* Gray */
+    0xFF000000, /* Black */
+    0xFFA52A2A, /* Brown */
+    0xFF0000FF, /* Blue */
+    0xFFFFA500, /* Orange */
+};
+
+/* Class names table - single class for person detection */
+static const char *classes_table[] = {"person"};
+#define NB_CLASSES (sizeof(classes_table) / sizeof(classes_table[0]))
 
 /* ============================================================================
  * Pre-computed Layout Constants
@@ -83,13 +107,19 @@ static void UI_Update(void);
 
 /* Pre-computed line Y positions (avoids repeated macro expansion) */
 static const uint16_t g_line_y[] = {
-    UI_TEXT_MARGIN_Y + 0 * UI_LINE_HEIGHT, /* Line 0: Title */
-    UI_TEXT_MARGIN_Y + 1 * UI_LINE_HEIGHT, /* Line 1: Separator */
-    UI_TEXT_MARGIN_Y + 2 * UI_LINE_HEIGHT, /* Line 2: CPU Label */
-    UI_TEXT_MARGIN_Y + 3 * UI_LINE_HEIGHT, /* Line 3: CPU Value */
-    UI_TEXT_MARGIN_Y + 4 * UI_LINE_HEIGHT, /* Line 4: CPU Bar */
-    UI_TEXT_MARGIN_Y + 6 * UI_LINE_HEIGHT, /* Line 6: Runtime Label */
-    UI_TEXT_MARGIN_Y + 7 * UI_LINE_HEIGHT, /* Line 7: Runtime Value */
+    UI_TEXT_MARGIN_Y + 0 * UI_LINE_HEIGHT,  /* Line 0: Title */
+    UI_TEXT_MARGIN_Y + 1 * UI_LINE_HEIGHT,  /* Line 1: Separator */
+    UI_TEXT_MARGIN_Y + 2 * UI_LINE_HEIGHT,  /* Line 2: Runtime Label */
+    UI_TEXT_MARGIN_Y + 3 * UI_LINE_HEIGHT,  /* Line 3: Runtime Value */
+    UI_TEXT_MARGIN_Y + 4 * UI_LINE_HEIGHT,  /* Line 4: CPU Label */
+    UI_TEXT_MARGIN_Y + 5 * UI_LINE_HEIGHT,  /* Line 5: CPU Value */
+    UI_TEXT_MARGIN_Y + 6 * UI_LINE_HEIGHT,  /* Line 6: CPU Bar */
+    UI_TEXT_MARGIN_Y + 8 * UI_LINE_HEIGHT,  /* Line 8: Objects Label */
+    UI_TEXT_MARGIN_Y + 9 * UI_LINE_HEIGHT,  /* Line 9: Objects Value */
+    UI_TEXT_MARGIN_Y + 10 * UI_LINE_HEIGHT, /* Line 10: Inference Label */
+    UI_TEXT_MARGIN_Y + 11 * UI_LINE_HEIGHT, /* Line 11: Inference Value */
+    UI_TEXT_MARGIN_Y + 12 * UI_LINE_HEIGHT, /* Line 12: FPS Label */
+    UI_TEXT_MARGIN_Y + 13 * UI_LINE_HEIGHT, /* Line 13: FPS Value */
 };
 
 /* ============================================================================
@@ -103,13 +133,16 @@ static cpuload_info_t g_cpu_load;
 static uint8_t g_ui_visible = 1;
 static uint8_t g_ui_initialized = 0;
 
+/* Detection update tracking */
+static volatile uint8_t g_detection_update_pending = 0;
+
 /* ============================================================================
  * Thread Configuration
  * ============================================================================ */
 
 /* UI update thread */
-#define UI_THREAD_STACK_SIZE 2048
-#define UI_THREAD_PRIORITY 10
+#define UI_THREAD_STACK_SIZE 4096
+#define UI_THREAD_PRIORITY 9
 
 /* Idle measurement thread */
 #define IDLE_THREAD_STACK_SIZE 512
@@ -127,11 +160,7 @@ static struct {
 } idle_ctx;
 
 /* ============================================================================
- * CPU Load Measurement Functions (delegated to app_cpuload)
- * ============================================================================ */
-
-/* ============================================================================
- * UI Drawing Functions
+ * Internal Helper Functions
  * ============================================================================ */
 
 /**
@@ -188,6 +217,86 @@ static void UI_FormatRuntime(char *buf, size_t buf_size, uint32_t tick_ms) {
 }
 
 /**
+ * @brief  Clamp a point to display bounds
+ * @param  x: Pointer to X coordinate (modified in place)
+ * @param  y: Pointer to Y coordinate (modified in place)
+ */
+static void clamp_point(int *x, int *y) {
+  if (*x < 0) {
+    *x = 0;
+  }
+  if (*y < 0) {
+    *y = 0;
+  }
+  if (*x >= (int)DISPLAY_LETTERBOX_WIDTH) {
+    *x = DISPLAY_LETTERBOX_WIDTH - 1;
+  }
+  if (*y >= (int)DISPLAY_LETTERBOX_HEIGHT) {
+    *y = DISPLAY_LETTERBOX_HEIGHT - 1;
+  }
+}
+
+/**
+ * @brief  Draw a single detection bounding box
+ * @param  det: Pointer to detection result
+ * @param  roi_x0: ROI top-left X coordinate (pre-computed, passed from caller)
+ * @param  roi_y0: ROI top-left Y coordinate (pre-computed, passed from caller)
+ * @param  roi_w: ROI width (pre-computed, passed from caller)
+ * @param  roi_h: ROI height (pre-computed, passed from caller)
+ */
+static void draw_detection(const od_pp_outBuffer_t *det,
+                           int roi_x0, int roi_y0, int roi_w, int roi_h) {
+  int xc, yc, x0, y0, x1, y1, w, h;
+  uint32_t color;
+  int class_idx;
+
+  /* Convert normalized coordinates (relative to NN input 480x480) to ROI pixel coordinates */
+  /* Detections are normalized (0-1) relative to NN input size, scale to ROI size */
+  xc = (int)(det->x_center * roi_w) + roi_x0 + DISPLAY_LETTERBOX_X0;
+  yc = (int)(det->y_center * roi_h) + roi_y0;
+  w = (int)(det->width * roi_w);
+  h = (int)(det->height * roi_h);
+
+  x0 = xc - (w + 1) / 2;
+  y0 = yc - (h + 1) / 2;
+  x1 = xc + (w + 1) / 2;
+  y1 = yc + (h + 1) / 2;
+
+  /* Adjust to screen coordinates (relative to letterbox offset) */
+  x0 -= DISPLAY_LETTERBOX_X0;
+  x1 -= DISPLAY_LETTERBOX_X0;
+
+  clamp_point(&x0, &y0);
+  clamp_point(&x1, &y1);
+
+  /* Offset back for drawing on full screen */
+  x0 += DISPLAY_LETTERBOX_X0;
+  x1 += DISPLAY_LETTERBOX_X0;
+
+  class_idx = det->class_index;
+  color = detection_colors[class_idx % NUMBER_COLORS];
+
+  /* Draw bounding box */
+  UTIL_LCD_DrawRect(x0, y0, x1 - x0, y1 - y0, color);
+
+  /* Draw class label */
+  if (class_idx < (int)NB_CLASSES) {
+    UTIL_LCD_DisplayStringAt(x0 + 2, y0 + 2,
+                             (uint8_t *)classes_table[class_idx], LEFT_MODE);
+  }
+
+  /* Draw confidence */
+  char conf_str[8];
+  int conf_pct = (int)(det->conf * 100.0f + 0.5f);
+  snprintf(conf_str, sizeof(conf_str), "%d%%", conf_pct);
+  UTIL_LCD_DisplayStringAt(x1 - 40, y0 + 2, (uint8_t *)conf_str, LEFT_MODE);
+}
+
+/* ============================================================================
+ * UI Drawing Functions
+ * ============================================================================ */
+
+/**
  * @brief  Draw UI panel background (clear area)
  */
 static void UI_DrawPanelBackground(void) {
@@ -217,18 +326,18 @@ static void UI_DrawCPULoadSection(float cpu_load_pct) {
 
   /* Label */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[2],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[4],
                            (uint8_t *)"CPU Load", LEFT_MODE);
 
   /* Value */
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   UI_FormatCPULoad(text_buf, sizeof(text_buf), cpu_load_pct);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[3],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[5],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* Progress bar */
   bar_width = UI_PANEL_WIDTH - 2 * UI_TEXT_MARGIN_X;
-  UI_DrawProgressBar(UI_TEXT_MARGIN_X, g_line_y[4], bar_width,
+  UI_DrawProgressBar(UI_TEXT_MARGIN_X, g_line_y[6], bar_width,
                      UI_PROGRESS_BAR_HEIGHT, cpu_load_pct);
 }
 
@@ -241,15 +350,84 @@ static void UI_DrawRuntimeSection(void) {
 
   /* Label */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[5],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[2],
                            (uint8_t *)"Runtime", LEFT_MODE);
 
   /* Value */
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   tick = HAL_GetTick();
   UI_FormatRuntime(text_buf, sizeof(text_buf), tick);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[6],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[3],
                            (uint8_t *)text_buf, LEFT_MODE);
+}
+
+/**
+ * @brief  Draw detection information section in diagnostic panel
+ */
+static void UI_DrawDetectionInfoSection(const detection_info_t *info) {
+  char text_buf[UI_TEXT_BUFFER_SIZE];
+
+  /* Objects count */
+  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[7],
+                           (uint8_t *)"Objects", LEFT_MODE);
+  UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
+  snprintf(text_buf, sizeof(text_buf), "%d", (int)info->nb_detect);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[8],
+                           (uint8_t *)text_buf, LEFT_MODE);
+
+  /* Inference time */
+  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[9],
+                           (uint8_t *)"Inference", LEFT_MODE);
+  UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
+  snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)info->inference_ms);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[10],
+                           (uint8_t *)text_buf, LEFT_MODE);
+
+  /* FPS */
+  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[11],
+                           (uint8_t *)"FPS", LEFT_MODE);
+  UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
+  float fps = info->nn_period_ms > 0 ? 1000.0f / info->nn_period_ms : 0.0f;
+  snprintf(text_buf, sizeof(text_buf), "%.1f", fps);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[12],
+                           (uint8_t *)text_buf, LEFT_MODE);
+}
+
+/**
+ * @brief  Draw detection overlays (bounding boxes and ROI rectangle)
+ */
+static void UI_DrawDetectionOverlays(const detection_info_t *info,
+                                     const nn_crop_info_display_t *roi_info) {
+  /* Clear overlay area - only the detection overlay region */
+  /* Leave the diagnostic panel area (left side) untouched */
+  UTIL_LCD_FillRect(DISPLAY_LETTERBOX_X0, 0,
+                    DISPLAY_LETTERBOX_WIDTH, DISPLAY_LETTERBOX_HEIGHT,
+                    0x00000000);
+
+  /* Draw bounding boxes */
+  UTIL_LCD_SetTextColor(0xFF00FF00); /* Green for boxes */
+  for (int i = 0; i < info->nb_detect; i++) {
+    draw_detection(&info->detects[i], roi_info->roi_x0, roi_info->roi_y0,
+                   roi_info->roi_w, roi_info->roi_h);
+  }
+
+  /* Draw NN crop ROI rectangle */
+  UTIL_LCD_SetTextColor(0xFF00FFFF); /* Cyan */
+  UTIL_LCD_DrawRect(DISPLAY_LETTERBOX_X0 + roi_info->roi_x0, roi_info->roi_y0,
+                    roi_info->roi_w, roi_info->roi_h,
+                    0xFF00FFFF);
+}
+
+/**
+ * @brief  Setup LCD context for UI rendering
+ */
+static void UI_SetupLCDContext(void) {
+  UTIL_LCD_SetLayer(LCD_LAYER_1_UI);
+  UTIL_LCD_SetFont(&Font16);
+  UTIL_LCD_SetBackColor(0x00000000); /* Transparent background */
 }
 
 /* ============================================================================
@@ -272,13 +450,67 @@ static void idle_measure_thread_entry(ULONG arg) {
 
 /**
  * @brief  UI update thread entry
- *         Periodically updates the diagnostic overlay
  */
 static void ui_thread_entry(ULONG arg) {
   UNUSED(arg);
 
+  float cpu_load_pct;
+  uint8_t *ui_buffer;
+  const detection_info_t *det_info = NULL;
+  const nn_crop_info_display_t *roi_info = NULL;
+
+  /* Get NN crop ROI (constant after initialization) */
+  roi_info = CAM_GetNNCropROI_Display();
+
+  /* Setup LCD context */
+  UI_SetupLCDContext();
+
   while (1) {
-    UI_Update();
+    /* Update CPU load measurement */
+    CPULoad_Update(&g_cpu_load);
+    cpu_load_pct = CPULoad_GetSmoothed(&g_cpu_load);
+
+    /* Get latest detection info */
+    det_info = Postprocess_GetInfo();
+
+    if (!g_ui_initialized || !g_ui_visible) {
+      tx_thread_sleep(UI_UPDATE_SLEEP_TICKS);
+      continue;
+    }
+
+    /* Get UI back buffer */
+    ui_buffer = Buffer_GetUIBackBuffer();
+    if (ui_buffer == NULL) {
+      tx_thread_sleep(UI_UPDATE_SLEEP_TICKS);
+      continue;
+    }
+
+    /* Setup LCD context */
+    LCD_SetUILayerAddress(ui_buffer);
+    UI_SetupLCDContext();
+
+    /* Render all UI elements */
+    /* Draw diagnostic panel (left side) */
+    UI_DrawPanelBackground();
+    UI_DrawHeader();
+    UI_DrawRuntimeSection();
+    UI_DrawCPULoadSection(cpu_load_pct);
+
+    /* Draw detection info in diagnostic panel if available */
+    if (det_info != NULL) {
+      UI_DrawDetectionInfoSection(det_info);
+    }
+
+    /* Draw detection overlays (right side) if available */
+    if (det_info != NULL && roi_info != NULL) {
+      UI_DrawDetectionOverlays(det_info, roi_info);
+    }
+
+    /* Swap buffers and reload display */
+    Buffer_SetUIDisplayIndex(Buffer_GetNextUIDisplayIndex());
+    LCD_ReloadUILayer(ui_buffer);
+
+    /* Frame-based periodic update */
     tx_thread_sleep(UI_UPDATE_SLEEP_TICKS);
   }
 }
@@ -321,53 +553,10 @@ void UI_Init(void) {
   APP_REQUIRE(tx_status == TX_SUCCESS);
 }
 
-/**
- * @brief  Setup LCD context for UI rendering
- */
-static void UI_SetupLCDContext(void) {
-  UTIL_LCD_SetLayer(LCD_LAYER_1_UI);
-  UTIL_LCD_SetFont(&Font16);
-  UTIL_LCD_SetBackColor(0x00000000); /* Transparent background */
-}
-
-/**
- * @brief  Render all UI elements to the current buffer
- */
-static void UI_RenderElements(float cpu_load_pct) {
-  UI_DrawPanelBackground();
-  UI_DrawHeader();
-  UI_DrawCPULoadSection(cpu_load_pct);
-  UI_DrawRuntimeSection();
-}
-
 void UI_Update(void) {
-  float cpu_load_pct;
-  uint8_t *ui_buffer;
-
-  if (!g_ui_initialized || !g_ui_visible) {
-    return;
-  }
-
-  /* Update CPU load measurement */
-  CPULoad_Update(&g_cpu_load);
-  cpu_load_pct = CPULoad_GetSmoothed(&g_cpu_load);
-
-  /* Get UI back buffer */
-  ui_buffer = Buffer_GetUIBackBuffer();
-  if (ui_buffer == NULL) {
-    return;
-  }
-
-  /* Setup LCD context */
-  LCD_SetUILayerAddress(ui_buffer);
-  UI_SetupLCDContext();
-
-  /* Render all UI elements */
-  UI_RenderElements(cpu_load_pct);
-
-  /* Swap buffers and reload display */
-  Buffer_SetUIDisplayIndex(Buffer_GetNextUIDisplayIndex());
-  LCD_ReloadUILayer(ui_buffer);
+  /* This function is kept for compatibility but is no longer needed */
+  /* The UI thread handles all updates automatically */
+  /* It's now a no-op as updates are handled by the unified thread */
 }
 
 void UI_SetVisible(uint8_t visible) {
