@@ -259,7 +259,7 @@ const uint32_t *NN_GetOutputSizes(void) {
  * @brief  Initialize NN thread and resources
  * @param  memory_ptr: ThreadX memory pool (unused, static allocation)
  */
-void NN_Thread_Init(VOID *memory_ptr) {
+void NN_Thread_Start(VOID *memory_ptr) {
   UNUSED(memory_ptr);
   UINT status;
   int ret;

@@ -84,7 +84,7 @@ static void LCD_SetLayerVisible(uint32_t layer, uint8_t enable) {
  * ============================================================================ */
 
 /**
- * @brief  Initialize LTDC with dual-layer configuration
+ * @brief  Initialize LTDC with dual-layer configuration (HAL/BSP only)
  */
 void LCD_Init(void) {
   uint8_t *camera_buf, *ui_buf;

@@ -180,7 +180,7 @@ TX_EVENT_FLAGS_GROUP *Postprocess_GetUpdateEventFlags(void) {
  * @brief  Initialize postprocessing module (thread, sync primitives)
  * @param  memory_ptr: ThreadX memory pool (unused, static allocation)
  */
-void Postprocess_Thread_Init(VOID *memory_ptr) {
+void Postprocess_Thread_Start(VOID *memory_ptr) {
   UNUSED(memory_ptr);
   UINT status;
 

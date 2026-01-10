@@ -28,7 +28,7 @@ extern "C" {
 #include <stdint.h>
 
 /**
- * @brief  Initialize the camera module
+ * @brief  Initialize the camera module (HAL/BSP only)\
  */
 void CAM_Init(void);
 
@@ -65,7 +65,7 @@ void CAM_IspUpdate(void);
  * @param  memory_ptr: Memory pointer (unused, thread uses static allocation)
  * @note   Also initializes the ISP event flags internally
  */
-void Thread_IspUpdate_Init(VOID *memory_ptr);
+void CAM_ISP_Thread_Start(VOID *memory_ptr);
 
 /**
  * @brief  NN crop ROI information in display coordinates

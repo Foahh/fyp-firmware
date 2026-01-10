@@ -188,8 +188,9 @@ HAL_StatusTypeDef MX_DCMIPP_ClockConfig(DCMIPP_HandleTypeDef *hdcmipp) {
  * ============================================================================ */
 
 /**
- * @brief  Initialize the camera module
+ * @brief  Initialize the camera module (HAL/BSP only)
  *         Configures camera sensor and both DCMIPP pipes
+ * @note   This function only performs HAL/BSP initialization and does NOT create ThreadX resources
  */
 void CAM_Init(void) {
   CMW_CameraInit_t cam_conf = {
@@ -279,7 +280,7 @@ void CAM_IspUpdate(void) {
  * @brief  Initialize and create the ISP update thread
  * @param  memory_ptr: Memory pointer (unused, thread uses static allocation)
  */
-void Thread_IspUpdate_Init(VOID *memory_ptr) {
+void CAM_ISP_Thread_Start(VOID *memory_ptr) {
   UNUSED(memory_ptr);
   APP_REQUIRE(tx_event_flags_create(&isp_ctx.vsync_flags, "isp_vsync") == TX_SUCCESS);
 

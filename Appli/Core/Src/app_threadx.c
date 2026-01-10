@@ -26,6 +26,11 @@
 #include "app_error.h"
 #include "main.h"
 #include "utils.h"
+#include "app_cam.h"
+#include "app_nn.h"
+#include "app_postprocess.h"
+#include "app_ui.h"
+#include "cmw_camera.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,20 +50,23 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 
-/* Main ThreadX thread for peripheral configuration */
-#define MAIN_THREAD_STACK_SIZE 2048U
-static TX_THREAD main_thread;
-static ULONG main_thread_stack[MAIN_THREAD_STACK_SIZE / sizeof(ULONG)];
+/* Startup thread for runtime operations that require ThreadX resources */
+#define STARTUP_THREAD_STACK_SIZE 1024U
+static TX_THREAD startup_thread;
+static ULONG startup_thread_stack[STARTUP_THREAD_STACK_SIZE / sizeof(ULONG)];
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-static void main_thread_entry(ULONG arg);
+static void startup_thread_entry(ULONG arg);
 /* USER CODE END PFP */
 
 /**
   * @brief  Application ThreadX Initialization.
+  *         Creates all ThreadX resources (threads, queues, semaphores, mutexes, etc.).
+  *         IMPORTANT: This function must NOT call any HAL/BSP/system APIs.
+  *         All HAL/peripheral initialization must happen BEFORE tx_kernel_enter().
   * @param memory_ptr: memory pointer
   * @retval int
   */
@@ -69,20 +77,20 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 
   /* USER CODE END App_ThreadX_MEM_POOL */
   /* USER CODE BEGIN App_ThreadX_Init */
+  CAM_ISP_Thread_Start(memory_ptr);
 
-  /* Create main thread for peripheral configuration.
-   * This thread will configure all peripherals (which may use HAL_Delay)
-   * via Main_PeriphInit(), and then exit.
-   * Priority is set high (low number = high priority in ThreadX) to ensure it runs first.
-   */
-  ret = tx_thread_create(&main_thread, "main_config",
-                        main_thread_entry, (ULONG)memory_ptr,
-                        main_thread_stack, MAIN_THREAD_STACK_SIZE,
-                        1, 1,  /* Highest priority to run first (lower number = higher priority) */
+  NN_Thread_Start(memory_ptr);
+
+  Postprocess_Thread_Start(memory_ptr);
+
+  UI_Thread_Start();
+
+  ret = tx_thread_create(&startup_thread, "startup",
+                        startup_thread_entry, 0,
+                        startup_thread_stack, STARTUP_THREAD_STACK_SIZE,
+                        1, 1,  /* High priority to run first */
                         TX_NO_TIME_SLICE, TX_AUTO_START);
   APP_REQUIRE(ret == TX_SUCCESS);
-
-  /* App_Init will be called from main_thread_entry after peripheral configuration */
 
   /* USER CODE END App_ThreadX_Init */
 
@@ -109,58 +117,27 @@ void MX_ThreadX_Init(void)
 
 /* USER CODE BEGIN 1 */
 /**
- * @brief  Main ThreadX entry for peripheral configuration.
+ * @brief  Startup thread entry for runtime operations.
+ *         This thread runs after all ThreadX resources are created and starts
+ *         runtime operations that require access to ThreadX resources (queues, etc.).
  *         Runs once at startup, then terminates.
  */
-static void main_thread_entry(ULONG arg)
+static void startup_thread_entry(ULONG arg)
 {
-  VOID *memory_ptr = (VOID *)arg;
+  UNUSED(arg);
 
-  /* Run hardware / peripheral init in HAL domain */
-  Peripheral_Init(memory_ptr);
+  bqueue_t *nn_input_queue;
+  uint8_t *first_nn_buffer;
 
-  /* Main thread has completed its configuration task.
-   * The application threads are now running, so this thread can exit.
-   */
-  tx_thread_delete(&main_thread);
-}
+  CAM_DisplayPipe_Start(CMW_MODE_CONTINUOUS);
 
-/**
- * @brief  HAL tick override for ThreadX
- * @retval Current tick value in milliseconds
- */
-uint32_t HAL_GetTick(void) {
-  return (tx_time_get() * 1000) / TX_TIMER_TICKS_PER_SECOND;
-}
+  nn_input_queue = NN_GetInputQueue();
+  first_nn_buffer = bqueue_get_free(nn_input_queue, 0);
+  APP_REQUIRE(first_nn_buffer != NULL);
+  CAM_NNPipe_Start(first_nn_buffer, CMW_MODE_CONTINUOUS);
 
-/**
- * @brief  HAL delay override for ThreadX
- * @param  Delay: Delay in milliseconds
- * @retval None
- */
-void HAL_Delay(uint32_t Delay) {
-  APP_REQUIRE(!IS_IRQ_MODE());
-
-  uint32_t ticks = (Delay * TX_TIMER_TICKS_PER_SECOND) / 1000;
-  tx_thread_sleep(ticks);
-}
-
-/**
- * @brief  HAL tick initialization override for ThreadX
- * @param  TickPriority: Tick priority (unused)
- * @retval HAL status
- */
-HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority) {
-  UNUSED(TickPriority);
-  return HAL_OK;
-}
-
-/**
- * @brief  HAL tick increment override for ThreadX
- * @retval None
- */
-void HAL_IncTick(void) {
-  // do nothing
+  /* Startup thread has completed its task, so it can exit */
+  tx_thread_delete(&startup_thread);
 }
 
 /* USER CODE END 1 */

@@ -34,7 +34,7 @@ extern "C" {
 #define LCD_LAYER_1_UI 1U     /* UI layer */
 
 /**
- * @brief  Initialize LTDC with dual-layer configuration
+ * @brief  Initialize LTDC with dual-layer configuration (HAL/BSP only)
  * @param  None
  */
 void LCD_Init(void);

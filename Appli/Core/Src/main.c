@@ -73,10 +73,10 @@ static void XSPI_Config(void);
 static void LED_Config(void);
 static void ClockSleep_Config(void);
 static void NPU_Config(void);
+static void Priority_Config(void);
 #if (USE_BSP_COM_FEATURE > 0)
 static void COM_Config(void);
 #endif /* USE_BSP_COM_FEATURE */
-void Peripheral_Init(void *memory_ptr);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -91,7 +91,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  SystemClock_Config(); // TODO: HAL_Delay
+  uwTickPrio = TICK_INT_PRIORITY;
   /* USER CODE END 1 */
 
   /* MPU Configuration--------------------------------------------------------*/
@@ -109,6 +109,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  SystemClock_Config();
   /* USER CODE END Init */
 
   /* USER CODE BEGIN SysInit */
@@ -117,7 +118,34 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   SystemIsolation_Config();
+
   /* USER CODE BEGIN 2 */
+  SMPS_Config();
+
+  IAC_Config();
+
+  NPU_Config();
+
+  npu_cache_init();
+  npu_cache_enable();
+
+#if (USE_BSP_COM_FEATURE > 0)
+  COM_Config();
+#endif /* USE_BSP_COM_FEATURE */
+
+  XSPI_Config();
+
+  LED_Config();
+
+  ClockSleep_Config();
+
+  Buffer_Init();
+
+  LCD_Init();
+
+  CAM_Init();
+
+  Priority_Config();
   /* USER CODE END 2 */
 
   MX_ThreadX_Init();
@@ -348,6 +376,24 @@ static void SystemClock_Config(void) {
     Error_Handler();
   }
 
+  RCC_PeriphCLKInitStruct.PeriphClockSelection = 0;
+
+  /* XSPI1 kernel clock (ck_ker_xspi1) = HCLK = 200MHz */
+  RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_XSPI1;
+  RCC_PeriphCLKInitStruct.Xspi1ClockSelection = RCC_XSPI1CLKSOURCE_HCLK;
+
+  /* XSPI2 kernel clock (ck_ker_xspi1) = HCLK =  200MHz */
+  RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_XSPI2;
+  RCC_PeriphCLKInitStruct.Xspi2ClockSelection = RCC_XSPI2CLKSOURCE_HCLK;
+
+  /* Initializes TIMPRE as TIM is used as Systick Clock Source */
+  RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_TIM;
+  RCC_PeriphCLKInitStruct.TIMPresSelection = RCC_TIMPRES_DIV1;
+
+  if (HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct) != HAL_OK) {
+    Error_Handler();
+  }
+
   RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_CPUCLK | RCC_CLOCKTYPE_SYSCLK |
                                  RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 |
                                  RCC_CLOCKTYPE_PCLK2 | RCC_CLOCKTYPE_PCLK4 |
@@ -381,20 +427,6 @@ static void SystemClock_Config(void) {
   RCC_ClkInitStruct.APB5CLKDivider = RCC_APB5_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct) != HAL_OK) {
-    Error_Handler();
-  }
-
-  RCC_PeriphCLKInitStruct.PeriphClockSelection = 0;
-
-  /* XSPI1 kernel clock (ck_ker_xspi1) = HCLK = 200MHz */
-  RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_XSPI1;
-  RCC_PeriphCLKInitStruct.Xspi1ClockSelection = RCC_XSPI1CLKSOURCE_HCLK;
-
-  /* XSPI2 kernel clock (ck_ker_xspi1) = HCLK =  200MHz */
-  RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_XSPI2;
-  RCC_PeriphCLKInitStruct.Xspi2ClockSelection = RCC_XSPI2CLKSOURCE_HCLK;
-
-  if (HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct) != HAL_OK) {
     Error_Handler();
   }
 }
@@ -477,55 +509,11 @@ void Priority_Config(void) {
 
   HAL_NVIC_GetPriority(SysTick_IRQn, HAL_NVIC_GetPriorityGrouping(), &preemptPriority, &subPriority);
   for (i = PVD_PVM_IRQn; i <= LTDC_UP_ERR_IRQn; i++) {
+    if (i == TIM2_IRQn) {
+      continue;
+    }
     HAL_NVIC_SetPriority(i, preemptPriority, subPriority);
   }
-}
-
-void Peripheral_Init(void *memory_ptr) {
-  bqueue_t *nn_input_queue;
-  uint8_t *first_nn_buffer;
-
-  Priority_Config();
-
-  SMPS_Config();
-
-  IAC_Config();
-
-  NPU_Config();
-
-  npu_cache_init();
-  npu_cache_enable();
-
-#if (USE_BSP_COM_FEATURE > 0)
-  COM_Config();
-#endif /* USE_BSP_COM_FEATURE */
-
-  XSPI_Config();
-
-  LED_Config();
-
-  ClockSleep_Config();
-
-  Buffer_Init();
-
-  LCD_Init();
-
-  CAM_Init();
-
-  Thread_IspUpdate_Init(memory_ptr);
-
-  CAM_DisplayPipe_Start(CMW_MODE_CONTINUOUS);
-
-  NN_Thread_Init(memory_ptr);
-
-  Postprocess_Thread_Init(memory_ptr);
-  /* UI_Init() must be called after Postprocess_Thread_Init() to access event flags */
-  UI_Init();
-
-  nn_input_queue = NN_GetInputQueue();
-  first_nn_buffer = bqueue_get_free(nn_input_queue, 0);
-  APP_REQUIRE(first_nn_buffer != NULL);
-  CAM_NNPipe_Start(first_nn_buffer, CMW_MODE_CONTINUOUS);
 }
 
 void HAL_CACHEAXI_MspInit(CACHEAXI_HandleTypeDef *hcacheaxi)
@@ -591,6 +579,28 @@ void MPU_Config(void)
   /* Exit critical section to lock the system and avoid any issue around MPU mechanism */
   __set_PRIMASK(primask_bit);
 
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM2 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM2)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
 }
 
 /**

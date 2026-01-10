@@ -519,7 +519,7 @@ static void ui_thread_entry(ULONG arg) {
  * Public API Functions
  * ============================================================================ */
 
-void UI_Init(void) {
+void UI_Thread_Start(void) {
   UINT tx_status;
 
   if (g_ui_initialized) {

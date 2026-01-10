@@ -27,9 +27,9 @@ extern "C" {
 
 /**
  * @brief  Initialize the UI
- * @note   Must be called after LCD_Init() and Postprocess_Thread_Init()
+ * @note   Must be called after LCD_Init() and Postprocess_Thread_Start()
  */
-void UI_Init(void);
+void UI_Thread_Start(void);
 
 /**
  * @brief  Show/hide the UI

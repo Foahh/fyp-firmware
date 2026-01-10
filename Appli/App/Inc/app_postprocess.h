@@ -45,7 +45,7 @@ typedef struct {
  * @brief  Initialize postprocessing module (thread, sync primitives)
  * @param  memory_ptr: ThreadX memory pool (unused, static allocation)
  */
-void Postprocess_Thread_Init(VOID *memory_ptr);
+void Postprocess_Thread_Start(VOID *memory_ptr);
 
 /**
  * @brief  Signal that new detection results are available
