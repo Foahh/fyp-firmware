@@ -11,7 +11,7 @@ set(STM32_LINKER_OPTION "")
 # Project Definition
 # =============================================================================
 project(
-  FYP_Firmware_FSBL
+  Firmware_FSBL
   VERSION 1.0.0
   LANGUAGES C ASM)
 
@@ -86,7 +86,7 @@ set(STM32_EXTMEM_SOURCES
 
 # BSP source files
 set(BSP_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/BSP/STM32N6570-DK/stm32n6570_discovery.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/STM32N6570-DK/stm32n6570_discovery.c
 )
 
 # =============================================================================

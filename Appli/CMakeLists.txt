@@ -61,18 +61,18 @@ enable_language(C ASM)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/Common
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/STM32N6570-DK
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/Components/Common
     # CMSIS includes
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/CMSIS/Device/ST/STM32N6xx/Include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/CMSIS/DSP/Include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/Device/STM32N6xx/Include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/DSP/Include
     # Camera Middleware includes
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/sensors
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/sensors/imx335
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/stm32-mw-camera
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/stm32-mw-camera/sensors
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/stm32-mw-camera/sensors/imx335
     # ISP Library includes
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/isp/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/evision/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ISP_Library/isp/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ISP_Library/evision/Inc
     # Libraries includes
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lcd
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/Fonts
@@ -88,29 +88,29 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Camera Middleware sources
 set(CMW_CAMERA_Src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/cmw_camera.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/cmw_utils.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/sensors/cmw_imx335.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/sensors/imx335/imx335.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/stm32-mw-camera/sensors/imx335/imx335_reg.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/stm32-mw-camera/cmw_camera.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/stm32-mw-camera/cmw_utils.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/stm32-mw-camera/sensors/cmw_imx335.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/stm32-mw-camera/sensors/imx335/imx335.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/stm32-mw-camera/sensors/imx335/imx335_reg.c
 )
 
 # ISP Library sources
 set(ISP_LIBRARY_Src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/isp/Src/isp_algo.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/isp/Src/isp_core.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/isp/Src/isp_services.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ISP_Library/isp/Src/isp_algo.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ISP_Library/isp/Src/isp_core.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ISP_Library/isp/Src/isp_services.c
 )
 
 # BSP Driver sources
 set(BSP_Driver_Src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_bus.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_xspi.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery_lcd.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_ramcfg.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/aps256xx/aps256xx.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/mx66uw1g45g/mx66uw1g45g.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/STM32N6570-DK/stm32n6570_discovery.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/STM32N6570-DK/stm32n6570_discovery_bus.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/STM32N6570-DK/stm32n6570_discovery_xspi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/STM32N6570-DK/stm32n6570_discovery_lcd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_ramcfg.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/Components/aps256xx/aps256xx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/Components/mx66uw1g45g/mx66uw1g45g.c
 )
 
 set(LIBRARIES_Src
@@ -178,7 +178,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ISP_Library/evision/Lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ISP_Library/evision/Lib
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Lib/GCC/ARMCortexM55
 )
 
