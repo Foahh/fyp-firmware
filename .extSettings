@@ -1,6 +1,0 @@
-[Appli:Others]
-Define=
-HALModule=DCMIPP;I2C;LTDC;DMA2D;UART;USART;XSPI;RIF;CACHEAXI
-[FSBL:Others]
-Define=
-HALModule=BSEC

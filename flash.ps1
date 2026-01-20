@@ -12,16 +12,16 @@ $Script:ExternalLoaderName = "MX66UW1G45G_STM32N6570-DK.stldr"
 
 # Project configurations
 $Script:Projects = @{
-    FSBL = @{
-        SubDir = "FSBL"
-        FlashAddress = "0x70000000"
-        SigningType = "fsbl"
+    FSBL  = @{
+        SubDir        = "FSBL"
+        FlashAddress  = "0x70000000"
+        SigningType   = "fsbl"
         OffsetAddress = "0x80000000"
     }
     Appli = @{
-        SubDir = "Appli"
-        FlashAddress = "0x70100000"
-        SigningType = "fsbl"
+        SubDir        = "Appli"
+        FlashAddress  = "0x70100000"
+        SigningType   = "fsbl"
         OffsetAddress = "0x80000000"
     }
 }
