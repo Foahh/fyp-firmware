@@ -1,87 +1,165 @@
 cmake_minimum_required(VERSION 3.22)
 
-#
-# This file is generated only once,
-# and is not re-generated if converter is called multiple times.
-#
-# User is free to modify the file as much as necessary
-#
+# =============================================================================
+# STM32 MCU Configuration
+# =============================================================================
+set(STM32_MCU_FLAGS "-mcpu=cortex-m55 -mfpu=fpv5-d16 -mfloat-abi=hard -mcmse")
+set(STM32_LINKER_SCRIPT "STM32N657XX_AXISRAM2_fsbl.ld")
+set(STM32_LINKER_OPTION "")
 
-# Setup compiler settings
+# =============================================================================
+# Project Definition
+# =============================================================================
+project(
+  FYP_Firmware_FSBL
+  VERSION 1.0.0
+  LANGUAGES C ASM)
+
+# =============================================================================
+# Language Configuration
+# =============================================================================
+enable_language(C ASM)
+
+# =============================================================================
+# Compiler and Build Configuration
+# =============================================================================
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-# Define the build type
+# Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Debug")
+  set(CMAKE_BUILD_TYPE
+      "Debug"
+      CACHE STRING "Build type" FORCE)
 endif()
 
-message("Build type: " ${CMAKE_BUILD_TYPE})
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-# Enable compile command to ease indexing with e.g. clangd
-set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+# Enable compile commands for IDE indexing (e.g., clangd)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Compiler options
-set(STM32_MCU_FLAGS  "-mcpu=cortex-m55 -mfpu=fpv5-d16 -mfloat-abi=hard -mcmse " )
+# Force C++ compiler for cross-compilation compatibility
+set(CMAKE_CXX_COMPILER_FORCED TRUE)
 
-#Linker options
-set(STM32_LINKER_SCRIPT STM32N657XX_AXISRAM2_fsbl.ld)
-set(STM32_LINKER_OPTION  )
+# =============================================================================
+# Source Files Configuration
+# =============================================================================
+# Application source files
+set(APPLICATION_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/extmem_manager.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/sysmem.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/syscall.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/startup_stm32n657xx_fsbl.s)
 
-# Set the project name
-set(CMAKE_PROJECT_NAME Firmware_FSBL)
-project(${CMAKE_PROJECT_NAME})
-
-# Create an executable object type
-add_executable(${CMAKE_PROJECT_NAME})
-
-# Include mx-generated
-include("mx-generated.cmake")
-
-
-# In order to use CMake for cross-compiling
-set(CMAKE_CXX_COMPILER_FORCED "true")
-
-# Add project symbols (macros)
-target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined symbols
+# STM32 HAL/LL Driver source files
+set(STM32_DRIVER_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/system_stm32n6xx_fsbl.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_bsec.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_cortex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_gpio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_exti.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_xspi.c
 )
 
-# Enable CMake support for ASM and C languages
-enable_language(C ASM)
-
-# Add include paths
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK
-    # Add user defined include paths
+# STM32 External Memory Manager source files
+set(STM32_EXTMEM_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/stm32_extmem.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/boot/stm32_boot_lrun.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/sal/stm32_sal_xspi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/sal/stm32_sal_sd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_data.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_driver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/psram/stm32_psram_driver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/sdcard/stm32_sdcard_driver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/user/stm32_user_driver.c
 )
 
-# Add sources to executable
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/STM32N6570-DK/stm32n6570_discovery.c
-    # Add user sources here
+# BSP source files
+set(BSP_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/BSP/STM32N6570-DK/stm32n6570_discovery.c
 )
 
-# Link directories setup
-target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined library search paths
-)
+# =============================================================================
+# Include Directories Configuration
+# =============================================================================
+set(INCLUDE_DIRECTORIES
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32N6xx_HAL_Driver/Inc/Legacy
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32N6xx/Include
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Include
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/boot
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/sal
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/nor_sfdp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/psram
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/sdcard
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lib/STM32_ExtMem_Manager/user
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/BSP/STM32N6570-DK)
 
-# Add linked libraries
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined libraries
-)
+# =============================================================================
+# Compile Definitions
+# =============================================================================
+set(COMPILE_DEFINITIONS USE_HAL_DRIVER STM32N657xx $<$<CONFIG:Debug>:DEBUG>)
+
+# =============================================================================
+# Interface Library for Common Configuration
+# =============================================================================
+add_library(stm32_interface INTERFACE)
+target_include_directories(stm32_interface INTERFACE ${INCLUDE_DIRECTORIES})
+target_compile_definitions(stm32_interface INTERFACE ${COMPILE_DEFINITIONS})
+
+# =============================================================================
+# STM32 Driver Library
+# =============================================================================
+add_library(STM32_Drivers OBJECT)
+target_sources(STM32_Drivers PRIVATE ${STM32_DRIVER_SOURCES})
+target_link_libraries(STM32_Drivers PUBLIC stm32_interface)
+
+# =============================================================================
+# STM32 External Memory Manager Library
+# =============================================================================
+add_library(STM32_ExtMem_Manager OBJECT)
+target_sources(STM32_ExtMem_Manager PRIVATE ${STM32_EXTMEM_SOURCES})
+target_link_libraries(STM32_ExtMem_Manager PUBLIC stm32_interface)
+
+# =============================================================================
+# Main Executable
+# =============================================================================
+add_executable(${PROJECT_NAME})
+
+# Application sources
+target_sources(${PROJECT_NAME} PRIVATE ${APPLICATION_SOURCES})
+
+# BSP sources
+target_sources(${PROJECT_NAME} PRIVATE ${BSP_SOURCES})
+
+# Include directories
+target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRECTORIES})
+
+# Compile definitions
+target_compile_definitions(${PROJECT_NAME} PRIVATE ${COMPILE_DEFINITIONS})
+
+# Link libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE STM32_Drivers
+                                              STM32_ExtMem_Manager)
+
+# =============================================================================
+# Build Configuration
+# =============================================================================
+# Add map file to clean target
+set_target_properties(${PROJECT_NAME} PROPERTIES ADDITIONAL_CLEAN_FILES
+                                                 ${PROJECT_NAME}.map)
 
 # Remove wrong libob.a library dependency when using cpp files
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
-
-# Validate that STM32CubeMX code is compatible with C standard
-if((CMAKE_C_STANDARD EQUAL 90) OR (CMAKE_C_STANDARD EQUAL 99))
-    message(ERROR "Generated code requires C11 or higher")
-endif()
-
-
-
-
-
