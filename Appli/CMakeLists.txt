@@ -47,19 +47,17 @@ set(CMAKE_CXX_COMPILER_FORCED TRUE)
 # =============================================================================
 # Application source files
 set(APPLICATION_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/AZURE_RTOS/App/app_azure_rtos.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/tx_initialize_low_level.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_error.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_azure_rtos.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_threadx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/startup_stm32n657xx.s
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/tx_initialize_low_level.S
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/csi.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_threadx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_hal_msp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_hal_timebase_tim.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/secure_nsc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/sysmem.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/syscalls.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/startup_stm32n657xx.s)
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/syscalls.c)
 
 # STM32 HAL/LL Driver source files
 set(STM32_DRIVER_SOURCES
@@ -347,8 +345,9 @@ set(NETWORK_SOURCES
 # Include Directories Configuration
 # =============================================================================
 set(INCLUDE_DIRECTORIES
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/AZURE_RTOS/App
+    ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/Secure_nsclib
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/Device/ST/STM32N6xx/Include
@@ -356,7 +355,6 @@ set(INCLUDE_DIRECTORIES
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/common/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/ports/cortex_m55/gnu/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/Include
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/STM32N6570-DK
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/Components/Common
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/Device/STM32N6xx/Include

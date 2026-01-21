@@ -25,7 +25,8 @@ extern "C" {
 
 #include <stdint.h>
 
-extern void Error_Handler(void);
+void Error_Handler(void);
+
 extern volatile uint8_t *g_error_file;
 extern volatile uint32_t g_error_line;
 

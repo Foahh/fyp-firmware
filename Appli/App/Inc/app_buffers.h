@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#include "app_config.h"
+#include "app_lcd_config.h"
 #include <stddef.h>
 #include <stdint.h>
 

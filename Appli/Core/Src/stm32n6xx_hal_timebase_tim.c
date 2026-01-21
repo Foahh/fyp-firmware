@@ -1,21 +1,19 @@
-/* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file    stm32n6xx_hal_timebase_tim.c
-  * @brief   HAL time base based on the hardware TIM.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2026 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
+ ******************************************************************************
+ * @file    stm32n6xx_hal_timebase_tim.c
+ * @brief   HAL time base based on the hardware TIM.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2026 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32n6xx_hal.h"
@@ -25,27 +23,28 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-TIM_HandleTypeDef        htim2;
+TIM_HandleTypeDef htim2;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
 /**
-  * @brief  This function configures the TIM2 as a time base source.
-  *         The time source is configured  to have 1ms time base with a dedicated
-  *         Tick interrupt priority.
-  * @note   This function is called  automatically at the beginning of program after
-  *         reset by HAL_Init() or at any time when clock is configured, by HAL_RCC_ClockConfig().
-  * @param  TickPriority: Tick interrupt priority.
-  * @retval HAL status
-  */
-HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
-{
-  RCC_ClkInitTypeDef    clkconfig;
-  uint32_t              uwTimclock;
-  uint32_t              uwPrescalerValue;
+ * @brief  This function configures the TIM2 as a time base source.
+ *         The time source is configured  to have 1ms time base with a dedicated
+ *         Tick interrupt priority.
+ * @note   This function is called  automatically at the beginning of program after
+ *         reset by HAL_Init() or at any time when clock is configured, by HAL_RCC_ClockConfig().
+ * @param  TickPriority: Tick interrupt priority.
+ * @retval HAL status
+ */
+HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority) {
+  uwTickPrio = TICK_INT_PRIORITY;
+
+  RCC_ClkInitTypeDef clkconfig;
+  uint32_t uwTimclock;
+  uint32_t uwPrescalerValue;
 
   /*Configure the TIM2 IRQ priority */
-  HAL_NVIC_SetPriority(TIM2_IRQn, TickPriority ,0);
+  HAL_NVIC_SetPriority(TIM2_IRQn, TickPriority, 0);
   /* Enable the TIM2 global Interrupt */
   HAL_NVIC_EnableIRQ(TIM2_IRQn);
 
@@ -59,7 +58,7 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
   HAL_RCC_GetClockConfig(&clkconfig);
 
   /* Compute the prescaler value to have TIM2 counter clock equal to 1MHz */
-  uwPrescalerValue = (uint32_t) ((uwTimclock / 1000000U) - 1U);
+  uwPrescalerValue = (uint32_t)((uwTimclock / 1000000U) - 1U);
 
   /* Initialize TIM2 */
   htim2.Instance = TIM2;
@@ -75,8 +74,7 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
   htim2.Init.ClockDivision = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
 
-  if(HAL_TIM_Base_Init(&htim2) == HAL_OK)
-  {
+  if (HAL_TIM_Base_Init(&htim2) == HAL_OK) {
     /* Start the TIM time Base generation in interrupt mode */
     return HAL_TIM_Base_Start_IT(&htim2);
   }
@@ -86,26 +84,23 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 }
 
 /**
-  * @brief  Suspend Tick increment.
-  * @note   Disable the tick increment by disabling TIM2 update interrupt.
-  * @param  None
-  * @retval None
-  */
-void HAL_SuspendTick(void)
-{
+ * @brief  Suspend Tick increment.
+ * @note   Disable the tick increment by disabling TIM2 update interrupt.
+ * @param  None
+ * @retval None
+ */
+void HAL_SuspendTick(void) {
   /* Disable TIM2 update Interrupt */
   __HAL_TIM_DISABLE_IT(&htim2, TIM_IT_UPDATE);
 }
 
 /**
-  * @brief  Resume Tick increment.
-  * @note   Enable the tick increment by Enabling TIM2 update interrupt.
-  * @param  None
-  * @retval None
-  */
-void HAL_ResumeTick(void)
-{
+ * @brief  Resume Tick increment.
+ * @note   Enable the tick increment by Enabling TIM2 update interrupt.
+ * @param  None
+ * @retval None
+ */
+void HAL_ResumeTick(void) {
   /* Enable TIM2 Update interrupt */
   __HAL_TIM_ENABLE_IT(&htim2, TIM_IT_UPDATE);
 }
-

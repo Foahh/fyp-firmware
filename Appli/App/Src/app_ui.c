@@ -19,7 +19,7 @@
 #include "app_ui.h"
 #include "app_buffers.h"
 #include "app_cam.h"
-#include "app_config.h"
+#include "app_lcd_config.h"
 #include "app_cpuload.h"
 #include "app_error.h"
 #include "app_lcd.h"
@@ -53,7 +53,7 @@ static void draw_detection(const od_pp_outBuffer_t *det,
 #define UI_PANEL_X0 0
 #define UI_PANEL_Y0 0
 #define UI_PANEL_WIDTH 160  /* Width matches DISPLAY_LETTERBOX_X0 */
-#define UI_PANEL_HEIGHT 240 /* Top half of LCD_HEIGHT */
+#define UI_PANEL_HEIGHT 480
 
 /* Text layout */
 #define UI_TEXT_MARGIN_X 8
@@ -118,8 +118,10 @@ static const uint16_t g_line_y[] = {
     UI_TEXT_MARGIN_Y + 9 * UI_LINE_HEIGHT,  /* Line 9: Objects Value */
     UI_TEXT_MARGIN_Y + 10 * UI_LINE_HEIGHT, /* Line 10: Inference Label */
     UI_TEXT_MARGIN_Y + 11 * UI_LINE_HEIGHT, /* Line 11: Inference Value */
-    UI_TEXT_MARGIN_Y + 12 * UI_LINE_HEIGHT, /* Line 12: FPS Label */
-    UI_TEXT_MARGIN_Y + 13 * UI_LINE_HEIGHT, /* Line 13: FPS Value */
+    UI_TEXT_MARGIN_Y + 12 * UI_LINE_HEIGHT, /* Line 12: Postprocess Label */
+    UI_TEXT_MARGIN_Y + 13 * UI_LINE_HEIGHT, /* Line 13: Postprocess Value */
+    UI_TEXT_MARGIN_Y + 14 * UI_LINE_HEIGHT, /* Line 14: FPS Label */
+    UI_TEXT_MARGIN_Y + 15 * UI_LINE_HEIGHT, /* Line 15: FPS Value */
 };
 
 /* ============================================================================
@@ -385,14 +387,23 @@ static void UI_DrawDetectionInfoSection(const detection_info_t *info) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[10],
                            (uint8_t *)text_buf, LEFT_MODE);
 
-  /* FPS */
+  /* Postprocess time */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[11],
+                           (uint8_t *)"Postprocess", LEFT_MODE);
+  UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
+  snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)info->postprocess_ms);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[12],
+                           (uint8_t *)text_buf, LEFT_MODE);
+
+  /* FPS */
+  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[13],
                            (uint8_t *)"FPS", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   float fps = info->nn_period_ms > 0 ? 1000.0f / info->nn_period_ms : 0.0f;
   snprintf(text_buf, sizeof(text_buf), "%.1f", fps);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[12],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[14],
                            (uint8_t *)text_buf, LEFT_MODE);
 }
 

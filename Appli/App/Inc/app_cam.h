@@ -23,7 +23,6 @@
 extern "C" {
 #endif
 
-#include "app_config.h"
 #include "tx_api.h"
 #include <stdint.h>
 

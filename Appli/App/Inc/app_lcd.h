@@ -25,7 +25,7 @@
 extern "C" {
 #endif
 
-#include "app_config.h"
+#include "app_lcd_config.h"
 #include "tx_api.h"
 #include <stdint.h>
 

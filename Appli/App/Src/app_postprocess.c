@@ -18,7 +18,6 @@
 
 #include "app_postprocess.h"
 #include "app_bqueue.h"
-#include "app_config.h"
 #include "app_error.h"
 #include "app_nn.h"
 #include "stm32n6xx_hal.h"
@@ -48,9 +47,6 @@ static void pp_thread_entry(ULONG arg);
 /* Thread configurations */
 #define PP_THREAD_STACK_SIZE 4096
 #define PP_THREAD_PRIORITY 7
-
-/* Align macro */
-#define ALIGN_VALUE(v, a) (((v) + (a) - 1) & ~((a) - 1))
 
 /* ============================================================================
  * Global State Variables

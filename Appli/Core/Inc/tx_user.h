@@ -70,10 +70,6 @@
 #ifndef TX_USER_H
 #define TX_USER_H
 
-/* USER CODE BEGIN 1 */
-
-/* USER CODE END 1 */
-
 /* Define various build options for the ThreadX port.  The application should either make changes
    here by commenting or un-commenting the conditional compilation defined OR supply the defines
    though the compiler's equivalent of the -D option.
@@ -246,7 +242,7 @@
 
 /* Define the common timer tick reference for use by other middleware components. */
 
-#define TX_TIMER_TICKS_PER_SECOND                1000
+#define TX_TIMER_TICKS_PER_SECOND 1000
 
 /* Determine if there is a FileX pointer in the thread control block.
    By default, the pointer is there for legacy/backwards compatibility.
@@ -265,10 +261,6 @@
 
 /*#define TX_SAFETY_CRITICAL*/
 
-/* USER CODE BEGIN 2 */
 /* Define the user extension field of the thread control block.*/
 /*#define TX_THREAD_USER_EXTENSION                ????*/
-
-/* USER CODE END 2 */
-
 #endif

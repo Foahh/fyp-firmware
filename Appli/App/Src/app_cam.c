@@ -20,7 +20,8 @@
 #include "app_cam.h"
 #include "app_bqueue.h"
 #include "app_buffers.h"
-#include "app_config.h"
+#include "app_cam_config.h"
+#include "app_nn_config.h"
 #include "app_error.h"
 #include "app_lcd.h"
 #include "app_nn.h"
@@ -347,6 +348,8 @@ static void cam_nn_pipe_frame_event(void) {
                                        (uint32_t)next_buffer);
     }
     bqueue_put_ready(nn_input_queue);
+  } else {
+    // frame lost
   }
 }
 

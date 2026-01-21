@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
  ******************************************************************************
  * @file    app_threadx.c
@@ -16,13 +15,10 @@
  *
  ******************************************************************************
  */
-/* USER CODE END Header */
 
-/* Includes ------------------------------------------------------------------*/
+
 #include "app_threadx.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 #include "app_error.h"
 #include "main.h"
 #include "utils.h"
@@ -31,36 +27,13 @@
 #include "app_postprocess.h"
 #include "app_ui.h"
 #include "cmw_camera.h"
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-/* USER CODE BEGIN PV */
 
 /* Startup thread for runtime operations that require ThreadX resources */
 #define STARTUP_THREAD_STACK_SIZE 1024U
 static TX_THREAD startup_thread;
 static ULONG startup_thread_stack[STARTUP_THREAD_STACK_SIZE / sizeof(ULONG)];
 
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
-/* USER CODE BEGIN PFP */
 static void startup_thread_entry(ULONG arg);
-/* USER CODE END PFP */
 
 /**
   * @brief  Application ThreadX Initialization.
@@ -70,13 +43,10 @@ static void startup_thread_entry(ULONG arg);
   * @param memory_ptr: memory pointer
   * @retval int
   */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+UINT ThreadX_Start(VOID *memory_ptr)
 {
   UINT ret = TX_SUCCESS;
-  /* USER CODE BEGIN App_ThreadX_MEM_POOL */
 
-  /* USER CODE END App_ThreadX_MEM_POOL */
-  /* USER CODE BEGIN App_ThreadX_Init */
   CAM_ISP_Thread_Start(memory_ptr);
 
   NN_Thread_Start(memory_ptr);
@@ -92,8 +62,6 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
                         TX_NO_TIME_SLICE, TX_AUTO_START);
   APP_REQUIRE(ret == TX_SUCCESS);
 
-  /* USER CODE END App_ThreadX_Init */
-
   return ret;
 }
 
@@ -102,20 +70,11 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   * @param  None
   * @retval None
   */
-void MX_ThreadX_Init(void)
+void ThreadX_Init(void)
 {
-  /* USER CODE BEGIN Before_Kernel_Start */
-
-  /* USER CODE END Before_Kernel_Start */
-
   tx_kernel_enter();
-
-  /* USER CODE BEGIN Kernel_Start_Error */
-
-  /* USER CODE END Kernel_Start_Error */
 }
 
-/* USER CODE BEGIN 1 */
 /**
  * @brief  Startup thread entry for runtime operations.
  *         This thread runs after all ThreadX resources are created and starts
@@ -139,5 +98,3 @@ static void startup_thread_entry(ULONG arg)
   /* Startup thread has completed its task, so it can exit */
   tx_thread_delete(&startup_thread);
 }
-
-/* USER CODE END 1 */

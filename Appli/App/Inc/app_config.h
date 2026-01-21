@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
- * @file    app_config.h
+ * @file    app_postprocess_config.h
  * @author  Long Liangmao
- * @brief   Application configuration header for STM32N6570-DK
+ * @brief   Post-processing configuration for object detection model
  ******************************************************************************
  * @attention
  *
@@ -15,45 +15,11 @@
  *
  ******************************************************************************
  */
-#ifndef APP_CONFIG
-#define APP_CONFIG
+#ifndef APP_POSTPROCESS_CONFIG_H
+#define APP_POSTPROCESS_CONFIG_H
 
 /* CMSIS DSP types (for float32_t, etc.) */
-#include "arm_math.h"
-
-/* Camera FPS configuration */
-#define CAMERA_FPS 30
-
-/* Define sensor orientation */
-#define CAMERA_FLIP CMW_MIRRORFLIP_MIRROR
-
-/* Define display size */
-#define LCD_WIDTH 800
-#define LCD_HEIGHT 480
-
-/* Letterboxed display size (maintains camera 4:3 aspect ratio) */
-/* Camera sensor: 2592x1944 (4:3), LCD: 800x480 (5:3) */
-/* Letterboxed: 640x480 (4:3) positioned on right side */
-#define DISPLAY_LETTERBOX_WIDTH 640
-#define DISPLAY_LETTERBOX_HEIGHT 480
-#define DISPLAY_LETTERBOX_X0 (LCD_WIDTH - DISPLAY_LETTERBOX_WIDTH) /* 160 - left margin for black bars */
-#define DISPLAY_LETTERBOX_X1 LCD_WIDTH                             /* 800 - right edge */
-
-/* Display format and bits per pixel */
-#define DISPLAY_FORMAT DCMIPP_PIXEL_PACKER_FORMAT_RGB565_1
-#define DISPLAY_BPP 2
-
-/* Neural Network pipeline configuration */
-#define NN_WIDTH 480
-#define NN_HEIGHT 480
-#define NN_FORMAT DCMIPP_PIXEL_PACKER_FORMAT_RGB888_YUV444_1
-#define NN_BPP 3
-
-/* ===========================================================================
- * Post-processing configuration for ST YOLO-X person detection model
- * Model: st_yolo_x_nano_480_1.0_0.25_3_int8.tflite
- * ===========================================================================
- */
+#include "arm_math_types.h"
 
 /* Post-processing type selection */
 #define POSTPROCESS_TYPE POSTPROCESS_OD_ST_YOLOX_UF
@@ -83,4 +49,4 @@ static const float32_t AI_OD_ST_YOLOX_PP_S_ANCHORS[2 * AI_OD_ST_YOLOX_PP_NB_ANCH
 #define AI_OD_ST_YOLOX_PP_IOU_THRESHOLD 0.5f  /* NMS IoU threshold */
 #define AI_OD_ST_YOLOX_PP_MAX_BOXES_LIMIT 10  /* Maximum detections */
 
-#endif
+#endif /* APP_POSTPROCESS_CONFIG_H */

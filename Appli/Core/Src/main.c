@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
  ******************************************************************************
  * @file           : main.c
@@ -6,7 +5,7 @@
  ******************************************************************************
  * @attention
  *
- * Copyright (c) 2025 STMicroelectronics.
+ * Copyright (c) 2026 Long Liangmao.
  * All rights reserved.
  *
  * This software is licensed under terms that can be found in the LICENSE file
@@ -15,57 +14,33 @@
  *
  ******************************************************************************
  */
-/* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include "app_threadx.h"
 #include "main.h"
-#include "csi.h"
-#include "gpio.h"
+#include "stm32n6570_discovery.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 #include "app_bqueue.h"
 #include "app_buffers.h"
 #include "app_cam.h"
-#include "app_postprocess.h"
 #include "app_error.h"
 #include "app_lcd.h"
 #include "app_nn.h"
+#include "app_postprocess.h"
+#include "app_threadx.h"
 #include "app_ui.h"
 #include "cmw_camera.h"
 #include "npu_cache.h"
 #include "stm32n6570_discovery_errno.h"
 #include "stm32n6570_discovery_xspi.h"
-#include "stm32n6xx_hal.h"
 #include "stm32n6xx_hal_ramcfg.h"
 #include "stm32n6xx_hal_rif.h"
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
-/* USER CODE BEGIN PV */
 volatile uint8_t *g_error_file = NULL;
 volatile uint32_t g_error_line = 0;
-/* USER CODE END PV */
 
-/* Private function prototypes -----------------------------------------------*/
 static void MPU_Config(void);
 static void SystemIsolation_Config(void);
-/* USER CODE BEGIN PFP */
 static void SystemClock_Config(void);
 static void SMPS_Config(void);
 static void IAC_Config(void);
@@ -74,25 +49,16 @@ static void LED_Config(void);
 static void ClockSleep_Config(void);
 static void NPU_Config(void);
 static void Priority_Config(void);
+static void GPIO_Config(void);
 #if (USE_BSP_COM_FEATURE > 0)
 static void COM_Config(void);
 #endif /* USE_BSP_COM_FEATURE */
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-/* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
-
-  /* USER CODE BEGIN 1 */
-  uwTickPrio = TICK_INT_PRIORITY;
-  /* USER CODE END 1 */
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
 
   /* MPU Configuration--------------------------------------------------------*/
   MPU_Config();
@@ -108,18 +74,12 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
   HAL_Init();
 
-  /* USER CODE BEGIN Init */
   SystemClock_Config();
-  /* USER CODE END Init */
-
-  /* USER CODE BEGIN SysInit */
-  /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
+  GPIO_Config();
   SystemIsolation_Config();
 
-  /* USER CODE BEGIN 2 */
   SMPS_Config();
 
   IAC_Config();
@@ -146,33 +106,20 @@ int main(void)
   CAM_Init();
 
   Priority_Config();
-  /* USER CODE END 2 */
 
-  MX_ThreadX_Init();
+  ThreadX_Init();
 
-  /* We should never get here as control is now taken by the scheduler */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1) {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
+  for (;;) {
+    // do nothing
   }
-  /* USER CODE END 3 */
 }
 
 /**
-  * @brief RIF Initialization Function
-  * @param None
-  * @retval None
-  */
-  static void SystemIsolation_Config(void)
-{
-
-/* USER CODE BEGIN RIF_Init 0 */
-
-/* USER CODE END RIF_Init 0 */
+ * @brief RIF Initialization Function
+ * @param None
+ * @retval None
+ */
+static void SystemIsolation_Config(void) {
 
   /* set all required IPs as secure privileged */
   __HAL_RCC_RIFSC_CLK_ENABLE();
@@ -188,80 +135,18 @@ int main(void)
   HAL_RIF_RIMC_ConfigMasterAttributes(RIF_MASTER_INDEX_LTDC1, &RIMC_master);
 
   HAL_RIF_RIMC_ConfigMasterAttributes(RIF_MASTER_INDEX_LTDC2, &RIMC_master);
+  HAL_RIF_RIMC_ConfigMasterAttributes(RIF_MASTER_INDEX_NPU, &RIMC_master);
 
   /*RISUP configuration*/
-  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_CSI , RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
-  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_DCMIPP , RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
-  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_DMA2D , RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
-  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_LTDC , RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
-  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_LTDCL1 , RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
-  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_LTDCL2 , RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
-  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_NPU , RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
-
-  /* RIF-Aware IPs Config */
-
-  /* set up GPIO configuration */
-  HAL_GPIO_ConfigPinAttributes(GPIOA,GPIO_PIN_0,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOA,GPIO_PIN_1,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOA,GPIO_PIN_6,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOA,GPIO_PIN_8,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOB,GPIO_PIN_11,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOB,GPIO_PIN_12,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOB,GPIO_PIN_13,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOB,GPIO_PIN_14,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOB,GPIO_PIN_15,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOC,GPIO_PIN_0,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOC,GPIO_PIN_4,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOC,GPIO_PIN_9,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOD,GPIO_PIN_8,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOD,GPIO_PIN_13,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOE,GPIO_PIN_11,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOF,GPIO_PIN_4,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOG,GPIO_PIN_8,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOH,GPIO_PIN_3,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOH,GPIO_PIN_6,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPION,GPIO_PIN_0,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPION,GPIO_PIN_1,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPION,GPIO_PIN_2,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPION,GPIO_PIN_3,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPION,GPIO_PIN_4,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPION,GPIO_PIN_5,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPION,GPIO_PIN_6,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPION,GPIO_PIN_8,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPION,GPIO_PIN_9,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPION,GPIO_PIN_10,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPION,GPIO_PIN_11,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOO,GPIO_PIN_0,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOO,GPIO_PIN_2,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOO,GPIO_PIN_3,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOO,GPIO_PIN_4,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_0,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_1,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_2,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_3,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_4,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_5,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_6,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_7,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_8,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_9,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_10,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_11,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_12,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_13,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_14,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOP,GPIO_PIN_15,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-
-/* USER CODE BEGIN RIF_Init 1 */
-  HAL_RIF_RIMC_ConfigMasterAttributes(RIF_MASTER_INDEX_NPU, &RIMC_master);
-/* USER CODE END RIF_Init 1 */
-/* USER CODE BEGIN RIF_Init 2 */
-
-/* USER CODE END RIF_Init 2 */
-
+  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_CSI, RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
+  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_DCMIPP, RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
+  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_DMA2D, RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
+  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_LTDC, RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
+  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_LTDCL1, RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
+  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_LTDCL2, RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
+  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_NPU, RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
 }
 
-/* USER CODE BEGIN 4 */
 static void SMPS_Config(void) {
   BSP_SMPS_Init(SMPS_VOLTAGE_OVERDRIVE);
   HAL_Delay(1);
@@ -516,27 +401,21 @@ void Priority_Config(void) {
   }
 }
 
-void HAL_CACHEAXI_MspInit(CACHEAXI_HandleTypeDef *hcacheaxi)
-{
+void HAL_CACHEAXI_MspInit(CACHEAXI_HandleTypeDef *hcacheaxi) {
   __HAL_RCC_CACHEAXIRAM_MEM_CLK_ENABLE();
   __HAL_RCC_CACHEAXI_CLK_ENABLE();
   __HAL_RCC_CACHEAXI_FORCE_RESET();
   __HAL_RCC_CACHEAXI_RELEASE_RESET();
 }
 
-void HAL_CACHEAXI_MspDeInit(CACHEAXI_HandleTypeDef *hcacheaxi)
-{
+void HAL_CACHEAXI_MspDeInit(CACHEAXI_HandleTypeDef *hcacheaxi) {
   __HAL_RCC_CACHEAXIRAM_MEM_CLK_DISABLE();
   __HAL_RCC_CACHEAXI_CLK_DISABLE();
   __HAL_RCC_CACHEAXI_FORCE_RESET();
 }
 
-/* USER CODE END 4 */
-
- /* MPU Configuration */
-
-void MPU_Config(void)
-{
+/* MPU Configuration */
+void MPU_Config(void) {
   MPU_Region_InitTypeDef MPU_InitStruct = {0};
   MPU_Attributes_InitTypeDef MPU_AttributesInit = {0};
   uint32_t primask_bit = __get_PRIMASK();
@@ -546,7 +425,7 @@ void MPU_Config(void)
   HAL_MPU_Disable();
 
   /** Initializes and configures the Region 0 and the memory to be protected
-  */
+   */
   MPU_InitStruct.Enable = MPU_REGION_ENABLE;
   MPU_InitStruct.Number = MPU_REGION_NUMBER0;
   MPU_InitStruct.BaseAddress = __NON_CACHEABLE_SECTION_BEGIN;
@@ -560,7 +439,7 @@ void MPU_Config(void)
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
   /** Initializes and configures the Region 1 and the memory to be protected
-  */
+   */
   MPU_InitStruct.Number = MPU_REGION_NUMBER1;
   MPU_InitStruct.BaseAddress = 0x91000000;
   MPU_InitStruct.LimitAddress = 0x91FFFFFF;
@@ -568,7 +447,7 @@ void MPU_Config(void)
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
   /** Initializes and configures the Attribute 0 and the memory to be protected
-  */
+   */
   MPU_AttributesInit.Number = MPU_ATTRIBUTES_NUMBER0;
   MPU_AttributesInit.Attributes = INNER_OUTER(MPU_NOT_CACHEABLE);
 
@@ -578,72 +457,42 @@ void MPU_Config(void)
 
   /* Exit critical section to lock the system and avoid any issue around MPU mechanism */
   __set_PRIMASK(primask_bit);
-
 }
 
 /**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM2 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  /* USER CODE BEGIN Callback 0 */
-
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM2)
-  {
+ * @brief  Period elapsed callback in non blocking mode
+ * @note   This function is called  when TIM2 interrupt took place, inside
+ * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+ * a global variable "uwTick" used as application time base.
+ * @param  htim : TIM handle
+ * @retval None
+ */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+  if (htim->Instance == TIM2) {
     HAL_IncTick();
   }
-  /* USER CODE BEGIN Callback 1 */
-
-  /* USER CODE END Callback 1 */
 }
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
-  BSP_LED_Init(LED_GREEN);
-  BSP_LED_Init(LED_RED);
-
-  BSP_LED_Off(LED_GREEN);
-  BSP_LED_Off(LED_RED);
-
-  /* Disable interrupts to prevent further execution */
-  __disable_irq();
-
-  volatile uint32_t error_counter = 0;
-  while (1) {
-    error_counter++;
-
-    BSP_LED_Toggle(LED_RED);
-    for (volatile uint32_t i = 0; i < 4000000; i++) {
-      __NOP();
-    }
-  }
-  /* USER CODE END Error_Handler_Debug */
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
+static void GPIO_Config(void) {
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOG_CLK_ENABLE();
 }
-#ifdef USE_FULL_ASSERT
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t *file, uint32_t line)
-{
-  /* USER CODE BEGIN 6 */
-  g_error_file = file;
-  g_error_line = line;
-  Error_Handler();
-  /* USER CODE END 6 */
+
+void HAL_MspInit(void) {
+  HAL_PWREx_EnableVddIO2();
+  HAL_PWREx_EnableVddIO3();
+  HAL_PWREx_EnableVddIO4();
+  HAL_PWREx_EnableVddIO5();
 }
-#endif /* USE_FULL_ASSERT */

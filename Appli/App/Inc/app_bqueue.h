@@ -25,21 +25,22 @@ extern "C" {
 
 #include "tx_api.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Maximum number of buffers in a queue */
-#define BQUEUE_MAX_BUFFERS 2
+#define BQUEUE_MAX_BUFFERS 4
 
 /**
- * @brief  Buffer queue structure for producer-consumer pattern
- *         Uses counting semaphores for free/ready synchronization
+ * @brief  Buffer queue structure for single producer, single consumer (SPSC) pattern
+ *         Uses counting semaphores for blocking synchronization and lock-free index updates
  */
 typedef struct {
   TX_SEMAPHORE free_sem;                /**< Counts available free buffers */
   TX_SEMAPHORE ready_sem;               /**< Counts buffers ready for consumption */
-  int buffer_nb;                        /**< Number of buffers in the queue */
+  uint8_t buffer_nb;                    /**< Number of buffers in the queue */
   uint8_t *buffers[BQUEUE_MAX_BUFFERS]; /**< Array of buffer pointers */
-  volatile int free_idx;                /**< Next free buffer index */
-  volatile int ready_idx;               /**< Next ready buffer index */
+  volatile uint8_t free_idx;            /**< Next free buffer index (producer-only) */
+  volatile uint8_t ready_idx;           /**< Next ready buffer index (consumer-only) */
 } bqueue_t;
 
 /**
@@ -49,7 +50,7 @@ typedef struct {
  * @param  buffers: Array of buffer pointers
  * @retval 0 on success, -1 on error
  */
-int bqueue_init(bqueue_t *bq, int buffer_nb, uint8_t *buffers[]);
+int bqueue_init(bqueue_t *bq, uint8_t buffer_nb, uint8_t *buffers[]);
 
 /**
  * @brief  Get a free buffer from the queue (producer side)
@@ -57,7 +58,7 @@ int bqueue_init(bqueue_t *bq, int buffer_nb, uint8_t *buffers[]);
  * @param  is_blocking: 1 to wait forever, 0 to return immediately
  * @retval Pointer to free buffer, or NULL if none available (non-blocking)
  */
-uint8_t *bqueue_get_free(bqueue_t *bq, int is_blocking);
+uint8_t *bqueue_get_free(bqueue_t *bq, bool is_blocking);
 
 /**
  * @brief  Release a buffer back to free pool (consumer side, after processing)

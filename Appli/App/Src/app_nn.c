@@ -17,7 +17,7 @@
  */
 
 #include "app_nn.h"
-#include "app_config.h"
+#include "app_nn_config.h"
 #include "app_error.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
@@ -80,7 +80,7 @@ static bqueue_t nn_input_queue;
 static bqueue_t nn_output_queue;
 
 /* NN input buffers */
-static uint8_t nn_input_buffers[2][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
+static uint8_t nn_input_buffers[3][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
 
 /* NN output buffers */
 static uint8_t nn_output_buffers[2][NN_OUT_BUFFER_SIZE] ALIGN_32;
@@ -193,7 +193,7 @@ static void nn_thread_entry(ULONG arg) {
     for (int i = 0; i < NN_OUT_NB; i++) {
       ret = LL_ATON_Set_User_Output_Buffer_od_yolo_x_person(i, out_ptrs[i], nn_out_sizes[i]);
       APP_REQUIRE(ret == LL_ATON_User_IO_NOERROR);
-    }
+    } 
 
     /* Run inference */
     ts = HAL_GetTick();
@@ -264,9 +264,9 @@ void NN_Thread_Start(VOID *memory_ptr) {
   UINT status;
   int ret;
 
-  /* Initialize input buffer queue */
-  uint8_t *in_bufs[2] = {nn_input_buffers[0], nn_input_buffers[1]};
-  ret = bqueue_init(&nn_input_queue, 2, in_bufs);
+  /* Initialize input buffer queue - using 3 buffers to handle 30 FPS pipeline latency */
+  uint8_t *in_bufs[3] = {nn_input_buffers[0], nn_input_buffers[1], nn_input_buffers[2]};
+  ret = bqueue_init(&nn_input_queue, 3, in_bufs);
   APP_REQUIRE(ret == 0);
 
   /* Initialize output buffer queue */

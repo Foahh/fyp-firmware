@@ -1,11 +1,10 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    csi.c
-  * @brief   This file provides code for the configuration
-  *          of the CSI instances.
+  * @file    app_threadx.h
+  * @author  MCD Application Team
+  * @brief   ThreadX applicative header file
   ******************************************************************************
-  * @attention
+    * @attention
   *
   * Copyright (c) 2026 STMicroelectronics.
   * All rights reserved.
@@ -16,14 +15,19 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
-#include "csi.h"
+  
+#ifndef __APP_THREADX_H
+#define __APP_THREADX_H
+#ifdef __cplusplus
+ extern "C" {
+#endif
 
-/* USER CODE BEGIN 0 */
+#include "tx_api.h"
 
-/* USER CODE END 0 */
+UINT ThreadX_Start(VOID *memory_ptr);
+void ThreadX_Init(void);
 
-/* USER CODE BEGIN 1 */
-
-/* USER CODE END 1 */
+#ifdef __cplusplus
+}
+#endif
+#endif /* __APP_THREADX_H */

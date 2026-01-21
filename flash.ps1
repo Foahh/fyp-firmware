@@ -9,6 +9,7 @@ $Script:BuildType = "Release"
 $Script:ProjectNamePrefix = "Firmware_"
 $Script:ObjCopyTool = "arm-none-eabi-objcopy"
 $Script:ExternalLoaderName = "MX66UW1G45G_STM32N6570-DK.stldr"
+$Script:FlashHistoryFile = Join-Path $Script:ProjectRoot ".flash_history"
 
 # Project configurations
 $Script:Projects = @{
@@ -51,6 +52,116 @@ function Write-SectionHeader {
 function Get-BuildDirectory {
     param([string]$ProjectSubDir)
     return Join-Path $Script:ProjectRoot "$ProjectSubDir\build\$Script:BuildType"
+}
+
+function Get-FileHashValue {
+    param([string]$FilePath)
+    
+    if (-not (Test-Path $FilePath)) {
+        return $null
+    }
+    
+    try {
+        $hash = Microsoft.PowerShell.Utility\Get-FileHash -Path $FilePath -Algorithm SHA256
+        return $hash.Hash
+    }
+    catch {
+        Write-Warning "Failed to compute hash for $FilePath : $_"
+        return $null
+    }
+}
+
+function Get-FlashHistory {
+    if (-not (Test-Path $Script:FlashHistoryFile)) {
+        return @{}
+    }
+    
+    try {
+        $content = Get-Content $Script:FlashHistoryFile -Raw -ErrorAction Stop
+        if ([string]::IsNullOrWhiteSpace($content)) {
+            return @{}
+        }
+        # Convert JSON to hashtable - handle both PowerShell 5.1 and 7+ compatibility
+        $jsonObj = $content | ConvertFrom-Json -ErrorAction Stop
+        $history = @{}
+        if ($jsonObj -is [hashtable]) {
+            # PowerShell 7+ with -AsHashtable returns hashtable directly
+            $history = $jsonObj
+        }
+        else {
+            # PowerShell 5.1 returns PSCustomObject, convert to hashtable
+            $jsonObj.PSObject.Properties | ForEach-Object {
+                $history[$_.Name] = $_.Value
+            }
+        }
+        return $history
+    }
+    catch {
+        Write-Warning "Failed to read flash history: $_"
+        return @{}
+    }
+}
+
+function Save-FlashHistory {
+    param([hashtable]$History)
+    
+    try {
+        # Convert hashtable to ordered dictionary to preserve key order, then to JSON
+        $orderedDict = [ordered]@{}
+        foreach ($key in $History.Keys) {
+            $orderedDict[$key] = $History[$key]
+        }
+        $json = $orderedDict | ConvertTo-Json -Depth 10
+        $json | Set-Content $Script:FlashHistoryFile -ErrorAction Stop
+    }
+    catch {
+        Write-Warning "Failed to save flash history: $_"
+    }
+}
+
+function Test-FileNeedsFlash {
+    param(
+        [string]$FilePath,
+        [string]$CacheKey
+    )
+    
+    $currentHash = Get-FileHashValue -FilePath $FilePath
+    if ($null -eq $currentHash) {
+        # File doesn't exist or can't be hashed, assume needs flash
+        return $true
+    }
+    
+    $history = Get-FlashHistory
+    if (-not $history.ContainsKey($CacheKey)) {
+        # No cached entry, needs flash
+        return $true
+    }
+    
+    $cachedHash = $history[$CacheKey]
+    if ($cachedHash -ne $currentHash) {
+        # File has changed, needs flash
+        return $true
+    }
+    
+    # File hasn't changed, skip flash
+    Write-Host "File unchanged since last flash, skipping: $(Split-Path $FilePath -Leaf)" -ForegroundColor Gray
+    return $false
+}
+
+function Update-FlashHistory {
+    param(
+        [string]$FilePath,
+        [string]$CacheKey
+    )
+    
+    $currentHash = Get-FileHashValue -FilePath $FilePath
+    if ($null -eq $currentHash) {
+        return
+    }
+    
+    $history = Get-FlashHistory
+    $history[$CacheKey] = $currentHash
+    Save-FlashHistory -History $history
 }
 #endregion
 
@@ -206,7 +317,8 @@ function Invoke-BinaryFlash {
     param(
         [string]$ProjectName,
         [string]$SignedBinFile,
-        [string]$Address
+        [string]$Address,
+        [string]$SourceBinFile
     )
     
     Write-SectionHeader "Flashing $ProjectName"
@@ -220,6 +332,13 @@ function Invoke-BinaryFlash {
     if (-not $SignedBinFile.ToLower().EndsWith(".hex")) {
         Write-Error "Only Intel HEX images are supported for flashing. Got: $SignedBinFile"
         return $false
+    }
+    
+    # Check if file needs flashing based on cache - hash the source binary, not the signed HEX
+    $cacheKey = "$ProjectName|$Address"
+    $fileToHash = if ($SourceBinFile -and (Test-Path $SourceBinFile)) { $SourceBinFile } else { $SignedBinFile }
+    if (-not (Test-FileNeedsFlash -FilePath $fileToHash -CacheKey $cacheKey)) {
+        return $true  # Skip flash, file unchanged
     }
     
     Write-Host "Using image file: $SignedBinFile" -ForegroundColor Green
@@ -257,6 +376,11 @@ function Invoke-BinaryFlash {
         }
         
         Write-Host "Binary flashed successfully at address $Address" -ForegroundColor Green
+        
+        # Update cache after successful flash - use source binary for hash
+        $fileToHash = if ($SourceBinFile -and (Test-Path $SourceBinFile)) { $SourceBinFile } else { $SignedBinFile }
+        Update-FlashHistory -FilePath $fileToHash -CacheKey $cacheKey
+        
         return $true
     }
     catch {
@@ -312,7 +436,7 @@ function Invoke-ProjectProcessing {
     $imageForFlashing = $signedHexFile
 
     if ($Script:Flash) {
-        if (-not (Invoke-BinaryFlash -ProjectName $ProjectName -SignedBinFile $imageForFlashing -Address $ProjectConfig.FlashAddress)) {
+        if (-not (Invoke-BinaryFlash -ProjectName $ProjectName -SignedBinFile $imageForFlashing -Address $ProjectConfig.FlashAddress -SourceBinFile $binFile)) {
             return $false
         }
     }
@@ -346,11 +470,18 @@ function Invoke-FlashNetworkModel {
         [string]$NetworkHexFile
     )
     
-    Write-SectionHeader "Flashing Network Model: $(Split-Path $NetworkHexFile -Leaf)"
+    $fileName = Split-Path $NetworkHexFile -Leaf
+    Write-SectionHeader "Flashing Network Model: $fileName"
     
     if (-not (Test-Path $NetworkHexFile)) {
         Write-Error "Network HEX file not found: $NetworkHexFile"
         return $false
+    }
+    
+    # Check if file needs flashing based on cache
+    $cacheKey = "Network|$fileName"
+    if (-not (Test-FileNeedsFlash -FilePath $NetworkHexFile -CacheKey $cacheKey)) {
+        return $true  # Skip flash, file unchanged
     }
     
     Write-Host "Using network HEX file: $NetworkHexFile" -ForegroundColor Green
@@ -388,7 +519,11 @@ function Invoke-FlashNetworkModel {
             return $false
         }
         
-        Write-Host "Network model flashed successfully: $(Split-Path $NetworkHexFile -Leaf)" -ForegroundColor Green
+        Write-Host "Network model flashed successfully: $fileName" -ForegroundColor Green
+        
+        # Update cache after successful flash
+        Update-FlashHistory -FilePath $NetworkHexFile -CacheKey $cacheKey
+        
         return $true
     }
     catch {

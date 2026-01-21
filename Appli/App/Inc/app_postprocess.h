@@ -23,6 +23,9 @@ extern "C" {
 #endif
 
 #include "app_config.h"
+
+#include "arm_math.h"
+
 #include "od_pp_output_if.h"
 #include "tx_api.h"
 #include <stdint.h>
