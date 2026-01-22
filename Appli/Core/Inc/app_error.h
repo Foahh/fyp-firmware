@@ -49,12 +49,21 @@ static inline void APP_Panic(const char *file, uint32_t line) {
  * @brief  Require a condition to be true; otherwise panic.
  *         Unlike assert(), this is always enabled.
  */
+#ifdef NDEBUG
+#define APP_REQUIRE(cond)                      \
+  do {                                         \
+    if (!(cond)) {                             \
+      APP_Panic(NULL, 0);                      \
+    }                                          \
+  } while (0)
+#else
 #define APP_REQUIRE(cond)                      \
   do {                                         \
     if (!(cond)) {                             \
       APP_Panic(__FILE__, (uint32_t)__LINE__); \
     }                                          \
   } while (0)
+#endif
 
 #ifdef __cplusplus
 }

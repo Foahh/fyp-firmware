@@ -45,13 +45,11 @@ set(CMAKE_CXX_COMPILER_FORCED TRUE)
 # =============================================================================
 # Source Files Configuration
 # =============================================================================
-# Application source files
-set(APPLICATION_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_error.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_azure_rtos.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_threadx.c
+# Core source files
+set(CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/startup_stm32n657xx.s
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/tx_initialize_low_level.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_error.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_hal_timebase_tim.c
@@ -59,7 +57,12 @@ set(APPLICATION_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/sysmem.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/syscalls.c)
 
-# Application source files
+# RTOS source files
+set(RTOS_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_azure_rtos.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_threadx.c)
+
+# App source files
 set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_bqueue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_buffers.c
@@ -87,6 +90,7 @@ set(COMPILE_DEFINITIONS
     TX_INCLUDE_USER_DEFINE_FILE
     TX_SINGLE_MODE_SECURE=1
     $<$<CONFIG:Debug>:DEBUG>
+    $<$<CONFIG:Release>:NDEBUG>
     LL_ATON_PLATFORM=LL_ATON_PLAT_STM32N6
     LL_ATON_OSAL=LL_ATON_OSAL_THREADX
     LL_ATON_RT_MODE=LL_ATON_RT_ASYNC
@@ -121,10 +125,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/network.cmake)
 add_executable(${PROJECT_NAME})
 
 # Application sources
-target_sources(${PROJECT_NAME} PRIVATE ${APPLICATION_SOURCES})
-
-# Additional source files (application sources only)
-target_sources(${PROJECT_NAME} PRIVATE ${APP_SOURCES})
+target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES} ${APP_SOURCES} ${RTOS_SOURCES})
 
 # Include directories and compile definitions are inherited from stm32_interface via linked libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE stm32_interface)

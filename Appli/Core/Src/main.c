@@ -198,16 +198,12 @@ static void COM_Config(void) {
   COM_Init.HwFlowCtl = COM_HWCONTROL_NONE;
 
   ret = BSP_COM_Init(COM1, &COM_Init);
-  if (ret != BSP_ERROR_NONE) {
-    Error_Handler();
-  }
+  APP_REQUIRE(ret == BSP_ERROR_NONE);
 
 #if (USE_COM_LOG > 0)
   /* Select COM1 as the logging port */
   ret = BSP_COM_SelectLogPort(COM1);
-  if (ret != BSP_ERROR_NONE) {
-    Error_Handler();
-  }
+  APP_REQUIRE(ret == BSP_ERROR_NONE);
 #endif /* USE_COM_LOG */
 }
 
@@ -257,9 +253,7 @@ static void SystemClock_Config(void) {
   RCC_OscInitStruct.PLL4.PLLP1 = 6;
   RCC_OscInitStruct.PLL4.PLLP2 = 6;
 
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
-    Error_Handler();
-  }
+  APP_REQUIRE(HAL_RCC_OscConfig(&RCC_OscInitStruct) == HAL_OK);
 
   RCC_PeriphCLKInitStruct.PeriphClockSelection = 0;
 
@@ -275,9 +269,7 @@ static void SystemClock_Config(void) {
   RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_TIM;
   RCC_PeriphCLKInitStruct.TIMPresSelection = RCC_TIMPRES_DIV1;
 
-  if (HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct) != HAL_OK) {
-    Error_Handler();
-  }
+  APP_REQUIRE(HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct) == HAL_OK);
 
   RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_CPUCLK | RCC_CLOCKTYPE_SYSCLK |
                                  RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 |
@@ -311,9 +303,7 @@ static void SystemClock_Config(void) {
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV1;
   RCC_ClkInitStruct.APB5CLKDivider = RCC_APB5_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct) != HAL_OK) {
-    Error_Handler();
-  }
+  APP_REQUIRE(HAL_RCC_ClockConfig(&RCC_ClkInitStruct) == HAL_OK);
 }
 
 void ClockSleep_Config(void) {

@@ -38,7 +38,6 @@ target_include_directories(stm32_interface INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/Device/STM32N6xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/DSP/Include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/Secure_nsclib
 )
 
 add_library(STM32_Drivers STATIC ${STM32_DRIVER_SOURCES})
