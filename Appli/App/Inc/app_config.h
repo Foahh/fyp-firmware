@@ -19,10 +19,10 @@
 #define APP_POSTPROCESS_CONFIG_H
 
 /* CMSIS DSP types (for float32_t, etc.) */
-#include "arm_math_types.h"
+#include "arm_math.h"
 
 /* Post-processing type selection */
-#define POSTPROCESS_TYPE POSTPROCESS_OD_ST_YOLOX_UF
+#define POSTPROCESS_TYPE POSTPROCESS_OD_ST_YOLOX_UI
 
 /* ST YOLO-X specific configuration */
 #define AI_OD_ST_YOLOX_PP_NB_CLASSES 1 /* Single class: person */
@@ -32,12 +32,15 @@
 /* Large scale: 480/8 = 60 */
 #define AI_OD_ST_YOLOX_PP_L_GRID_WIDTH 60
 #define AI_OD_ST_YOLOX_PP_L_GRID_HEIGHT 60
+#define AI_OD_ST_YOLOX_PP_L_NB_INPUT_BOXES  (AI_OD_ST_YOLOX_PP_L_GRID_WIDTH * AI_OD_ST_YOLOX_PP_L_GRID_HEIGHT)
 /* Medium scale: 480/16 = 30 */
 #define AI_OD_ST_YOLOX_PP_M_GRID_WIDTH 30
 #define AI_OD_ST_YOLOX_PP_M_GRID_HEIGHT 30
+#define AI_OD_ST_YOLOX_PP_M_NB_INPUT_BOXES  (AI_OD_ST_YOLOX_PP_M_GRID_WIDTH * AI_OD_ST_YOLOX_PP_M_GRID_HEIGHT)
 /* Small scale: 480/32 = 15 */
 #define AI_OD_ST_YOLOX_PP_S_GRID_WIDTH 15
 #define AI_OD_ST_YOLOX_PP_S_GRID_HEIGHT 15
+#define AI_OD_ST_YOLOX_PP_S_NB_INPUT_BOXES  (AI_OD_ST_YOLOX_PP_S_GRID_WIDTH * AI_OD_ST_YOLOX_PP_S_GRID_HEIGHT)
 
 /* Anchor values for 480x480 input model */
 static const float32_t AI_OD_ST_YOLOX_PP_L_ANCHORS[2 * AI_OD_ST_YOLOX_PP_NB_ANCHORS] = {30.0f, 30.0f, 4.2f, 15.0f, 13.8f, 42.0f};
