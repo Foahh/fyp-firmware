@@ -21,10 +21,10 @@
 #include "app_bqueue.h"
 #include "app_buffers.h"
 #include "app_cam_config.h"
-#include "app_nn_config.h"
 #include "app_error.h"
 #include "app_lcd.h"
 #include "app_nn.h"
+#include "app_nn_config.h"
 #include "cmw_camera.h"
 #include "main.h"
 #include "stm32n6xx_hal.h"
@@ -198,8 +198,6 @@ void CAM_Init(void) {
       .width = 0, /* Let sensor driver choose */
       .height = 0,
       .fps = CAMERA_FPS,
-      .pixel_format = 0,
-      .anti_flicker = 0,
       .mirror_flip = CAMERA_FLIP,
   };
 

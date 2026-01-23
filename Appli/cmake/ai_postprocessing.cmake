@@ -10,10 +10,10 @@ set(AI_POSTPROCESSING_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Src/vision_models_pp_maxi_iu8.c
 )
 
-target_include_directories(stm32_interface INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/ai-postprocessing-wrapper
-)
+target_include_directories(
+  stm32_interface
+  INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/lib_vision_models_pp/Inc
+            ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/ai-postprocessing-wrapper)
 
 add_library(AI_Postprocessing STATIC ${AI_POSTPROCESSING_SOURCES})
 target_link_libraries(AI_Postprocessing PUBLIC stm32_interface)

@@ -25,13 +25,11 @@
 #include <string.h>
 
 /* Include library headers */
-#include "ll_aton_rt_user_api.h" /* For LL_ATON_DECLARE_NAMED_NN_INSTANCE_AND_INTERFACE and NN_Instance_TypeDef */
-#include "od_st_yolox_pp_if.h"   /* For od_st_yolox_pp_static_param_t */
-#include "od_yolo_x_person.h"    /* For NN instance declaration */
-
+#include "od_st_yolox_pp_if.h"
+#include "stai.h"
 
 /* Forward declarations for library functions */
-int32_t app_postprocess_init(void *params_postprocess, NN_Instance_TypeDef *NN_Instance);
+int32_t app_postprocess_init(void *params_postprocess, stai_network_info *NN_Info);
 int32_t app_postprocess_run(void *pInput[], int nb_input, void *pOutput, void *pInput_param);
 
 /* ============================================================================
@@ -90,9 +88,10 @@ static void pp_thread_entry(ULONG arg) {
   nn_timing_t nn_timing;
   int ret;
 
-  /* Initialize postprocess with NN instance (object detection model) */
-  LL_ATON_DECLARE_NAMED_NN_INSTANCE_AND_INTERFACE(od_yolo_x_person);
-  ret = app_postprocess_init(&pp_params, &NN_Instance_od_yolo_x_person);
+  /* Initialize postprocess with network info (object detection model) */
+  stai_network_info *nn_info = NN_GetNetworkInfo();
+  APP_REQUIRE(nn_info != NULL);
+  ret = app_postprocess_init(&pp_params, nn_info);
   APP_REQUIRE(ret == 0);
 
   while (1) {
@@ -182,7 +181,7 @@ void Postprocess_Thread_Start(VOID *memory_ptr) {
 
   /* Initialize detection state buffers */
   memset(detection_info_buffers, 0, sizeof(detection_info_buffers));
-  
+
   /* Initialize read pointer to first buffer */
   detection_info_read_ptr = &detection_info_buffers[0];
   write_buffer_idx = 1;

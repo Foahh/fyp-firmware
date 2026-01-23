@@ -31,14 +31,15 @@ set(STM32_DRIVER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_tim_ex.c
 )
 
-target_include_directories(stm32_interface INTERFACE
+target_include_directories(
+  stm32_interface
+  INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Inc/Legacy
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/Device/ST/STM32N6xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/Device/STM32N6xx/Include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/DSP/Include
-)
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/DSP/Include)
 
 add_library(STM32_Drivers STATIC ${STM32_DRIVER_SOURCES})
 target_link_libraries(STM32_Drivers PUBLIC stm32_interface)

@@ -15,6 +15,7 @@ set(AI_NPU_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_reloc_network.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_rt_main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_runtime.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_stai_internal.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_aton_util.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_sw_float.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton/ll_sw_integer.c
@@ -22,11 +23,11 @@ set(AI_NPU_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/Devices/STM32N6XX/npu_cache.c
 )
 
-target_include_directories(stm32_interface INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/Devices/STM32N6xx
-)
+target_include_directories(
+  stm32_interface
+  INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Inc
+            ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/ll_aton
+            ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Npu/Devices/STM32N6xx)
 
 add_library(AI_NPU STATIC ${AI_NPU_SOURCES})
 target_link_libraries(AI_NPU PUBLIC stm32_interface threadx STM32_Drivers)

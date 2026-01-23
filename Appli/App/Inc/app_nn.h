@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 #include "app_bqueue.h"
+#include "stai.h"
 #include "tx_api.h"
 #include <stdint.h>
 
@@ -66,6 +67,13 @@ int NN_GetOutputCount(void);
  * @retval Pointer to array of output sizes
  */
 const uint32_t *NN_GetOutputSizes(void);
+
+/**
+ * @brief  Get network info for postprocessing
+ * @retval Pointer to network info structure
+ * @note   Must be called after NN_Thread_Start
+ */
+stai_network_info *NN_GetNetworkInfo(void);
 
 /**
  * @brief  Initialize NN thread and resources

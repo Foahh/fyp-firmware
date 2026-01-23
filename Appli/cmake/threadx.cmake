@@ -175,10 +175,11 @@ set(THREADX_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/common/src/txe_timer_info_get.c
 )
 
-target_include_directories(stm32_interface INTERFACE
+target_include_directories(
+  stm32_interface
+  INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/common/inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/ports/cortex_m55/gnu/inc
-)
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/ports/cortex_m55/gnu/inc)
 
 add_library(threadx STATIC ${THREADX_SOURCES})
 target_link_libraries(threadx PUBLIC stm32_interface)

@@ -60,23 +60,23 @@ static void COM_Config(void);
  */
 int main(void) {
 
-  /* MPU Configuration--------------------------------------------------------*/
+  /* Power on ICACHE & DCACHE */
+  MEMSYSCTL->MSCR |= MEMSYSCTL_MSCR_ICACTIVE_Msk;
+  MEMSYSCTL->MSCR |= MEMSYSCTL_MSCR_DCACTIVE_Msk;
+
+  /* Set back system and CPU clock source to HSI */
+  __HAL_RCC_CPUCLK_CONFIG(RCC_CPUCLKSOURCE_HSI);
+  __HAL_RCC_SYSCLK_CONFIG(RCC_SYSCLKSOURCE_HSI);
+
   MPU_Config();
 
-  /* Enable the CPU Cache */
-
-  /* Enable I-Cache---------------------------------------------------------*/
   SCB_EnableICache();
-
-  /* Enable D-Cache---------------------------------------------------------*/
   SCB_EnableDCache();
 
-  /* MCU Configuration--------------------------------------------------------*/
   HAL_Init();
 
   SystemClock_Config();
 
-  /* Initialize all configured peripherals */
   GPIO_Config();
   SystemIsolation_Config();
 
@@ -85,8 +85,6 @@ int main(void) {
   IAC_Config();
 
   NPU_Config();
-
-  npu_cache_init();
   npu_cache_enable();
 
 #if (USE_BSP_COM_FEATURE > 0)
@@ -391,14 +389,14 @@ void Priority_Config(void) {
   }
 }
 
-void HAL_CACHEAXI_MspInit(CACHEAXI_HandleTypeDef *hcacheaxi) {
+void npu_cache_enable_clocks_and_reset(void) {
   __HAL_RCC_CACHEAXIRAM_MEM_CLK_ENABLE();
   __HAL_RCC_CACHEAXI_CLK_ENABLE();
   __HAL_RCC_CACHEAXI_FORCE_RESET();
   __HAL_RCC_CACHEAXI_RELEASE_RESET();
 }
 
-void HAL_CACHEAXI_MspDeInit(CACHEAXI_HandleTypeDef *hcacheaxi) {
+void npu_cache_disable_clocks_and_reset(void) {
   __HAL_RCC_CACHEAXIRAM_MEM_CLK_DISABLE();
   __HAL_RCC_CACHEAXI_CLK_DISABLE();
   __HAL_RCC_CACHEAXI_FORCE_RESET();

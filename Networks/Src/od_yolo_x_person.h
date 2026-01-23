@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file    od_yolo_x_person.h
   * @author  STEdgeAI
-  * @date    2026-01-09 19:08:49
+  * @date    2026-01-23 16:25:57
   * @brief   Minimal description of the generated c-implemention of the network
   ******************************************************************************
   * @attention
@@ -34,14 +34,14 @@
 
 /************************** OUTPUTS *******************************************/
 #define LL_ATON_OD_YOLO_X_PERSON_OUT_NUM        (3)    // Total number of output buffers
-// Output buffer 1 -- Transpose_783_out_0
+// Output buffer 1 -- Transpose_782_out_0
 #define LL_ATON_OD_YOLO_X_PERSON_OUT_1_ALIGNMENT   (32)
-#define LL_ATON_OD_YOLO_X_PERSON_OUT_1_SIZE_BYTES  (16200)
-// Output buffer 2 -- Transpose_889_out_0
+#define LL_ATON_OD_YOLO_X_PERSON_OUT_1_SIZE_BYTES  (4050)
+// Output buffer 2 -- Transpose_886_out_0
 #define LL_ATON_OD_YOLO_X_PERSON_OUT_2_ALIGNMENT   (32)
-#define LL_ATON_OD_YOLO_X_PERSON_OUT_2_SIZE_BYTES  (259200)
-// Output buffer 3 -- Transpose_836_out_0
+#define LL_ATON_OD_YOLO_X_PERSON_OUT_2_SIZE_BYTES  (64800)
+// Output buffer 3 -- Transpose_834_out_0
 #define LL_ATON_OD_YOLO_X_PERSON_OUT_3_ALIGNMENT   (32)
-#define LL_ATON_OD_YOLO_X_PERSON_OUT_3_SIZE_BYTES  (64800)
+#define LL_ATON_OD_YOLO_X_PERSON_OUT_3_SIZE_BYTES  (16200)
 
 #endif /* LL_ATON_OD_YOLO_X_PERSON_H */

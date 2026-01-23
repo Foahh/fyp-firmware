@@ -17,23 +17,21 @@
  */
 
 #include "app_nn.h"
-#include "app_nn_config.h"
 #include "app_error.h"
+#include "app_nn_config.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
 #include <string.h>
 
-/* Include ATON runtime API */
-#include "ll_aton_rt_user_api.h"
-
-/* Include generated network header */
-#include "od_yolo_x_person.h"
+/* Include ST.AI runtime API */
+#include "stai.h"
+#include "stai_od_yolo_x_person.h"
 
 /* ============================================================================
  * Forward Declarations
  * ============================================================================ */
 
-static void NN_RunInference(void);
+static void NN_RunInference(stai_network *network);
 static void nn_thread_entry(ULONG arg);
 
 /* ============================================================================
@@ -45,16 +43,16 @@ static void nn_thread_entry(ULONG arg);
 #define NN_THREAD_PRIORITY 6
 
 /* NN output sizes from model header */
-#define NN_OUT_NB LL_ATON_OD_YOLO_X_PERSON_OUT_NUM
+#define NN_OUT_NB STAI_OD_YOLO_X_PERSON_OUT_NUM
 
-#define NN_OUT0_SIZE LL_ATON_OD_YOLO_X_PERSON_OUT_1_SIZE_BYTES
-#define NN_OUT0_SIZE_ALIGN ALIGN_VALUE(NN_OUT0_SIZE, LL_ATON_OD_YOLO_X_PERSON_OUT_1_ALIGNMENT)
+#define NN_OUT0_SIZE STAI_OD_YOLO_X_PERSON_OUT_1_SIZE_BYTES
+#define NN_OUT0_SIZE_ALIGN ALIGN_VALUE(NN_OUT0_SIZE, STAI_OD_YOLO_X_PERSON_OUT_1_ALIGNMENT)
 
-#define NN_OUT1_SIZE LL_ATON_OD_YOLO_X_PERSON_OUT_2_SIZE_BYTES
-#define NN_OUT1_SIZE_ALIGN ALIGN_VALUE(NN_OUT1_SIZE, LL_ATON_OD_YOLO_X_PERSON_OUT_2_ALIGNMENT)
+#define NN_OUT1_SIZE STAI_OD_YOLO_X_PERSON_OUT_2_SIZE_BYTES
+#define NN_OUT1_SIZE_ALIGN ALIGN_VALUE(NN_OUT1_SIZE, STAI_OD_YOLO_X_PERSON_OUT_2_ALIGNMENT)
 
-#define NN_OUT2_SIZE LL_ATON_OD_YOLO_X_PERSON_OUT_3_SIZE_BYTES
-#define NN_OUT2_SIZE_ALIGN ALIGN_VALUE(NN_OUT2_SIZE, LL_ATON_OD_YOLO_X_PERSON_OUT_3_ALIGNMENT)
+#define NN_OUT2_SIZE STAI_OD_YOLO_X_PERSON_OUT_3_SIZE_BYTES
+#define NN_OUT2_SIZE_ALIGN ALIGN_VALUE(NN_OUT2_SIZE, STAI_OD_YOLO_X_PERSON_OUT_3_ALIGNMENT)
 
 /* Total output buffer size */
 #define NN_OUT_BUFFER_SIZE (NN_OUT0_SIZE_ALIGN + NN_OUT1_SIZE_ALIGN + NN_OUT2_SIZE_ALIGN)
@@ -66,8 +64,8 @@ static void nn_thread_entry(ULONG arg);
  * Global State Variables
  * ============================================================================ */
 
-/* Declare NN instance */
-LL_ATON_DECLARE_NAMED_NN_INSTANCE_AND_INTERFACE(od_yolo_x_person);
+/* Declare NN context */
+STAI_NETWORK_CONTEXT_DECLARE(nn_ctx_od_yolo_x_person, STAI_OD_YOLO_X_PERSON_CONTEXT_SIZE)
 
 /* Thread resources */
 static struct {
@@ -91,6 +89,9 @@ static const uint32_t nn_out_sizes[NN_OUT_MAX_NB] = {NN_OUT0_SIZE, NN_OUT1_SIZE,
 /* Timing statistics (volatile for cross-thread access) */
 static volatile nn_timing_t nn_timing;
 
+/* Network info (initialized in NN_Thread_Start, used by postprocess) */
+static stai_network_info nn_info;
+
 /* ============================================================================
  * Internal Helper Functions
  * ============================================================================ */
@@ -99,28 +100,18 @@ static volatile nn_timing_t nn_timing;
  * @brief  Run ATON inference with WFE support
  *         Handles wait-for-event (WFE) during inference for power efficiency
  */
-static void NN_RunInference(void) {
-  LL_ATON_RT_RetValues_t ll_aton_rt_ret;
+static void NN_RunInference(stai_network *network) {
+  stai_return_code ret;
 
   do {
-    ll_aton_rt_ret = LL_ATON_RT_RunEpochBlock(&NN_Instance_od_yolo_x_person);
-    if (ll_aton_rt_ret == LL_ATON_RT_WFE) {
+    ret = stai_od_yolo_x_person_run(network, STAI_MODE_ASYNC);
+    if (ret == STAI_RUNNING_WFE) {
       LL_ATON_OSAL_WFE();
     }
-  } while (ll_aton_rt_ret != LL_ATON_RT_DONE);
+  } while (ret == STAI_RUNNING_WFE || ret == STAI_RUNNING_NO_WFE);
 
-  LL_ATON_RT_Reset_Network(&NN_Instance_od_yolo_x_person);
-}
-
-static int model_get_output_nb(const LL_Buffer_InfoTypeDef *nn_out_info) {
-  int nb = 0;
-
-  while (nn_out_info->name) {
-    nb++;
-    nn_out_info++;
-  }
-
-  return nb;
+  ret = stai_ext_od_yolo_x_person_new_inference(network);
+  APP_REQUIRE(ret == STAI_SUCCESS);
 }
 
 /* ============================================================================
@@ -135,23 +126,8 @@ static int model_get_output_nb(const LL_Buffer_InfoTypeDef *nn_out_info) {
 static void nn_thread_entry(ULONG arg) {
   UNUSED(arg);
 
-  const LL_Buffer_InfoTypeDef *nn_in_info = LL_ATON_Input_Buffers_Info(&NN_Instance_od_yolo_x_person);
-  const LL_Buffer_InfoTypeDef *nn_out_info = LL_ATON_Output_Buffers_Info(&NN_Instance_od_yolo_x_person);
-  uint32_t nn_in_len;
+  stai_return_code stai_ret;
   uint32_t nn_period[2];
-  int ret;
-  int i;
-
-  /* Initialize ATON runtime */
-  LL_ATON_RT_RuntimeInit();
-  LL_ATON_RT_Init_Network(&NN_Instance_od_yolo_x_person);
-
-  /* Gsetup buffers size */
-  nn_in_len = LL_Buffer_len(&nn_in_info[0]);
-  APP_REQUIRE(NN_OUT_NB == model_get_output_nb(nn_out_info));
-  for (i = 0; i < NN_OUT_NB; i++) {
-    APP_REQUIRE(LL_Buffer_len(&nn_out_info[i]) == nn_out_sizes[i]);
-  }
 
   /* Initialize timing */
   nn_period[1] = HAL_GetTick();
@@ -160,8 +136,9 @@ static void nn_thread_entry(ULONG arg) {
   while (1) {
     uint8_t *capture_buffer;
     uint8_t *output_buffer;
-    uint8_t *out_ptrs[NN_OUT_NB];
+    stai_ptr out_ptrs[NN_OUT_NB];
     uint32_t ts;
+    int i;
 
     /* Update period tracking */
     nn_period[0] = nn_period[1];
@@ -183,21 +160,20 @@ static void nn_thread_entry(ULONG arg) {
     }
 
     /* Set input buffer */
-    ret = LL_ATON_Set_User_Input_Buffer_od_yolo_x_person(0, capture_buffer, nn_in_len);
-    APP_REQUIRE(ret == LL_ATON_User_IO_NOERROR);
+    stai_ptr nn_in = capture_buffer;
+    stai_ret = stai_od_yolo_x_person_set_inputs(nn_ctx_od_yolo_x_person, &nn_in, 1);
+    APP_REQUIRE(stai_ret == STAI_SUCCESS);
 
     /* Invalidate output buffer before hardware access */
     SCB_InvalidateDCache_by_Addr(output_buffer, NN_OUT_BUFFER_SIZE);
 
     /* Set output buffers */
-    for (int i = 0; i < NN_OUT_NB; i++) {
-      ret = LL_ATON_Set_User_Output_Buffer_od_yolo_x_person(i, out_ptrs[i], nn_out_sizes[i]);
-      APP_REQUIRE(ret == LL_ATON_User_IO_NOERROR);
-    } 
+    stai_ret = stai_od_yolo_x_person_set_outputs(nn_ctx_od_yolo_x_person, out_ptrs, NN_OUT_NB);
+    APP_REQUIRE(stai_ret == STAI_SUCCESS);
 
     /* Run inference */
     ts = HAL_GetTick();
-    NN_RunInference();
+    NN_RunInference(nn_ctx_od_yolo_x_person);
     nn_timing.inference_ms = HAL_GetTick() - ts;
 
     /* Release input buffer back to free pool */
@@ -256,13 +232,43 @@ const uint32_t *NN_GetOutputSizes(void) {
 }
 
 /**
+ * @brief  Get network info for postprocessing
+ * @retval Pointer to network info structure
+ * @note   Must be called after NN_Thread_Start
+ */
+stai_network_info *NN_GetNetworkInfo(void) {
+  return &nn_info;
+}
+
+/**
  * @brief  Initialize NN thread and resources
  * @param  memory_ptr: ThreadX memory pool (unused, static allocation)
  */
 void NN_Thread_Start(VOID *memory_ptr) {
   UNUSED(memory_ptr);
   UINT status;
+  stai_return_code stai_ret;
   int ret;
+  int i;
+
+  /* Initialize ST.AI runtime */
+  stai_ret = stai_runtime_init();
+  APP_REQUIRE(stai_ret == STAI_SUCCESS);
+
+  /* Initialize network */
+  stai_ret = stai_od_yolo_x_person_init(nn_ctx_od_yolo_x_person);
+  APP_REQUIRE(stai_ret == STAI_SUCCESS);
+
+  /* Get network info */
+  stai_ret = stai_od_yolo_x_person_get_info(nn_ctx_od_yolo_x_person, &nn_info);
+  APP_REQUIRE(stai_ret == STAI_SUCCESS);
+  APP_REQUIRE(nn_info.n_inputs == 1);
+  APP_REQUIRE(nn_info.n_outputs == NN_OUT_NB);
+
+  /* Verify output sizes */
+  for (i = 0; i < NN_OUT_NB; i++) {
+    APP_REQUIRE(nn_info.outputs[i].size_bytes == nn_out_sizes[i]);
+  }
 
   /* Initialize input buffer queue - using 3 buffers to handle 30 FPS pipeline latency */
   uint8_t *in_bufs[3] = {nn_input_buffers[0], nn_input_buffers[1], nn_input_buffers[2]};
