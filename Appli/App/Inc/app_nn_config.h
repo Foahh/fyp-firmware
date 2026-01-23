@@ -18,10 +18,15 @@
 #ifndef APP_NN_CONFIG_H
 #define APP_NN_CONFIG_H
 
-/* Neural Network pipeline configuration */
-#define NN_WIDTH 480
-#define NN_HEIGHT 480
+#include "stai_od_yolo_x_person.h"
+
+/* NN pipeline configuration */
+#define NN_WIDTH STAI_OD_YOLO_X_PERSON_IN_1_WIDTH
+#define NN_HEIGHT STAI_OD_YOLO_X_PERSON_IN_1_HEIGHT
 #define NN_FORMAT DCMIPP_PIXEL_PACKER_FORMAT_RGB888_YUV444_1
-#define NN_BPP 3
+#define NN_BPP STAI_OD_YOLO_X_PERSON_IN_1_CHANNEL
+
+/* NN configuration */
+#define NN_OUT_NB STAI_OD_YOLO_X_PERSON_OUT_NUM
 
 #endif /* APP_NN_CONFIG_H */

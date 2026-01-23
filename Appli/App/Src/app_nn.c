@@ -43,7 +43,6 @@ static void nn_thread_entry(ULONG arg);
 #define NN_THREAD_PRIORITY 6
 
 /* NN output sizes from model header */
-#define NN_OUT_NB STAI_OD_YOLO_X_PERSON_OUT_NUM
 
 #define NN_OUT0_SIZE STAI_OD_YOLO_X_PERSON_OUT_1_SIZE_BYTES
 #define NN_OUT0_SIZE_ALIGN ALIGN_VALUE(NN_OUT0_SIZE, STAI_OD_YOLO_X_PERSON_OUT_1_ALIGNMENT)
@@ -84,7 +83,7 @@ static uint8_t nn_input_buffers[3][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
 static uint8_t nn_output_buffers[2][NN_OUT_BUFFER_SIZE] ALIGN_32;
 
 /* Output sizes array */
-static const uint32_t nn_out_sizes[NN_OUT_MAX_NB] = {NN_OUT0_SIZE, NN_OUT1_SIZE, NN_OUT2_SIZE};
+static const uint32_t nn_out_sizes[NN_OUT_NB] = {NN_OUT0_SIZE, NN_OUT1_SIZE, NN_OUT2_SIZE};
 
 /* Timing statistics (volatile for cross-thread access) */
 static volatile nn_timing_t nn_timing;

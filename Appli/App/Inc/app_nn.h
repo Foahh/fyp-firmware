@@ -27,9 +27,6 @@ extern "C" {
 #include "tx_api.h"
 #include <stdint.h>
 
-/* NN output configuration */
-#define NN_OUT_MAX_NB 3
-
 /**
  * @brief  NN timing statistics
  */

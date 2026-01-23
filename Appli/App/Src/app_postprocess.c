@@ -20,6 +20,7 @@
 #include "app_bqueue.h"
 #include "app_error.h"
 #include "app_nn.h"
+#include "app_nn_config.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
 #include <string.h>
@@ -83,7 +84,7 @@ static void pp_thread_entry(ULONG arg) {
   const uint32_t *out_sizes = NN_GetOutputSizes();
   int out_count = NN_GetOutputCount();
   od_pp_out_t pp_output;
-  uint8_t *pp_input[NN_OUT_MAX_NB];
+  uint8_t *pp_input[NN_OUT_NB];
   uint32_t pp_ts[2];
   nn_timing_t nn_timing;
   int ret;

@@ -35,17 +35,16 @@
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
-_estack = ORIGIN(RAM) + LENGTH(RAM); /* end of "RAM" Ram type memory */
+_estack = ORIGIN(AXISRAM1_2_S) + LENGTH(AXISRAM1_2_S); /* end of "RAM" Ram type memory */
 _sstack = _estack - _Min_Stack_Size;
 
 _Min_Heap_Size = 0x200; /* required amount of heap */
-_Min_Stack_Size = 0x800; /* required amount of stack */
+_Min_Stack_Size = 0x1000; /* required amount of stack */
 
 /* Memories definition */
 MEMORY
 {
-  ROM    (xrw)    : ORIGIN = 0x34000400,   LENGTH = 0xE0000
-  RAM    (xrw)    : ORIGIN = 0x340E0400,   LENGTH = 0x11FC00
+  AXISRAM1_2_S    (xrw)    : ORIGIN = 0x34000400,   LENGTH = 0x17FC00
   PSRAM  (xrw)    : ORIGIN = 0x91000000,   LENGTH = 16M
 }
 
@@ -58,7 +57,7 @@ SECTIONS
     . = ALIGN(4);
     KEEP(*(.isr_vector)) /* Startup code */
     . = ALIGN(4);
-  } >ROM
+  } >AXISRAM1_2_S
 
   /* The program code and other data into "RAM" Ram type memory */
   .text :
@@ -77,7 +76,7 @@ SECTIONS
 
     . = ALIGN(4);
     _etext = .;        /* define a global symbols at end of code */
-  } >ROM
+  } >AXISRAM1_2_S
 
   /* Constant data into "RAM" Ram type memory */
   .rodata :
@@ -86,13 +85,13 @@ SECTIONS
     *(.rodata)         /* .rodata sections (constants, strings, etc.) */
     *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
     . = ALIGN(4);
-  } >ROM
+  } >AXISRAM1_2_S
 
   .ARM.extab   : {
     . = ALIGN(4);
     *(.ARM.extab* .gnu.linkonce.armextab.*)
     . = ALIGN(4);
-  } >ROM
+  } >AXISRAM1_2_S
 
   .ARM : {
     . = ALIGN(4);
@@ -100,7 +99,7 @@ SECTIONS
     *(.ARM.exidx*)
     __exidx_end = .;
     . = ALIGN(4);
-  } >ROM
+  } >AXISRAM1_2_S
 
   .preinit_array     :
   {
@@ -109,7 +108,7 @@ SECTIONS
     KEEP (*(.preinit_array*))
     PROVIDE_HIDDEN (__preinit_array_end = .);
     . = ALIGN(4);
-  } >ROM
+  } >AXISRAM1_2_S
 
   .init_array :
   {
@@ -119,7 +118,7 @@ SECTIONS
     KEEP (*(.init_array*))
     PROVIDE_HIDDEN (__init_array_end = .);
     . = ALIGN(4);
-  } >ROM
+  } >AXISRAM1_2_S
 
   .fini_array :
   {
@@ -129,7 +128,7 @@ SECTIONS
     KEEP (*(.fini_array*))
     PROVIDE_HIDDEN (__fini_array_end = .);
     . = ALIGN(4);
-  } >ROM
+  } >AXISRAM1_2_S
 
   /* Used by the startup to initialize data */
   _sidata = LOADADDR(.data);
@@ -145,7 +144,7 @@ SECTIONS
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
 
-  } >RAM AT> ROM
+  } >AXISRAM1_2_S
 
   .noncacheable :
   {
@@ -154,7 +153,7 @@ SECTIONS
     KEEP(*(.noncacheable))
     . = ALIGN(8);
     __enoncacheable = .;  /* create symbol for end of section */
-  } > RAM
+  } > AXISRAM1_2_S
 
   .gnu.sgstubs :
   {
@@ -162,7 +161,7 @@ SECTIONS
     . = ALIGN(4);
     *(.gnu.sgstubs*)   /* Secure Gateway stubs */
     . = ALIGN(4);
-  } >ROM
+  } >AXISRAM1_2_S
   _eNSCVeneer = .;
 
   /* Uninitialized data section into "RAM" Ram type memory */
@@ -179,7 +178,7 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } >RAM
+  } >AXISRAM1_2_S
 
   /* User_heap_stack section, used to check that there is enough "RAM" Ram  type memory left */
   ._user_heap_stack :
@@ -190,7 +189,7 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
-  } >RAM
+  } >AXISRAM1_2_S
 
   .psram_section (NOLOAD) :
   {

@@ -120,8 +120,10 @@ static const uint16_t g_line_y[] = {
     UI_TEXT_MARGIN_Y + 11 * UI_LINE_HEIGHT, /* Line 11: Inference Value */
     UI_TEXT_MARGIN_Y + 12 * UI_LINE_HEIGHT, /* Line 12: Postprocess Label */
     UI_TEXT_MARGIN_Y + 13 * UI_LINE_HEIGHT, /* Line 13: Postprocess Value */
-    UI_TEXT_MARGIN_Y + 14 * UI_LINE_HEIGHT, /* Line 14: FPS Label */
-    UI_TEXT_MARGIN_Y + 15 * UI_LINE_HEIGHT, /* Line 15: FPS Value */
+    UI_TEXT_MARGIN_Y + 14 * UI_LINE_HEIGHT, /* Line 14: Overhead Label */
+    UI_TEXT_MARGIN_Y + 15 * UI_LINE_HEIGHT, /* Line 15: Overhead Value */
+    UI_TEXT_MARGIN_Y + 16 * UI_LINE_HEIGHT, /* Line 16: FPS Label */
+    UI_TEXT_MARGIN_Y + 17 * UI_LINE_HEIGHT, /* Line 17: FPS Value */
 };
 
 /* ============================================================================
@@ -396,14 +398,25 @@ static void UI_DrawDetectionInfoSection(const detection_info_t *info) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[12],
                            (uint8_t *)text_buf, LEFT_MODE);
 
-  /* FPS */
+  /* Overhead time */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[13],
+                           (uint8_t *)"Overhead", LEFT_MODE);
+  UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
+  uint32_t overhead_ms = info->nn_period_ms > info->inference_ms ? 
+                         info->nn_period_ms - info->inference_ms : 0;
+  snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)overhead_ms);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[14],
+                           (uint8_t *)text_buf, LEFT_MODE);
+
+  /* FPS */
+  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[15],
                            (uint8_t *)"FPS", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   float fps = info->nn_period_ms > 0 ? 1000.0f / info->nn_period_ms : 0.0f;
   snprintf(text_buf, sizeof(text_buf), "%.1f", fps);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[14],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[16],
                            (uint8_t *)text_buf, LEFT_MODE);
 }
 
