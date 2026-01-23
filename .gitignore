@@ -5,3 +5,4 @@ build/
 cmake-build-debug/
 .vscode/c_cpp_properties.json
 .clangd
+.flash_history
