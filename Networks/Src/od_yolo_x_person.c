@@ -18,26 +18,26 @@
   */
 
 /*
- * GIT_SHA         "80369096c1c1b7ea4d6b2cc985d9e001f59b7c27"
+ * GIT_SHA         "7cc654104236b2ac726c804c5d7f201e2afd1c79"
  * GIT_BRANCH      "HEAD"
- * GIT_DESCRIPTION "atonn-v1.1.3-8-g80369096c"
+ * GIT_DESCRIPTION "STAI-3.0.0-254-g7cc654104"
  *
  * Command Line options:
- * --load-mdesc-file = "E:/ST/STEdgeAI/3.0/Utilities/configs/stm32n6"
- * --load-cdesc-file = "E:/ST/STEdgeAI/3.0/Utilities/configs/cortex-m55"
- * --load-mpool-file = "E:/FYP/Firmware/Networks/configs/stm32n6_od"
+ * --load-mdesc-file = "D:/ST/STEdgeAI/4.0/Utilities/configs/stm32n6"
+ * --load-cdesc-file = "D:/ST/STEdgeAI/4.0/Utilities/configs/cortex-m55"
+ * --load-mpool-file = "D:/FYP/Firmware/Networks/configs/stm32n6_od"
  * --cache-maintenance = true
  * --enable-virtual-mem-pools = true
  * --native-float = true
- * --json-quant-file = "E:/FYP/Firmware/Networks/st_ai_output/st_yolo_x_nano_480_1.0_0.25_3_int8_OE_3_3_1_Q.json"
+ * --json-quant-file = "D:/FYP/Firmware/Networks/st_ai_output/st_yolo_x_nano_480_1.0_0.25_3_int8_OE_3_3_1_Q.json"
  * --optimization = 3
  * --Os = true
  * --Omax-ca-pipe = 4
  * --Ocache-opt = true
  * --enable-epoch-controller = true
  * --output-info-file = "c_info"
- * --onnx-input = "E:/FYP/Firmware/Networks/st_ai_output/st_yolo_x_nano_480_1.0_0.25_3_int8_OE_3_3_1.onnx"
- * --out-dir-prefix = "E:/FYP/Firmware/Networks/st_ai_ws/neural_art__od_yolo_x_person/"
+ * --onnx-input = "D:/FYP/Firmware/Networks/st_ai_output/st_yolo_x_nano_480_1.0_0.25_3_int8_OE_3_3_1.onnx"
+ * --out-dir-prefix = "D:/FYP/Firmware/Networks/st_ai_ws/neural_art__od_yolo_x_person/"
  * --network-name = "od_yolo_x_person"
  * --all-buffers-info = true
  * --generate-stai = true
@@ -55,7 +55,7 @@
 #include "ecloader.h"
 #include "ll_aton_cipher.h"
 
-#if LL_ATON_VERSION_MAJOR != 1 || LL_ATON_VERSION_MINOR != 1 || LL_ATON_VERSION_MICRO != 3 || LL_ATON_VERSION_DEV != 8
+#if LL_ATON_VERSION_MAJOR != 1 || LL_ATON_VERSION_MINOR != 1 || LL_ATON_VERSION_MICRO != 3 || LL_ATON_VERSION_DEV != 262
 #  error "Possible mismatch in ll_aton library used"
 #endif
 
@@ -113,6 +113,10 @@ static unsigned char *_mem_pool__user_io_output_2_od_yolo_x_person = NULL; /* te
 
 LL_ATON_User_IO_Result_t LL_ATON_Set_User_Input_Buffer_od_yolo_x_person(uint32_t num, void* buffer, uint32_t size)
 {
+  LL_ATON_LIB_UNUSED(num);
+  LL_ATON_LIB_UNUSED(buffer);
+  LL_ATON_LIB_UNUSED(size);
+
   if (num == 0) {
     if (((uintptr_t)buffer % 32) != 0)
       return LL_ATON_User_IO_WRONG_ALIGN; /* enforce MCU cacheline alignment */
@@ -128,6 +132,8 @@ LL_ATON_User_IO_Result_t LL_ATON_Set_User_Input_Buffer_od_yolo_x_person(uint32_t
 
 void *LL_ATON_Get_User_Input_Buffer_od_yolo_x_person(uint32_t num)
 {
+  LL_ATON_LIB_UNUSED(num);
+
   if (num == 0) {
     return _mem_pool__user_io_input_0_od_yolo_x_person;
   } else
@@ -138,6 +144,10 @@ void *LL_ATON_Get_User_Input_Buffer_od_yolo_x_person(uint32_t num)
 
 LL_ATON_User_IO_Result_t LL_ATON_Set_User_Output_Buffer_od_yolo_x_person(uint32_t num, void* buffer, uint32_t size)
 {
+  LL_ATON_LIB_UNUSED(num);
+  LL_ATON_LIB_UNUSED(buffer);
+  LL_ATON_LIB_UNUSED(size);
+
   if (num == 0) {
     if (((uintptr_t)buffer % 32) != 0)
       return LL_ATON_User_IO_WRONG_ALIGN; /* enforce MCU cacheline alignment */
@@ -169,6 +179,8 @@ LL_ATON_User_IO_Result_t LL_ATON_Set_User_Output_Buffer_od_yolo_x_person(uint32_
 
 void *LL_ATON_Get_User_Output_Buffer_od_yolo_x_person(uint32_t num)
 {
+  LL_ATON_LIB_UNUSED(num);
+
   if (num == 0) {
     return _mem_pool__user_io_output_0_od_yolo_x_person;
   } else
@@ -190,8 +202,9 @@ void *LL_ATON_Get_User_Output_Buffer_od_yolo_x_person(uint32_t num)
 // Epoch Controller Blob (name='_ec_blob_od_yolo_x_person_1') micro instructions needed
 
 // Epoch Controller Blob (name='_ec_blob_od_yolo_x_person_1') start function
-static void _ec_blob_cache_start_func_1(const void *epoch_block) {
+static void _ec_blob_cache_start_func_1(const LL_ATON_RT_EpochBlockItem_t *epoch_block, const NN_Instance_TypeDef *nn_instance) {
   LL_ATON_LIB_UNUSED(epoch_block);
+  LL_ATON_LIB_UNUSED(nn_instance);
 
   /* *** MCU cache invalidate (only) operation (HW, whole range) *** */
   /*     memory pool: 1 */
@@ -205,18 +218,16 @@ static void _ec_blob_cache_start_func_1(const void *epoch_block) {
 /* scheduling epoch=117  nodes=1   ------------------------------------------------------------------- */
 
 
-static void LL_ATON_End_EpochBlock_117(const void *epoch_block)
+static void LL_ATON_End_EpochBlock_117(const LL_ATON_RT_EpochBlockItem_t *epoch_block, const NN_Instance_TypeDef *nn_instance)
 {
   LL_ATON_LIB_UNUSED(epoch_block);
+  LL_ATON_LIB_UNUSED(nn_instance);
 
   /* *** MCU cache invalidate (only) operation (SW, whole range) *** */
   /*     memory pool: 3 */
   /*     start: ((uintptr_t)(ATON_LIB_PHYSICAL_TO_VIRTUAL_ADDR(0x34200000UL + 0))) */
   /*     end:   ((uintptr_t)(ATON_LIB_PHYSICAL_TO_VIRTUAL_ADDR(0x34200000UL + 115200))) */
   LL_ATON_Cache_MCU_Invalidate_Range(((uintptr_t)(ATON_LIB_PHYSICAL_TO_VIRTUAL_ADDR(0x34200000UL + 0))) /* Equivalent hex address = 0x34200000UL */, 115200);
-
-  /* Reset the stream switch */
-  LL_Switch_Init(NULL, 0);
 
 /* Unit= 27 [PROCESSOR 0] */
 /* kind=DepthToSpace node=Resize_495_resize_NN_to_expansion_dts_1799 */
@@ -288,7 +299,7 @@ static void LL_ATON_End_EpochBlock_117(const void *epoch_block)
     }
   };
 
-  LL_ATON_LIB_DMA_DepthToSpace(Resize_495_resize_NN_to_expansion_dts_1799_tensor_info_in_117, 1, Resize_495_resize_NN_to_expansion_dts_1799_tensor_info_out_117, 2, 2, 2, 3);
+  LL_ATON_LIB_DMA_DepthToSpace(Resize_495_resize_NN_to_expansion_dts_1799_tensor_info_in_117, 1, Resize_495_resize_NN_to_expansion_dts_1799_tensor_info_out_117, 2, 2, 2, 3, nn_instance);
 
   /* *** MCU cache clean (only) operation (SW, whole range) *** */
   /*     memory pool: 3 */
@@ -302,8 +313,9 @@ static void LL_ATON_End_EpochBlock_117(const void *epoch_block)
 // Epoch Controller Blob (name='_ec_blob_od_yolo_x_person_118') micro instructions needed
 
 // Epoch Controller Blob (name='_ec_blob_od_yolo_x_person_118') start function
-static void _ec_blob_cache_start_func_118(const void *epoch_block) {
+static void _ec_blob_cache_start_func_118(const LL_ATON_RT_EpochBlockItem_t *epoch_block, const NN_Instance_TypeDef *nn_instance) {
   LL_ATON_LIB_UNUSED(epoch_block);
+  LL_ATON_LIB_UNUSED(nn_instance);
 
   /* *** MCU cache invalidate (only) operation (HW, whole range) *** */
   /*     memory pool: 1 */
@@ -317,18 +329,16 @@ static void _ec_blob_cache_start_func_118(const void *epoch_block) {
 /* scheduling epoch=136  nodes=1   ------------------------------------------------------------------- */
 
 
-static void LL_ATON_End_EpochBlock_136(const void *epoch_block)
+static void LL_ATON_End_EpochBlock_136(const LL_ATON_RT_EpochBlockItem_t *epoch_block, const NN_Instance_TypeDef *nn_instance)
 {
   LL_ATON_LIB_UNUSED(epoch_block);
+  LL_ATON_LIB_UNUSED(nn_instance);
 
   /* *** MCU cache invalidate (only) operation (SW, whole range) *** */
   /*     memory pool: 9 */
   /*     start: ((uintptr_t)(ATON_LIB_PHYSICAL_TO_VIRTUAL_ADDR(0x34180000UL + 0))) */
   /*     end:   ((uintptr_t)(ATON_LIB_PHYSICAL_TO_VIRTUAL_ADDR(0x34180000UL + 230400))) */
   LL_ATON_Cache_MCU_Invalidate_Range(((uintptr_t)(ATON_LIB_PHYSICAL_TO_VIRTUAL_ADDR(0x34180000UL + 0))) /* Equivalent hex address = 0x34180000UL */, 230400);
-
-  /* Reset the stream switch */
-  LL_Switch_Init(NULL, 0);
 
 /* Unit= 27 [PROCESSOR 0] */
 /* kind=DepthToSpace node=Resize_553_resize_NN_to_expansion_dts_1803 */
@@ -400,7 +410,7 @@ static void LL_ATON_End_EpochBlock_136(const void *epoch_block)
     }
   };
 
-  LL_ATON_LIB_DMA_DepthToSpace(Resize_553_resize_NN_to_expansion_dts_1803_tensor_info_in_136, 1, Resize_553_resize_NN_to_expansion_dts_1803_tensor_info_out_136, 2, 2, 4, 5);
+  LL_ATON_LIB_DMA_DepthToSpace(Resize_553_resize_NN_to_expansion_dts_1803_tensor_info_in_136, 1, Resize_553_resize_NN_to_expansion_dts_1803_tensor_info_out_136, 2, 2, 4, 5, nn_instance);
 
   /* *** MCU cache clean (only) operation (SW, whole range) *** */
   /*     memory pool: 9 */
@@ -414,8 +424,9 @@ static void LL_ATON_End_EpochBlock_136(const void *epoch_block)
 // Epoch Controller Blob (name='_ec_blob_od_yolo_x_person_137') micro instructions needed
 
 // Epoch Controller Blob (name='_ec_blob_od_yolo_x_person_137') start function
-static void _ec_blob_cache_start_func_137(const void *epoch_block) {
+static void _ec_blob_cache_start_func_137(const LL_ATON_RT_EpochBlockItem_t *epoch_block, const NN_Instance_TypeDef *nn_instance) {
   LL_ATON_LIB_UNUSED(epoch_block);
+  LL_ATON_LIB_UNUSED(nn_instance);
 
   /* *** MCU cache invalidate (only) operation (HW, whole range) *** */
   /*     memory pool: 1 */
@@ -429,18 +440,16 @@ static void _ec_blob_cache_start_func_137(const void *epoch_block) {
 /* scheduling epoch=169  nodes=1   ------------------------------------------------------------------- */
 
 
-static void LL_ATON_End_EpochBlock_169(const void *epoch_block)
+static void LL_ATON_End_EpochBlock_169(const LL_ATON_RT_EpochBlockItem_t *epoch_block, const NN_Instance_TypeDef *nn_instance)
 {
   LL_ATON_LIB_UNUSED(epoch_block);
+  LL_ATON_LIB_UNUSED(nn_instance);
 
   /* *** MCU cache invalidate (only) operation (SW, whole range) *** */
   /*     memory pool: 12 */
   /*     start: (((uintptr_t)(_mem_pool__user_io_output_1_od_yolo_x_person)) + 0) */
   /*     end:   (((uintptr_t)(_mem_pool__user_io_output_1_od_yolo_x_person)) + 64800) */
   LL_ATON_Cache_MCU_Invalidate_Range((((uintptr_t)(_mem_pool__user_io_output_1_od_yolo_x_person)) + 0) /* Equivalent hex offset = 0x0 */, 64800);
-
-  /* Reset the stream switch */
-  LL_Switch_Init(NULL, 0);
 
 /* Unit= 27 [PROCESSOR 0] */
 /* kind=Concat node=Concat_884 */
@@ -566,7 +575,7 @@ static void LL_ATON_End_EpochBlock_169(const void *epoch_block)
     }
   };
 
-  LL_ATON_LIB_Concat(Concat_884_tensor_info_in_169, 3, Concat_884_tensor_info_out_169, 1, 4, 5);
+  LL_ATON_LIB_Concat(Concat_884_tensor_info_in_169, 3, Concat_884_tensor_info_out_169, 1, 4, 5, nn_instance);
 
   /* *** MCU cache clean (only) operation (SW, whole range) *** */
   /*     memory pool: 12 */
@@ -580,8 +589,9 @@ static void LL_ATON_End_EpochBlock_169(const void *epoch_block)
 // Epoch Controller Blob (name='_ec_blob_od_yolo_x_person_170') micro instructions needed
 
 // Epoch Controller Blob (name='_ec_blob_od_yolo_x_person_170') start function
-static void _ec_blob_cache_start_func_170(const void *epoch_block) {
+static void _ec_blob_cache_start_func_170(const LL_ATON_RT_EpochBlockItem_t *epoch_block, const NN_Instance_TypeDef *nn_instance) {
   LL_ATON_LIB_UNUSED(epoch_block);
+  LL_ATON_LIB_UNUSED(nn_instance);
 
   /* *** MCU cache invalidate (only) operation (HW, whole range) *** */
   /*     memory pool: 1 */
@@ -595,18 +605,16 @@ static void _ec_blob_cache_start_func_170(const void *epoch_block) {
 /* scheduling epoch=192  nodes=1   ------------------------------------------------------------------- */
 
 
-static void LL_ATON_End_EpochBlock_192(const void *epoch_block)
+static void LL_ATON_End_EpochBlock_192(const LL_ATON_RT_EpochBlockItem_t *epoch_block, const NN_Instance_TypeDef *nn_instance)
 {
   LL_ATON_LIB_UNUSED(epoch_block);
+  LL_ATON_LIB_UNUSED(nn_instance);
 
   /* *** MCU cache invalidate (only) operation (SW, whole range) *** */
   /*     memory pool: 13 */
   /*     start: (((uintptr_t)(_mem_pool__user_io_output_2_od_yolo_x_person)) + 0) */
   /*     end:   (((uintptr_t)(_mem_pool__user_io_output_2_od_yolo_x_person)) + 16224) */
   LL_ATON_Cache_MCU_Invalidate_Range((((uintptr_t)(_mem_pool__user_io_output_2_od_yolo_x_person)) + 0) /* Equivalent hex offset = 0x0 */, 16224);
-
-  /* Reset the stream switch */
-  LL_Switch_Init(NULL, 0);
 
 /* Unit= 27 [PROCESSOR 0] */
 /* kind=Concat node=Concat_832 */
@@ -732,7 +740,7 @@ static void LL_ATON_End_EpochBlock_192(const void *epoch_block)
     }
   };
 
-  LL_ATON_LIB_Concat(Concat_832_tensor_info_in_192, 3, Concat_832_tensor_info_out_192, 1, 7, 8);
+  LL_ATON_LIB_Concat(Concat_832_tensor_info_in_192, 3, Concat_832_tensor_info_out_192, 1, 7, 8, nn_instance);
 
   /* *** MCU cache clean (only) operation (SW, whole range) *** */
   /*     memory pool: 13 */
@@ -746,8 +754,9 @@ static void LL_ATON_End_EpochBlock_192(const void *epoch_block)
 // Epoch Controller Blob (name='_ec_blob_od_yolo_x_person_193') micro instructions needed
 
 // Epoch Controller Blob (name='_ec_blob_od_yolo_x_person_193') start function
-static void _ec_blob_cache_start_func_193(const void *epoch_block) {
+static void _ec_blob_cache_start_func_193(const LL_ATON_RT_EpochBlockItem_t *epoch_block, const NN_Instance_TypeDef *nn_instance) {
   LL_ATON_LIB_UNUSED(epoch_block);
+  LL_ATON_LIB_UNUSED(nn_instance);
 
   /* *** MCU cache invalidate (only) operation (HW, whole range) *** */
   /*     memory pool: 1 */
@@ -761,18 +770,16 @@ static void _ec_blob_cache_start_func_193(const void *epoch_block) {
 /* scheduling epoch=217  nodes=1   ------------------------------------------------------------------- */
 
 
-static void LL_ATON_End_EpochBlock_217(const void *epoch_block)
+static void LL_ATON_End_EpochBlock_217(const LL_ATON_RT_EpochBlockItem_t *epoch_block, const NN_Instance_TypeDef *nn_instance)
 {
   LL_ATON_LIB_UNUSED(epoch_block);
+  LL_ATON_LIB_UNUSED(nn_instance);
 
   /* *** MCU cache invalidate (only) operation (SW, whole range) *** */
   /*     memory pool: 11 */
   /*     start: (((uintptr_t)(_mem_pool__user_io_output_0_od_yolo_x_person)) + 0) */
   /*     end:   (((uintptr_t)(_mem_pool__user_io_output_0_od_yolo_x_person)) + 4064) */
   LL_ATON_Cache_MCU_Invalidate_Range((((uintptr_t)(_mem_pool__user_io_output_0_od_yolo_x_person)) + 0) /* Equivalent hex offset = 0x0 */, 4064);
-
-  /* Reset the stream switch */
-  LL_Switch_Init(NULL, 0);
 
 /* Unit= 27 [PROCESSOR 0] */
 /* kind=Concat node=Concat_780 */
@@ -898,7 +905,7 @@ static void LL_ATON_End_EpochBlock_217(const void *epoch_block)
     }
   };
 
-  LL_ATON_LIB_Concat(Concat_780_tensor_info_in_217, 3, Concat_780_tensor_info_out_217, 1, 4, 5);
+  LL_ATON_LIB_Concat(Concat_780_tensor_info_in_217, 3, Concat_780_tensor_info_out_217, 1, 4, 5, nn_instance);
 
   /* *** MCU cache clean (only) operation (SW, whole range) *** */
   /*     memory pool: 11 */
@@ -914,9 +921,9 @@ static void LL_ATON_End_EpochBlock_217(const void *epoch_block)
 
 /* scheduling DONE                 ------------------------------------------------------------------- */
 
-const EpochBlock_ItemTypeDef *LL_ATON_EpochBlockItems_od_yolo_x_person(void) {
+const LL_ATON_RT_EpochBlockItem_t *LL_ATON_EpochBlockItems_od_yolo_x_person(void) {
 
-  static const EpochBlock_ItemTypeDef ll_atonn_rt_epoch_block_array[] = {
+  static const LL_ATON_RT_EpochBlockItem_t ll_atonn_rt_epoch_block_array[] = {
     {
       .start_epoch_block = _ec_blob_cache_start_func_1,
       .end_epoch_block = NULL,
@@ -927,7 +934,7 @@ const EpochBlock_ItemTypeDef *LL_ATON_EpochBlockItems_od_yolo_x_person(void) {
       .epoch_num = 1,
       .last_epoch_num = 116,
       .estimated_npu_cycles = 16225664,
-      .estimated_tot_cycles = 20265024,
+      .estimated_tot_cycles = 20245836,
 #endif // LL_ATON_EB_DBG_INFO
     },
     {
@@ -6000,7 +6007,7 @@ const LL_Buffer_InfoTypeDef *LL_ATON_Input_Buffers_Info_od_yolo_x_person(void)
       .offset = buff_info_Conv2D_870_weights_inflated_1781_quant_offset,
     },
     {
-      .name = "MaxPool_432_decomposed_pad_pad_kern_959",
+      .name = "MaxPool_432_decomposed_pad_pad_kern_1918",
       .addr_base = {(unsigned char *)(0x70380000UL) /* Equivalent hex address = 0x70380000UL */},
       .offset_start = 1200704,
       .offset_end = 1200832,
@@ -6021,7 +6028,7 @@ const LL_Buffer_InfoTypeDef *LL_ATON_Input_Buffers_Info_od_yolo_x_person(void)
       .shape = buff_info__shape_128_1_1_1,
     },
     {
-      .name = "MaxPool_431_decomposed_pad_pad_kern_950",
+      .name = "MaxPool_431_decomposed_pad_pad_kern_1900",
       .addr_base = {(unsigned char *)(0x70380000UL) /* Equivalent hex address = 0x70380000UL */},
       .offset_start = 1200832,
       .offset_end = 1200960,
@@ -6042,7 +6049,7 @@ const LL_Buffer_InfoTypeDef *LL_ATON_Input_Buffers_Info_od_yolo_x_person(void)
       .shape = buff_info__shape_128_1_1_1,
     },
     {
-      .name = "MaxPool_433_decomposed_pad_pad_kern_966",
+      .name = "MaxPool_433_decomposed_pad_pad_kern_1932",
       .addr_base = {(unsigned char *)(0x70380000UL) /* Equivalent hex address = 0x70380000UL */},
       .offset_start = 1200960,
       .offset_end = 1201088,
@@ -6435,8 +6442,8 @@ const LL_Buffer_InfoTypeDef *LL_ATON_Internal_Buffers_Info_od_yolo_x_person(void
   static const uint32_t buff_info__mem_shape_M16_1_128_15_15[] = { 1, 8, 15, 15, 16 };
   static const float buff_info_Conv2D_427_off_bias_out_745_quant_scale[] = { 0.0235294122248888 };
   static const int16_t buff_info_Conv2D_427_off_bias_out_745_quant_offset[] = { -128 };
-  static const float buff_info_Conv2D_427_off_bias_out_745_inserted_out2188_quant_scale[] = { 0.0235294122248888 };
-  static const int16_t buff_info_Conv2D_427_off_bias_out_745_inserted_out2188_quant_offset[] = { -128 };
+  static const float buff_info_Conv2D_427_off_bias_out_745_inserted_out4376_quant_scale[] = { 0.0235294122248888 };
+  static const int16_t buff_info_Conv2D_427_off_bias_out_745_inserted_out4376_quant_offset[] = { -128 };
   static const float buff_info_MaxPool_433_decomposed_1_out_1796_quant_scale[] = { 0.0235294122248888 };
   static const int16_t buff_info_MaxPool_433_decomposed_1_out_1796_quant_offset[] = { -128 };
   static const uint32_t buff_info__shape_1_128_27_27[] = { 1, 27, 27, 128 };
@@ -9653,7 +9660,7 @@ const LL_Buffer_InfoTypeDef *LL_ATON_Internal_Buffers_Info_od_yolo_x_person(void
       .offset = buff_info_Conv2D_427_off_bias_out_745_quant_offset,
     },
     {
-      .name = "Conv2D_427_off_bias_out_745_inserted_out2177_inserted_out2187",
+      .name = "Conv2D_427_off_bias_out_745_inserted_out4354_inserted_out4374",
       .addr_base = {(unsigned char *)(0x342e0000UL) /* Equivalent hex address = 0x342e0000UL */},
       .offset_start = 298112,
       .offset_end = 326912,
@@ -9674,7 +9681,7 @@ const LL_Buffer_InfoTypeDef *LL_ATON_Internal_Buffers_Info_od_yolo_x_person(void
       .shape = buff_info__shape_1_128_15_15,
     },
     {
-      .name = "Conv2D_427_off_bias_out_745_inserted_out2188",
+      .name = "Conv2D_427_off_bias_out_745_inserted_out4376",
       .addr_base = {(unsigned char *)(0x342e0000UL) /* Equivalent hex address = 0x342e0000UL */},
       .offset_start = 115200,
       .offset_end = 144000,
@@ -9694,8 +9701,8 @@ const LL_Buffer_InfoTypeDef *LL_ATON_Internal_Buffers_Info_od_yolo_x_person(void
       .ndims = 4,
       .shape = buff_info__shape_1_128_15_15,
       .per_channel = 0,
-      .scale = buff_info_Conv2D_427_off_bias_out_745_inserted_out2188_quant_scale,
-      .offset = buff_info_Conv2D_427_off_bias_out_745_inserted_out2188_quant_offset,
+      .scale = buff_info_Conv2D_427_off_bias_out_745_inserted_out4376_quant_scale,
+      .offset = buff_info_Conv2D_427_off_bias_out_745_inserted_out4376_quant_offset,
     },
     {
       .name = "MaxPool_433_decomposed_1_out_1796",

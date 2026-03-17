@@ -14,12 +14,13 @@ set(THREADX_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/ports/cortex_m55/gnu/src/tx_thread_stack_build.S
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/ports/cortex_m55/gnu/src/tx_thread_system_return.S
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/ports/cortex_m55/gnu/src/tx_timer_interrupt.S
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/common/src/tx_initialize_high_level.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/common/src/tx_initialize_kernel_enter.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/common/src/tx_initialize_kernel_setup.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/ports/cortex_m55/gnu/src/tx_thread_secure_stack.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/ports/cortex_m55/gnu/src/txe_thread_secure_stack_free.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/ports/cortex_m55/gnu/src/txe_thread_secure_stack_allocate.c
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/common/src/tx_initialize_high_level.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/common/src/tx_initialize_kernel_enter.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/common/src/tx_initialize_kernel_setup.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/common/src/tx_thread_stack_error_handler.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/common/src/tx_thread_stack_error_notify.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/threadx/common/src/tx_thread_system_resume.c

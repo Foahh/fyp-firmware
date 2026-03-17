@@ -11608,7 +11608,7 @@ typedef struct
 #define DLYB_STATUS_SDMMC_DLL_LOCK_Msk          (0x1UL << DLYB_STATUS_SDMMC_DLL_LOCK_Pos)     /*!< 0x00000001 */
 #define DLYB_STATUS_SDMMC_DLL_LOCK              DLYB_STATUS_SDMMC_DLL_LOCK_Msk                /*!<DLYB lock mode enable */
 
-#define DLYB_STATUS_SDMMC_RX_TAP_SEL_ACK_Pos    (1UL)                                            
+#define DLYB_STATUS_SDMMC_RX_TAP_SEL_ACK_Pos    (1UL)
 #define DLYB_STATUS_SDMMC_RX_TAP_SEL_ACK_Msk    (0x1UL << DLYB_STATUS_SDMMC_RX_TAP_SEL_ACK_Pos)  /*!< 0x00000002 */
 #define DLYB_STATUS_SDMMC_RX_TAP_SEL_ACK        DLYB_STATUS_SDMMC_RX_TAP_SEL_ACK_Msk             /*!< RX delay selection acknowledge */
 
@@ -40002,7 +40002,7 @@ typedef struct
 #define USB_OTG_GCCFG_FSVPLUS_Msk                (0x1U << USB_OTG_GCCFG_FSVPLUS_Pos)          /*!< 0x00000002 */
 #define USB_OTG_GCCFG_FSVPLUS                    USB_OTG_GCCFG_FSVPLUS_Msk                    /*!< Single-Ended DP2 indicator DP voltage level  */
 #define USB_OTG_GCCFG_FSVMINUS_Pos               (2UL)
-#define USB_OTG_GCCFG_FSVMINUS_Msk               0x1U << USB_OTG_GCCFG_FSVMINUS_Pos)         /*!< 0x00000004 */
+#define USB_OTG_GCCFG_FSVMINUS_Msk               (0x1U << USB_OTG_GCCFG_FSVMINUS_Pos)         /*!< 0x00000004 */
 #define USB_OTG_GCCFG_FSVMINUS                   USB_OTG_GCCFG_FSVMINUS_Msk                  /*!< Single-Ended DM2 indicator DM voltage level  */
 #define USB_OTG_GCCFG_SESSVLD_Pos                (3UL)
 #define USB_OTG_GCCFG_SESSVLD_Msk                (0x1U << USB_OTG_GCCFG_SESSVLD_Pos)          /*!< 0x00000008 */

@@ -108,8 +108,8 @@ static uint8_t Reg1_LastRead_Value = 0x00;
 /** @defgroup TCPP0203_Private_Function_Prototypes TCPP0203 Private Function Prototypes
   * @{
   */
-static int32_t TCPP0203_ReadRegWrap(const void *handle, uint8_t Reg, uint8_t *Data, uint8_t Length);
-static int32_t TCPP0203_WriteRegWrap(const void *handle, uint8_t Reg, uint8_t *Data, uint8_t Length);
+static int32_t TCPP0203_ReadRegWrap(void *handle, uint8_t Reg, uint8_t *Data, uint8_t Length);
+static int32_t TCPP0203_WriteRegWrap(void *handle, uint8_t Reg, uint8_t *Data, uint8_t Length);
 
 static int32_t TCPP0203_ModifyReg0(TCPP0203_Object_t *pObj, uint8_t Value, uint8_t Mask);
 
@@ -777,9 +777,9 @@ int32_t TCPP0203_ReadFlagRegister(TCPP0203_Object_t *pObj, uint8_t *pFlagRegiste
   * @param  Length  buffer size to be read
   * @retval error status
   */
-static int32_t TCPP0203_ReadRegWrap(const void *handle, uint8_t Reg, uint8_t *pData, uint8_t Length)
+static int32_t TCPP0203_ReadRegWrap(void *handle, uint8_t Reg, uint8_t *pData, uint8_t Length)
 {
-  const TCPP0203_Object_t *pObj = (const TCPP0203_Object_t *)handle;
+  TCPP0203_Object_t *pObj = (TCPP0203_Object_t *)handle;
 
   return pObj->IO.ReadReg(pObj->IO.Address, Reg, pData, Length);
 }
@@ -792,9 +792,9 @@ static int32_t TCPP0203_ReadRegWrap(const void *handle, uint8_t Reg, uint8_t *pD
   * @param  Length Buffer size to be written
   * @retval error status
   */
-static int32_t TCPP0203_WriteRegWrap(const void *handle, uint8_t Reg, uint8_t *pData, uint8_t Length)
+static int32_t TCPP0203_WriteRegWrap(void *handle, uint8_t Reg, uint8_t *pData, uint8_t Length)
 {
-  const TCPP0203_Object_t *pObj = (const TCPP0203_Object_t *)handle;
+  TCPP0203_Object_t *pObj = (TCPP0203_Object_t *)handle;
 
 #if defined(TCPP0203_REGISTER_CONSISTENCY_CHECK)
   Reg0_Expected_Value = *pData;

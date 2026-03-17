@@ -15,4 +15,4 @@ target_link_directories(
   Network PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/AI/Lib/GCC/ARMCortexM55)
 
-target_link_libraries(Network PUBLIC :NetworkRuntime1100_CM55_GCC.a)
+target_link_libraries(Network PUBLIC :NetworkRuntime1200_CM55_GCC.a)

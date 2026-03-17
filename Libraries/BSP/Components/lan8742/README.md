@@ -1,6 +1,4 @@
-# BSP LAN8742 Networking Component
-
-![latest tag](https://img.shields.io/github/v/tag/STMicroelectronics/stm32-lan8742.svg?color=brightgreen)
+# BSP LAN8742 Component
 
 ## Overview
 
@@ -19,7 +17,7 @@ Two models of publication are proposed for the STM32Cube embedded software:
 
 ## Description
 
-This **lan8742** MCU component repository is one element **common to all** STM32Cube MCU embedded software packages, providing the **LAN8742** BSP networking component part.
+This **lan8742** MCU component repository is one element **common to all** STM32Cube MCU embedded software packages, providing the **LAN8742** BSP Networking component part.
 
 ## License
 
@@ -29,12 +27,14 @@ This software component is licensed by STMicroelectronics under the **BSD-3-Clau
 
 ## Release note
 
-Details about the content of this release are available in the release note [here](https://htmlpreview.github.io/?https://github.com/STMicroelectronics/stm32-lan8742/blob/main/Release_Notes.html).
+Details about the content of this release are available in the release note [here](https://htmlpreview.github.io/?https://github.com/STMicroelectronics/lan8742/blob/main/Release_Notes.html).
 
 ## Compatibility information
 
-Please refer to the repository of the BSP **board** driver you are using to know which version of this BSP component driver to use. It is **crucial** that you use a consistent set of versions as indicated.
+Please refer to the repository of the BSP **board** driver you are using to know which version of this BSP component driver to use. It is **crucial** that you use a consistent set of versions. It is **crucial** that you use a consistent set of versions as indicated.
 
 ## Troubleshooting
 
-Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) guide.
+If you have any issue with the **software content** of this repository, you can file an issue [here](https://github.com/STMicroelectronics/lan8742/issues/new/choose).
+
+For any other question related to the product, the tools, the environment, you can submit a topic to the [ST Community](https://community.st.com/s/).
