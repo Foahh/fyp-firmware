@@ -1,93 +1,77 @@
 # CLAUDE.md
 
-This file provides guidance to agents when working with code in this repository.
+This file provides guidance to agent when working with code in this repository.
 
 ## Project Overview
 
-Embedded AI camera firmware for the STM32N6570-DK development kit. Runs real-time YOLO-X Nano person detection on a Cortex-M55 MCU with ATON NPU, displaying results on a 5-inch LCD with camera feed overlay.
-
-- MCU: STM32N657xx (Cortex-M55, 480 MHz)
-- RTOS: Azure ThreadX
-- AI Model: YOLO-X Nano (480x480, INT8 quantized)
-- Camera: IMX335 via DCMIPP dual-pipe
-- Display: RK050HR18 LCD (480x272, RGB565)
+Embedded AI vision firmware for the STM32N6570-DK (Cortex-M55, ARMv8.1-M). Captures video from an IMX335 camera, runs real-time person detection via YOLO-X Nano on the ATON NPU, and displays results on an LCD. Runs on ThreadX RTOS.
 
 ## Build Commands
 
-All commands use `build.py` at the project root:
+All commands go through `build.py` at the project root. Requires `STM32CubeCLT` installed and `STM32CLT_PATH` set, plus `cmake`, `ninja`, `arm-none-eabi-*`, `STM32_SigningTool_CLI`, `STM32_Programmer_CLI`, and `stedgeai` on PATH.
 
 ```bash
-python build.py clean      # Remove build artifacts
-python build.py gen        # Generate network model sources/binaries (requires stedgeai)
-python build.py build      # CMake configure + compile + sign + convert to HEX
-python build.py flash      # Flash FSBL, network model, and Appli to device via SWD
+python build.py clean          # Remove build artifacts
+python build.py model          # Generate ATON NPU sources + HEX from TFLite model
+python build.py build          # CMake configure + compile + sign + HEX (both FSBL and Appli)
+python build.py flash          # Flash FSBL, network weights, and Appli via SWD
 ```
 
-Build always targets Release. The pipeline is: CMake/Ninja → ELF → binary → STM32_SigningTool_CLI → HEX.
+`model` and `build` accept `--model / -m` to select a model (default: `yolox_nano`). Note: `build.py` uses `gen` as the subcommand name internally, but README documents it as `model`.
 
-### Required Tools (all must be on PATH)
+## Formatting
 
-- `cmake`, `ninja`
-- `arm-none-eabi-gcc` / `arm-none-eabi-g++` / `arm-none-eabi-objcopy`
-- `STM32_SigningTool_CLI`, `STM32_Programmer_CLI`
-- `stedgeai`
-- Environment variable `STM32CLT_PATH`
+```bash
+bash format.sh                 # clang-format all .c/.h/.cpp/.hpp in Appli/ and FSBL/
+```
+
+Uses `.clang-format` config: LLVM base, 2-space indent, no column limit, braces always inserted, short functions/ifs/loops never on single line.
 
 ## Architecture
 
-### Two-Stage Boot
-
-The firmware is split into two independently built CMake projects:
-
-1. **FSBL** (`FSBL/`) — First Stage Boot Loader. Minimal startup code, initializes clocks and external memory, then jumps to Appli. Linked to AXISRAM2 (~2KB stack).
-2. **Appli** (`Appli/`) — Main application. Contains all runtime logic, ThreadX RTOS, camera pipeline, NN inference, and UI.
-
-Each has its own `CMakeLists.txt`, `CMakePresets.json`, and linker script. The root `CMakeLists.txt` builds both via `ExternalProject`.
+Two-stage boot: **FSBL** (First Stage Boot Loader) initializes external memory and hands off to **Appli** (main application). Both are built as separate CMake ExternalProjects from the root `CMakeLists.txt` using the `gcc-arm-none-eabi` toolchain with Ninja.
 
 ### Flash Memory Map
 
 | Component | Address |
-|-----------|---------|
+|---|---|
 | FSBL | `0x70000000` |
 | Appli | `0x70100000` |
 | Network weights | `0x70380000` |
 
-### Application Threading (Appli/RTOS/)
+### Appli Structure
 
-ThreadX threads with cooperative priorities:
+- `Core/` — HAL init, startup assembly, interrupt handlers, `main.c` entry point
+- `RTOS/` — ThreadX integration (`app_azure_rtos.c`, `app_threadx.c`)
+- `App/` — Application modules:
+  - `app_cam.c` — Camera capture pipeline
+  - `app_nn.c` — Neural network inference thread (ThreadX, priority 6)
+  - `app_postprocess.c` — YOLO-X NMS post-processing (confidence 0.6, IoU 0.5)
+  - `app_lcd.c` — LCD display rendering
+  - `app_ui.c` — UI logic
+  - `app_bqueue.c` — Buffer queue management
+  - `app_buffers.c` — Memory buffer allocation
+  - `app_cpuload.c` — CPU load monitoring
+- `cmake/` — Per-library CMake include files (10 files for each dependency)
 
-- **ISP thread** (priority 5): Camera image signal processing updates
-- **NN thread** (priority 6): Runs YOLO-X inference on ATON NPU
-- **UI thread**: Renders bounding boxes and overlays at 30 FPS
+### Key Libraries (in `Libraries/`)
 
-### Data Pipeline
+- **STM32N6xx_HAL_Driver** — Hardware abstraction
+- **ThreadX** — RTOS (Cortex-M55 secure port)
+- **ll_aton** — ATON NPU runtime for neural network execution
+- **stm32-mw-camera / stm32-mw-isp** — Camera middleware and ISP (IMX335 sensor)
+- **lib_vision_models_pp / ai-postprocessing-wrapper** — YOLO-X post-processing
+- **BSP** — Board support package
+- **vl53l5cx** — Time-of-Flight sensor driver
 
-Camera (IMX335) → DCMIPP dual pipes → ISP → NN inference (ATON NPU) → Post-processing (NMS) → LCD overlay
+### Build Configuration
 
-DCMIPP Pipe 1 feeds the display (480x272 RGB565), Pipe 2 feeds the NN (480x480 cropped).
+- C standard: C23
+- Toolchain: `gcc-arm-none-eabi` with `-mcpu=cortex-m55 -mfpu=fpv5-d16 -mfloat-abi=hard -mcmse`
+- CMake presets in `CMakePresets.json` for Debug/Release
+- Model selection passed as compile define (`MODEL_YOLOX_NANO`) via `-DMODEL_DEFINE` from `build.py`
+- NPU configured for async mode with ThreadX OSAL (`LL_ATON_OSAL_THREADX`, `LL_ATON_RT_ASYNC`)
 
-### Key Application Modules (Appli/App/Src/)
+### Networks
 
-- `app_cam.c` — Camera/ISP init, frame event handling
-- `app_nn.c` — ATON runtime setup, network loading, inference loop
-- `app_postprocess.c` — YOLO-X post-processing (NMS, confidence thresholding)
-- `app_ui.c` — LCD overlay rendering, detection visualization
-- `app_lcd.c` — LCD driver integration
-- `app_buffers.c` / `app_bqueue.c` — Frame buffer memory and queue management
-
-### NN Configuration
-
-- 1 class (person), 3 anchors, multi-scale grids (60x60, 30x30, 15x15)
-- Confidence threshold: 0.6, NMS IoU threshold: 0.5, max 10 detections
-- Model file: `Networks/models/st_yolo_x_nano_480_1.0_0.25_3_int8.tflite`
-- Generated sources go to `Networks/Src/`, binaries to `Networks/Bin/`
-
-### Libraries (Libraries/)
-
-All vendored. Key ones:
-- `AI/` — STEdgeAI runtime (ATON NPU driver + ll_aton)
-- `BSP/` — Board Support Package for STM32N6570-DK
-- `STM32N6xx_HAL_Driver/` — STM32 HAL
-- `threadx/` — Azure ThreadX RTOS
-- `stm32-mw-camera/` / `stm32-mw-isp/` — Camera and ISP middleware
-- `lib_vision_models_pp/` — Vision model post-processing
+Model config lives in `Networks/my_neural_art.json`. The `stedgeai` tool compiles TFLite models (from `models/`) into ATON NPU C sources placed in `Networks/` and a flashable HEX binary.
