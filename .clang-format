@@ -1,2 +1,23 @@
+---
+BasedOnStyle: LLVM
+IndentWidth: 2
 ColumnLimit: 0
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
 InsertBraces: true
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignConsecutiveDeclarations: false
+AlignTrailingComments: true
+AlignEscapedNewlines: Left
+SortIncludes: false
+IncludeBlocks: Preserve
+IndentCaseLabels: true
+SpaceBeforeParens: ControlStatements
+PointerAlignment: Right
+BinPackParameters: false
+BinPackArguments: false
