@@ -43,6 +43,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_COMPILER_FORCED TRUE)
 
 # =============================================================================
+# Root Directory Reference
+# =============================================================================
+get_filename_component(FIRMWARE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+set(LIBRARY_ROOT "${FIRMWARE_ROOT}/Libraries")
+
+# =============================================================================
 # Source Files Configuration
 # =============================================================================
 # Application source files
@@ -57,36 +63,36 @@ set(APPLICATION_SOURCES
 # STM32 HAL/LL Driver source files
 set(STM32_DRIVER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/system_stm32n6xx_fsbl.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_bsec.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_cortex.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc_ex.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_gpio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma_ex.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr_ex.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_exti.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_xspi.c
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_bsec.c
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_cortex.c
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc.c
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc_ex.c
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_gpio.c
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma.c
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma_ex.c
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr.c
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr_ex.c
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal.c
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_exti.c
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_xspi.c
 )
 
 # STM32 External Memory Manager source files
 set(STM32_EXTMEM_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/stm32_extmem.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/boot/stm32_boot_lrun.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/sal/stm32_sal_xspi.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/sal/stm32_sal_sd.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_data.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_driver.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/psram/stm32_psram_driver.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/sdcard/stm32_sdcard_driver.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/user/stm32_user_driver.c
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/stm32_extmem.c
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/boot/stm32_boot_lrun.c
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/sal/stm32_sal_xspi.c
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/sal/stm32_sal_sd.c
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_data.c
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_driver.c
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/psram/stm32_psram_driver.c
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/sdcard/stm32_sdcard_driver.c
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/user/stm32_user_driver.c
 )
 
 # BSP source files
 set(BSP_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/STM32N6570-DK/stm32n6570_discovery.c
+    ${LIBRARY_ROOT}/BSP/STM32N6570-DK/stm32n6570_discovery.c
 )
 
 # =============================================================================
@@ -94,18 +100,18 @@ set(BSP_SOURCES
 # =============================================================================
 set(INCLUDE_DIRECTORIES
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32N6xx_HAL_Driver/Inc/Legacy
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/Device/ST/STM32N6xx/Include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/CMSIS/Include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/boot
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/sal
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/nor_sfdp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/psram
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/sdcard
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/STM32_ExtMem_Manager/user
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/BSP/STM32N6570-DK)
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Inc
+    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Inc/Legacy
+    ${LIBRARY_ROOT}/CMSIS/Device/ST/STM32N6xx/Include
+    ${LIBRARY_ROOT}/CMSIS/Include
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/boot
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/sal
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/nor_sfdp
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/psram
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/sdcard
+    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/user
+    ${LIBRARY_ROOT}/BSP/STM32N6570-DK)
 
 # =============================================================================
 # Compile Definitions

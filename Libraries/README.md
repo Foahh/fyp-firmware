@@ -13,16 +13,15 @@ This file documents where the library files were copied from. Each library’s l
 
 ## Mapping
 
-- `AI`: `STEdgeAI/4.0/Middlewares/ST/AI/`
-
 - `BSP`: `STM32N6Cube/Drivers/BSP/`
 - `CMSIS`: `STM32N6Cube/Drivers/CMSIS/`
 - `Fonts`: `STM32N6Cube/Utilities/Fonts/`
 - `lcd`: `STM32N6Cube/Utilities/lcd/`
 - `STM32_ExtMem_Manager`: `STM32CubeN6/Middlewares/ST/STM32_ExtMem_Manager/`
-
 - `STM32N6xx_HAL_Driver`: `STM32CubeN6/Drivers/STM32N6xx_HAL_Driver/`
 - `threadx`: `STM32CubeN6/Middlewares/ST/threadx/`
+
+- `AI`: `STEdgeAI/4.0/Middlewares/ST/AI/`
 
 - `lib_vision_models_pp`: `STM32N6-GettingStarted-ObjectDetection/Middlewares/lib_vision_models_pp/`
 - `ai-postprocessing-wrapper`: `STM32N6-GettingStarted-ObjectDetection/Middlewares/ai-postprocessing-wrapper/`

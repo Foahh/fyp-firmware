@@ -43,6 +43,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_COMPILER_FORCED TRUE)
 
 # =============================================================================
+# Root Directory Reference
+# =============================================================================
+get_filename_component(FIRMWARE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+set(LIBRARY_ROOT "${FIRMWARE_ROOT}/Libraries")
+
+# =============================================================================
 # Source Files Configuration
 # =============================================================================
 # Core source files
