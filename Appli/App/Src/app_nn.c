@@ -19,13 +19,13 @@
 #include "app_nn.h"
 #include "app_error.h"
 #include "app_nn_config.h"
+#include "model_config.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
 #include <string.h>
 
 /* Include ST.AI runtime API */
 #include "stai.h"
-#include "stai_od_yolo_x_person.h"
 
 /* ============================================================================
  * Forward Declarations
@@ -44,27 +44,24 @@ static void nn_thread_entry(ULONG arg);
 
 /* NN output sizes from model header */
 
-#define NN_OUT0_SIZE STAI_OD_YOLO_X_PERSON_OUT_1_SIZE_BYTES
-#define NN_OUT0_SIZE_ALIGN ALIGN_VALUE(NN_OUT0_SIZE, STAI_OD_YOLO_X_PERSON_OUT_1_ALIGNMENT)
+#define NN_OUT0_SIZE       MDL_NN_OUT_1_SIZE
+#define NN_OUT0_SIZE_ALIGN ALIGN_VALUE(NN_OUT0_SIZE, MDL_NN_OUT_1_ALIGNMENT)
 
-#define NN_OUT1_SIZE STAI_OD_YOLO_X_PERSON_OUT_2_SIZE_BYTES
-#define NN_OUT1_SIZE_ALIGN ALIGN_VALUE(NN_OUT1_SIZE, STAI_OD_YOLO_X_PERSON_OUT_2_ALIGNMENT)
+#define NN_OUT1_SIZE       MDL_NN_OUT_2_SIZE
+#define NN_OUT1_SIZE_ALIGN ALIGN_VALUE(NN_OUT1_SIZE, MDL_NN_OUT_2_ALIGNMENT)
 
-#define NN_OUT2_SIZE STAI_OD_YOLO_X_PERSON_OUT_3_SIZE_BYTES
-#define NN_OUT2_SIZE_ALIGN ALIGN_VALUE(NN_OUT2_SIZE, STAI_OD_YOLO_X_PERSON_OUT_3_ALIGNMENT)
+#define NN_OUT2_SIZE       MDL_NN_OUT_3_SIZE
+#define NN_OUT2_SIZE_ALIGN ALIGN_VALUE(NN_OUT2_SIZE, MDL_NN_OUT_3_ALIGNMENT)
 
-/* Total output buffer size */
 #define NN_OUT_BUFFER_SIZE (NN_OUT0_SIZE_ALIGN + NN_OUT1_SIZE_ALIGN + NN_OUT2_SIZE_ALIGN)
-
-/* NN input buffer size */
-#define NN_INPUT_SIZE (NN_WIDTH * NN_HEIGHT * NN_BPP)
+#define NN_INPUT_SIZE      (NN_WIDTH * NN_HEIGHT * NN_BPP)
 
 /* ============================================================================
  * Global State Variables
  * ============================================================================ */
 
 /* Declare NN context */
-STAI_NETWORK_CONTEXT_DECLARE(nn_ctx_od_yolo_x_person, STAI_OD_YOLO_X_PERSON_CONTEXT_SIZE)
+MDL_CONTEXT_DECLARE(nn_ctx_network)
 
 /* Thread resources */
 static struct {
@@ -103,13 +100,13 @@ static void NN_RunInference(stai_network *network) {
   stai_return_code ret;
 
   do {
-    ret = stai_od_yolo_x_person_run(network, STAI_MODE_ASYNC);
+    ret = mdl_run(network, STAI_MODE_ASYNC);
     if (ret == STAI_RUNNING_WFE) {
       LL_ATON_OSAL_WFE();
     }
   } while (ret == STAI_RUNNING_WFE || ret == STAI_RUNNING_NO_WFE);
 
-  ret = stai_ext_od_yolo_x_person_new_inference(network);
+  ret = mdl_new_inference(network);
   APP_REQUIRE(ret == STAI_SUCCESS);
 }
 
@@ -160,19 +157,19 @@ static void nn_thread_entry(ULONG arg) {
 
     /* Set input buffer */
     stai_ptr nn_in = capture_buffer;
-    stai_ret = stai_od_yolo_x_person_set_inputs(nn_ctx_od_yolo_x_person, &nn_in, 1);
+    stai_ret = mdl_set_inputs(nn_ctx_network, &nn_in, 1);
     APP_REQUIRE(stai_ret == STAI_SUCCESS);
 
     /* Invalidate output buffer before hardware access */
     SCB_InvalidateDCache_by_Addr(output_buffer, NN_OUT_BUFFER_SIZE);
 
     /* Set output buffers */
-    stai_ret = stai_od_yolo_x_person_set_outputs(nn_ctx_od_yolo_x_person, out_ptrs, NN_OUT_NB);
+    stai_ret = mdl_set_outputs(nn_ctx_network, out_ptrs, NN_OUT_NB);
     APP_REQUIRE(stai_ret == STAI_SUCCESS);
 
     /* Run inference */
     ts = HAL_GetTick();
-    NN_RunInference(nn_ctx_od_yolo_x_person);
+    NN_RunInference(nn_ctx_network);
     nn_timing.inference_ms = HAL_GetTick() - ts;
 
     /* Release input buffer back to free pool */
@@ -255,11 +252,11 @@ void NN_Thread_Start(VOID *memory_ptr) {
   APP_REQUIRE(stai_ret == STAI_SUCCESS);
 
   /* Initialize network */
-  stai_ret = stai_od_yolo_x_person_init(nn_ctx_od_yolo_x_person);
+  stai_ret = mdl_init(nn_ctx_network);
   APP_REQUIRE(stai_ret == STAI_SUCCESS);
 
   /* Get network info */
-  stai_ret = stai_od_yolo_x_person_get_info(nn_ctx_od_yolo_x_person, &nn_info);
+  stai_ret = mdl_get_info(nn_ctx_network, &nn_info);
   APP_REQUIRE(stai_ret == STAI_SUCCESS);
   APP_REQUIRE(nn_info.n_inputs == 1);
   APP_REQUIRE(nn_info.n_outputs == NN_OUT_NB);

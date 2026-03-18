@@ -31,3 +31,6 @@ target_include_directories(
 
 add_library(AI_NPU STATIC ${AI_NPU_SOURCES})
 target_link_libraries(AI_NPU PUBLIC stm32_interface threadx STM32_Drivers)
+
+# TODO: Handle warnings from the AI NPU library
+target_compile_options(AI_NPU PRIVATE -w)

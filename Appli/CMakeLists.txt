@@ -82,6 +82,13 @@ set(INCLUDE_DIRECTORIES
     ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Inc)
 
 # =============================================================================
+# Model Selection
+# =============================================================================
+if(NOT DEFINED MODEL_DEFINE)
+  message(FATAL_ERROR "MODEL_DEFINE is not set. Pass -DMODEL_DEFINE=<MODEL_xxx> from build.py.")
+endif()
+
+# =============================================================================
 # Compile Definitions
 # =============================================================================
 set(COMPILE_DEFINITIONS
@@ -96,7 +103,8 @@ set(COMPILE_DEFINITIONS
     LL_ATON_RT_MODE=LL_ATON_RT_ASYNC
     APP_HAS_PARALLEL_NETWORKS=0
     LL_ATON_SW_FALLBACK
-    LL_ATON_DBG_BUFFER_INFO_EXCLUDED=1)
+    LL_ATON_DBG_BUFFER_INFO_EXCLUDED=1
+    ${MODEL_DEFINE})
 
 # =============================================================================
 # Interface Library for Common Configuration

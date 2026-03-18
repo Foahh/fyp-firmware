@@ -28,7 +28,7 @@
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"
 #include "tx_user.h" /* For TX_TIMER_TICKS_PER_SECOND */
-#include "utils.h"
+#include "model_config.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -94,9 +94,8 @@ static const uint32_t detection_colors[NUMBER_COLORS] = {
     0xFFFFA500, /* Orange */
 };
 
-/* Class names table - single class for person detection */
-static const char *classes_table[] = {"person"};
-#define NB_CLASSES (sizeof(classes_table) / sizeof(classes_table[0]))
+/* Class names table — from model config */
+#define NB_CLASSES (sizeof(MDL_PP_CLASS_LABELS) / sizeof(MDL_PP_CLASS_LABELS[0]))
 
 /* ============================================================================
  * Pre-computed Layout Constants
@@ -286,7 +285,7 @@ static void draw_detection(const od_pp_outBuffer_t *det,
   /* Draw class label */
   if (class_idx < (int)NB_CLASSES) {
     UTIL_LCD_DisplayStringAt(x0 + 2, y0 + 2,
-                             (uint8_t *)classes_table[class_idx], LEFT_MODE);
+                             (uint8_t *)MDL_PP_CLASS_LABELS[class_idx], LEFT_MODE);
   }
 
   /* Draw confidence */

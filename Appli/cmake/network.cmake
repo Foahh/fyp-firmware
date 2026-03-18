@@ -1,9 +1,13 @@
 # =============================================================================
 # Network Library
 # =============================================================================
+if(NOT DEFINED NETWORK_NAME)
+  message(FATAL_ERROR "NETWORK_NAME is not defined. Pass -DNETWORK_NAME=<name> from build.py.")
+endif()
+
 set(NETWORK_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Networks/Src/od_yolo_x_person.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Networks/Src/stai_od_yolo_x_person.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Networks/Src/${NETWORK_NAME}.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Networks/Src/stai_${NETWORK_NAME}.c)
 
 target_include_directories(
   stm32_interface INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../Networks/Src)

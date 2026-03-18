@@ -21,13 +21,19 @@
 #include "app_error.h"
 #include "app_nn.h"
 #include "app_nn_config.h"
+#include "model_config.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
 #include <string.h>
 
 /* Include library headers */
-#include "od_st_yolox_pp_if.h"
 #include "stai.h"
+
+#if MDL_PP_TYPE == POSTPROCESS_OD_ST_YOLOX_UI
+#include "od_st_yolox_pp_if.h"
+#elif MDL_PP_TYPE == POSTPROCESS_OD_YOLO_V8_UI
+#include "od_yolov8_pp_if.h"
+#endif
 
 /* Forward declarations for library functions */
 int32_t app_postprocess_init(void *params_postprocess, stai_network_info *NN_Info);
@@ -65,8 +71,12 @@ static detection_info_t detection_info_buffers[2];
 static volatile detection_info_t *detection_info_read_ptr = &detection_info_buffers[0];
 static int write_buffer_idx = 1;
 
-/* Postprocess parameters */
+/* Postprocess parameters (type depends on selected model) */
+#if MDL_PP_TYPE == POSTPROCESS_OD_ST_YOLOX_UI
 static od_st_yolox_pp_static_param_t pp_params;
+#elif MDL_PP_TYPE == POSTPROCESS_OD_YOLO_V8_UI
+static od_yolov8_pp_static_param_t pp_params;
+#endif
 
 /* ============================================================================
  * Thread Entry Points

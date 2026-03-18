@@ -31,7 +31,7 @@ extern "C" {
 #include <stdint.h>
 
 /* Maximum detections to display */
-#define DETECTION_MAX_BOXES AI_OD_ST_YOLOX_PP_MAX_BOXES_LIMIT
+#define DETECTION_MAX_BOXES MDL_PP_MAX_BOXES
 
 /**
  * @brief  Detection info shared between postprocess and display threads
