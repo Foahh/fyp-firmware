@@ -47,6 +47,8 @@ set(CMAKE_CXX_COMPILER_FORCED TRUE)
 # =============================================================================
 get_filename_component(FIRMWARE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 set(LIBRARY_ROOT "${FIRMWARE_ROOT}/Libraries")
+set(EXTERNAL_ROOT "${FIRMWARE_ROOT}/External")
+set(STM32CUBE_ROOT "${EXTERNAL_ROOT}/STM32CubeN6")
 
 # =============================================================================
 # Source Files Configuration

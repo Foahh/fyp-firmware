@@ -1,0 +1,12 @@
+[submodule "External/STM32CubeN6"]
+	path = External/STM32CubeN6
+	url = https://github.com/STMicroelectronics/STM32CubeN6.git
+[submodule "External/stm32-mw-camera"]
+	path = External/stm32-mw-camera
+	url = https://github.com/STMicroelectronics/stm32-mw-camera.git
+[submodule "External/stm32-mw-isp"]
+	path = External/stm32-mw-isp
+	url = https://github.com/STMicroelectronics/stm32-mw-isp.git
+[submodule "External/stm32-vl53l5cx"]
+	path = External/stm32-vl53l5cx
+	url = https://github.com/STMicroelectronics/stm32-vl53l5cx.git

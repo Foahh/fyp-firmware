@@ -47,6 +47,8 @@ set(CMAKE_CXX_COMPILER_FORCED TRUE)
 # =============================================================================
 get_filename_component(FIRMWARE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 set(LIBRARY_ROOT "${FIRMWARE_ROOT}/Libraries")
+set(EXTERNAL_ROOT "${FIRMWARE_ROOT}/External")
+set(STM32CUBE_ROOT "${EXTERNAL_ROOT}/STM32CubeN6")
 
 # =============================================================================
 # Source Files Configuration
@@ -63,55 +65,53 @@ set(APPLICATION_SOURCES
 # STM32 HAL/LL Driver source files
 set(STM32_DRIVER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/system_stm32n6xx_fsbl.c
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_bsec.c
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_cortex.c
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc.c
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc_ex.c
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_gpio.c
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma.c
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma_ex.c
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr.c
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr_ex.c
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal.c
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_exti.c
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_xspi.c
-)
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_bsec.c
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_cortex.c
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc.c
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc_ex.c
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_gpio.c
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma.c
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma_ex.c
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr.c
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr_ex.c
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal.c
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_exti.c
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_xspi.c)
 
 # STM32 External Memory Manager source files
 set(STM32_EXTMEM_SOURCES
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/stm32_extmem.c
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/boot/stm32_boot_lrun.c
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/sal/stm32_sal_xspi.c
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/sal/stm32_sal_sd.c
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_data.c
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_driver.c
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/psram/stm32_psram_driver.c
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/sdcard/stm32_sdcard_driver.c
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/user/stm32_user_driver.c
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/boot/stm32_boot_lrun.c
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/sal/stm32_sal_xspi.c
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/sal/stm32_sal_sd.c
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_data.c
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_driver.c
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/psram/stm32_psram_driver.c
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/sdcard/stm32_sdcard_driver.c
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c
 )
 
 # BSP source files
 set(BSP_SOURCES
-    ${LIBRARY_ROOT}/BSP/STM32N6570-DK/stm32n6570_discovery.c
-)
+    ${STM32CUBE_ROOT}/Drivers/BSP/STM32N6570-DK/stm32n6570_discovery.c)
 
 # =============================================================================
 # Include Directories Configuration
 # =============================================================================
 set(INCLUDE_DIRECTORIES
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Inc
-    ${LIBRARY_ROOT}/STM32N6xx_HAL_Driver/Inc/Legacy
-    ${LIBRARY_ROOT}/CMSIS/Device/ST/STM32N6xx/Include
-    ${LIBRARY_ROOT}/CMSIS/Include
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/boot
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/sal
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/nor_sfdp
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/psram
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/sdcard
-    ${LIBRARY_ROOT}/STM32_ExtMem_Manager/user
-    ${LIBRARY_ROOT}/BSP/STM32N6570-DK)
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/boot
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/sal
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/nor_sfdp
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/psram
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/sdcard
+    ${STM32CUBE_ROOT}/Middlewares/ST/STM32_ExtMem_Manager/user
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Inc
+    ${STM32CUBE_ROOT}/Drivers/STM32N6xx_HAL_Driver/Inc/Legacy
+    ${STM32CUBE_ROOT}/Drivers/CMSIS/Device/ST/STM32N6xx/Include
+    ${STM32CUBE_ROOT}/Drivers/CMSIS/Include
+    ${STM32CUBE_ROOT}/Drivers/BSP/STM32N6570-DK)
 
 # =============================================================================
 # Compile Definitions
