@@ -70,12 +70,12 @@ void CAM_ISP_Thread_Start(VOID *memory_ptr);
  * @brief  NN crop ROI information in display coordinates
  */
 typedef struct {
-  int roi_x0;  /**< X coordinate of top-left corner (relative to letterbox) */
-  int roi_y0;  /**< Y coordinate of top-left corner */
-  int roi_x1;  /**< X coordinate of bottom-right corner (relative to letterbox) */
-  int roi_y1;  /**< Y coordinate of bottom-right corner */
-  int roi_w;   /**< ROI width */
-  int roi_h;   /**< ROI height */
+  int roi_x0; /**< X coordinate of top-left corner (relative to letterbox) */
+  int roi_y0; /**< Y coordinate of top-left corner */
+  int roi_x1; /**< X coordinate of bottom-right corner (relative to letterbox) */
+  int roi_y1; /**< Y coordinate of bottom-right corner */
+  int roi_w;  /**< ROI width */
+  int roi_h;  /**< ROI height */
 } nn_crop_info_display_t;
 
 /**

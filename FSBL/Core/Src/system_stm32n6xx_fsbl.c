@@ -157,13 +157,13 @@ uint32_t SystemCoreClock = HSI_VALUE;
 
 #if defined(__ICCARM__)
 extern uint32_t __vector_table;
-#define INTVECT_START ((uint32_t)&__vector_table)
+#define INTVECT_START ((uint32_t) & __vector_table)
 #elif defined(__ARMCC_VERSION)
 extern void *__Vectors;
-#define INTVECT_START ((uint32_t)&__Vectors)
+#define INTVECT_START ((uint32_t) & __Vectors)
 #elif defined(__GNUC__)
 extern void *g_pfnVectors;
-#define INTVECT_START ((uint32_t)&g_pfnVectors)
+#define INTVECT_START ((uint32_t) & g_pfnVectors)
 #endif
 
 /**

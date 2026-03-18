@@ -52,7 +52,7 @@ static void isp_thread_entry(ULONG arg);
 
 /* ISP update thread configuration */
 #define ISP_THREAD_STACK_SIZE 2048
-#define ISP_THREAD_PRIORITY 5
+#define ISP_THREAD_PRIORITY   5
 
 /* ============================================================================
  * Global State Variables

@@ -24,8 +24,8 @@ extern "C" {
 #endif
 
 #include "tx_api.h"
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /* Maximum number of buffers in a queue */
 #define BQUEUE_MAX_BUFFERS 4

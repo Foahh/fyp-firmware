@@ -31,15 +31,15 @@ extern "C" {
 */
 
 #define EXTMEM_DRIVER_NOR_SFDP 1
-#define EXTMEM_DRIVER_PSRAM 0
-#define EXTMEM_DRIVER_SDCARD 0
-#define EXTMEM_DRIVER_USER 0
+#define EXTMEM_DRIVER_PSRAM    0
+#define EXTMEM_DRIVER_SDCARD   0
+#define EXTMEM_DRIVER_USER     0
 
 /*
   @brief management of the sal layer enable
 */
 #define EXTMEM_SAL_XSPI 1
-#define EXTMEM_SAL_SD 0
+#define EXTMEM_SAL_SD   0
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32n6xx_hal.h"
@@ -64,11 +64,11 @@ enum {
 */
 #define EXTMEM_HEADER_OFFSET 0x400
 
-#define EXTMEM_LRUN_SOURCE EXTMEMORY_1
-#define EXTMEM_LRUN_SOURCE_ADDRESS 0x00100000u
-#define EXTMEM_LRUN_SOURCE_SIZE 0x10000u
+#define EXTMEM_LRUN_SOURCE               EXTMEMORY_1
+#define EXTMEM_LRUN_SOURCE_ADDRESS       0x00100000u
+#define EXTMEM_LRUN_SOURCE_SIZE          0x10000u
 #define EXTMEM_LRUN_DESTINATION_INTERNAL 1
-#define EXTMEM_LRUN_DESTINATION_ADDRESS 0x34000000u
+#define EXTMEM_LRUN_DESTINATION_ADDRESS  0x34000000u
 
 /* Exported configuration --------------------------------------------------------*/
 /** @defgroup EXTMEM_CONF_Exported_configuration EXTMEM_CONF exported configuration definition

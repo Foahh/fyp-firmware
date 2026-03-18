@@ -41,6 +41,7 @@ MODELS = {
 
 DEFAULT_MODEL = "yolox_nano"
 
+
 def resolve_model(args):
     key = getattr(args, "model", DEFAULT_MODEL) or DEFAULT_MODEL
     if key not in MODELS:

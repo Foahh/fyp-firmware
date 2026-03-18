@@ -50,11 +50,11 @@ static inline void APP_Panic(const char *file, uint32_t line) {
  *         Unlike assert(), this is always enabled.
  */
 #ifdef NDEBUG
-#define APP_REQUIRE(cond)                      \
-  do {                                         \
-    if (!(cond)) {                             \
-      APP_Panic(NULL, 0);                      \
-    }                                          \
+#define APP_REQUIRE(cond) \
+  do {                    \
+    if (!(cond)) {        \
+      APP_Panic(NULL, 0); \
+    }                     \
   } while (0)
 #else
 #define APP_REQUIRE(cond)                      \

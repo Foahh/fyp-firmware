@@ -40,7 +40,7 @@ static void nn_thread_entry(ULONG arg);
 
 /* Thread configuration */
 #define NN_THREAD_STACK_SIZE 4096
-#define NN_THREAD_PRIORITY 6
+#define NN_THREAD_PRIORITY   6
 
 /* NN output sizes from model header */
 

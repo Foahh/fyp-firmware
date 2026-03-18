@@ -40,10 +40,10 @@ static void GPIO_Config(void);
 /* ============================================================================
  * OTP Configuration Constants
  * ============================================================================ */
-#define BSEC_HW_CONFIG_ID 124U
+#define BSEC_HW_CONFIG_ID    124U
 #define BSEC_HWS_HSLV_VDDIO3 (1U << 15)
 #define BSEC_HWS_HSLV_VDDIO2 (1U << 16)
-#define BSEC_HWS_HSLV_MASK (BSEC_HWS_HSLV_VDDIO3 | BSEC_HWS_HSLV_VDDIO2)
+#define BSEC_HWS_HSLV_MASK   (BSEC_HWS_HSLV_VDDIO3 | BSEC_HWS_HSLV_VDDIO2)
 
 /* ============================================================================
  * Main Function

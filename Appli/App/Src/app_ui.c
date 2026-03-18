@@ -19,16 +19,16 @@
 #include "app_ui.h"
 #include "app_buffers.h"
 #include "app_cam.h"
-#include "app_lcd_config.h"
 #include "app_cpuload.h"
 #include "app_error.h"
 #include "app_lcd.h"
+#include "app_lcd_config.h"
 #include "app_postprocess.h"
+#include "model_config.h"
 #include "stm32_lcd.h"
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"
 #include "tx_user.h" /* For TX_TIMER_TICKS_PER_SECOND */
-#include "model_config.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -50,27 +50,27 @@ static void draw_detection(const od_pp_outBuffer_t *det,
  * ============================================================================ */
 
 /* Panel geometry - left side of screen */
-#define UI_PANEL_X0 0
-#define UI_PANEL_Y0 0
-#define UI_PANEL_WIDTH 160  /* Width matches DISPLAY_LETTERBOX_X0 */
+#define UI_PANEL_X0     0
+#define UI_PANEL_Y0     0
+#define UI_PANEL_WIDTH  160 /* Width matches DISPLAY_LETTERBOX_X0 */
 #define UI_PANEL_HEIGHT 480
 
 /* Text layout */
 #define UI_TEXT_MARGIN_X 8
 #define UI_TEXT_MARGIN_Y 8
-#define UI_LINE_SPACING 4
-#define UI_FONT_HEIGHT 16 /* Cache Font16.Height to avoid struct access */
+#define UI_LINE_SPACING  4
+#define UI_FONT_HEIGHT   16 /* Cache Font16.Height to avoid struct access */
 
 /* Colors (ARGB8888 format) */
-#define UI_COLOR_BG 0xC0000000     /* Semi-transparent black */
-#define UI_COLOR_TEXT 0xFF00FF00   /* Bright green (terminal style) */
-#define UI_COLOR_LABEL 0xFF808080  /* Gray for labels */
-#define UI_COLOR_VALUE 0xFFFFFFFF  /* White for values */
+#define UI_COLOR_BG     0xC0000000 /* Semi-transparent black */
+#define UI_COLOR_TEXT   0xFF00FF00 /* Bright green (terminal style) */
+#define UI_COLOR_LABEL  0xFF808080 /* Gray for labels */
+#define UI_COLOR_VALUE  0xFFFFFFFF /* White for values */
 #define UI_COLOR_BAR_BG 0xFF202020 /* Dark gray bar background */
 #define UI_COLOR_BAR_FG 0xFF00CC00 /* Green bar fill */
 
 /* Buffer sizes */
-#define UI_TEXT_BUFFER_SIZE 64
+#define UI_TEXT_BUFFER_SIZE    64
 #define UI_PROGRESS_BAR_HEIGHT 12
 
 /* Update rate for periodic diagnostic updates */
@@ -145,11 +145,11 @@ static volatile uint8_t g_detection_update_pending = 0;
 
 /* UI update thread */
 #define UI_THREAD_STACK_SIZE 4096
-#define UI_THREAD_PRIORITY 9
+#define UI_THREAD_PRIORITY   9
 
 /* Idle measurement thread */
 #define IDLE_THREAD_STACK_SIZE 512
-#define IDLE_THREAD_PRIORITY 31 /* Lowest priority (runs when truly idle) */
+#define IDLE_THREAD_PRIORITY   31 /* Lowest priority (runs when truly idle) */
 
 /* Thread resources */
 static struct {
@@ -402,8 +402,7 @@ static void UI_DrawDetectionInfoSection(const detection_info_t *info) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[13],
                            (uint8_t *)"Overhead", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
-  uint32_t overhead_ms = info->nn_period_ms > info->inference_ms ? 
-                         info->nn_period_ms - info->inference_ms : 0;
+  uint32_t overhead_ms = info->nn_period_ms > info->inference_ms ? info->nn_period_ms - info->inference_ms : 0;
   snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)overhead_ms);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[14],
                            (uint8_t *)text_buf, LEFT_MODE);

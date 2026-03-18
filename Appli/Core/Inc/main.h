@@ -25,10 +25,10 @@ extern "C" {
 #endif
 
 #if defined(__ICCARM__)
-#define CMSE_NS_CALL __cmse_nonsecure_call
+#define CMSE_NS_CALL  __cmse_nonsecure_call
 #define CMSE_NS_ENTRY __cmse_nonsecure_entry
 #else
-#define CMSE_NS_CALL __attribute((cmse_nonsecure_call))
+#define CMSE_NS_CALL  __attribute((cmse_nonsecure_call))
 #define CMSE_NS_ENTRY __attribute((cmse_nonsecure_entry))
 #endif
 

@@ -21,7 +21,7 @@
 #include "memory.h"
 
 #define HEADER_V2_3_IMG_SIZE_OFFSET 108
-#define HEADER_V2_3_SIZE 1024
+#define HEADER_V2_3_SIZE            1024
 
 uint32_t BOOT_GetApplicationSize(uint32_t img_addr) {
   uint32_t img_size;

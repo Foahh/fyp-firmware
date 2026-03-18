@@ -30,13 +30,13 @@ extern "C" {
 #include "stm32n6xx_hal.h"
 
 /* COM defines */
-#define USE_COM_LOG 0U
+#define USE_COM_LOG         0U
 #define USE_BSP_COM_FEATURE 0U
 
 /* Touch Sensing controller defines */
 #define USE_FT5336_TS_CTRL 1U
 /* TS supported features defines */
-#define USE_TS_GESTURE 1U
+#define USE_TS_GESTURE     1U
 #define USE_TS_MULTI_TOUCH 1U
 /* Default TS touch number */
 #define TS_TOUCH_NBR 2U
@@ -60,22 +60,22 @@ extern "C" {
 #define DEFAULT_AUDIO_IN_BUFFER_SIZE 2048U
 
 /* IRQ priorities (Default is 15 as lowest priority level) */
-#define BSP_SDRAM_IT_PRIORITY 15U
+#define BSP_SDRAM_IT_PRIORITY        15U
 #define BSP_BUTTON_USER1_IT_PRIORITY 15U
 #define BSP_BUTTON_USER2_IT_PRIORITY 15U
-#define BSP_BUTTON_TAMP_IT_PRIORITY 15U
-#define BSP_AUDIO_OUT_IT_PRIORITY 14U
-#define BSP_AUDIO_IN_IT_PRIORITY 15U
-#define BSP_SD_IT_PRIORITY 14U
-#define BSP_SD_RX_IT_PRIORITY 14U
-#define BSP_SD_TX_IT_PRIORITY 15U
-#define BSP_TS_IT_PRIORITY 15U
+#define BSP_BUTTON_TAMP_IT_PRIORITY  15U
+#define BSP_AUDIO_OUT_IT_PRIORITY    14U
+#define BSP_AUDIO_IN_IT_PRIORITY     15U
+#define BSP_SD_IT_PRIORITY           14U
+#define BSP_SD_RX_IT_PRIORITY        14U
+#define BSP_SD_TX_IT_PRIORITY        15U
+#define BSP_TS_IT_PRIORITY           15U
 
-#define BSP_CAMERA_ISP_DEFAULT_WHITE_BALANCE 255U
-#define BSP_CAMERA_ISP_DEFAULT_EXPOSURE 128U
-#define BSP_CAMERA_ISP_DEFAULT_CONTRAST 130U
+#define BSP_CAMERA_ISP_DEFAULT_WHITE_BALANCE  255U
+#define BSP_CAMERA_ISP_DEFAULT_EXPOSURE       128U
+#define BSP_CAMERA_ISP_DEFAULT_CONTRAST       130U
 #define BSP_CAMERA_ISP_STATISTICS_AREA_HEIGHT 1940
-#define BSP_CAMERA_ISP_STATISTICS_AREA_WIDTH 2592
+#define BSP_CAMERA_ISP_STATISTICS_AREA_WIDTH  2592
 
 #ifdef __cplusplus
 }

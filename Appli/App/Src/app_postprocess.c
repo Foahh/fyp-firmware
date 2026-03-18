@@ -51,7 +51,7 @@ static void pp_thread_entry(ULONG arg);
 
 /* Thread configurations */
 #define PP_THREAD_STACK_SIZE 4096
-#define PP_THREAD_PRIORITY 7
+#define PP_THREAD_PRIORITY   7
 
 /* ============================================================================
  * Global State Variables
