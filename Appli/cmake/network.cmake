@@ -2,7 +2,9 @@
 # Network Library
 # =============================================================================
 if(NOT DEFINED NETWORK_NAME)
-  message(FATAL_ERROR "NETWORK_NAME is not defined. Pass -DNETWORK_NAME=<name> from build.py.")
+  message(
+    FATAL_ERROR
+      "NETWORK_NAME is not defined. Pass -DNETWORK_NAME=<name> from build.py.")
 endif()
 
 set(NETWORK_SOURCES

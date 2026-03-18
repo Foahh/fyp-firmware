@@ -58,9 +58,8 @@ set(CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/syscalls.c)
 
 # RTOS source files
-set(RTOS_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_azure_rtos.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_threadx.c)
+set(RTOS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_azure_rtos.c
+                 ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_threadx.c)
 
 # App source files
 set(APP_SOURCES
@@ -77,15 +76,16 @@ set(APP_SOURCES
 # Include Directories Configuration
 # =============================================================================
 set(INCLUDE_DIRECTORIES
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Inc)
 
 # =============================================================================
 # Model Selection
 # =============================================================================
 if(NOT DEFINED MODEL_DEFINE)
-  message(FATAL_ERROR "MODEL_DEFINE is not set. Pass -DMODEL_DEFINE=<MODEL_xxx> from build.py.")
+  message(
+    FATAL_ERROR
+      "MODEL_DEFINE is not set. Pass -DMODEL_DEFINE=<MODEL_xxx> from build.py.")
 endif()
 
 # =============================================================================
@@ -133,24 +133,27 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/network.cmake)
 add_executable(${PROJECT_NAME})
 
 # Application sources
-target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES} ${APP_SOURCES} ${RTOS_SOURCES})
+target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES} ${APP_SOURCES}
+                                       ${RTOS_SOURCES})
 
-# Include directories and compile definitions are inherited from stm32_interface via linked libraries
+# Include directories and compile definitions are inherited from stm32_interface
+# via linked libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE stm32_interface)
 
 # Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    STM32_Drivers
-    threadx
-    CMW_Camera
-    ISP_Library
-    BSP
-    LCD
-    AI_Postprocessing
-    AI_NPU
-    VL53L5CX
-    Network
-    ${TOOLCHAIN_LINK_LIBRARIES})
+target_link_libraries(
+  ${PROJECT_NAME}
+  PRIVATE STM32_Drivers
+          threadx
+          CMW_Camera
+          ISP_Library
+          BSP
+          LCD
+          AI_Postprocessing
+          AI_NPU
+          VL53L5CX
+          Network
+          ${TOOLCHAIN_LINK_LIBRARIES})
 
 # Link options
 target_link_options(${PROJECT_NAME} PRIVATE -u _printf_float)
