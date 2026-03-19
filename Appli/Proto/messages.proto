@@ -1,0 +1,37 @@
+syntax = "proto3";
+import "nanopb.proto";
+
+message Timing {
+  uint32 inference_ms   = 1;
+  uint32 postprocess_ms = 2;
+  uint32 nn_period_ms   = 3;
+}
+
+message Detection {
+  float x_center    = 1;
+  float y_center    = 2;
+  float width       = 3;
+  float height      = 4;
+  float conf        = 5;
+  int32 class_index = 6;
+}
+
+message DetectionResult {
+  uint32 timestamp              = 1;
+  Timing timing                 = 2;
+  repeated Detection detections = 3 [(nanopb).max_count = 10];
+}
+
+message ImageTransfer {
+  uint32 width      = 1;
+  uint32 height     = 2;
+  uint32 channels   = 3;
+  bytes pixel_data  = 4 [(nanopb).max_size = 1024];
+}
+
+message DatalogMessage {
+  oneof payload {
+    DetectionResult detection_result = 1;
+    ImageTransfer   image_transfer   = 2;
+  }
+}

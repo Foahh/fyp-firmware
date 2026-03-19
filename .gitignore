@@ -8,3 +8,5 @@ cmake-build-debug/
 .flash_history
 *.local.json
 __pycache__/
+.venv/
+docs/

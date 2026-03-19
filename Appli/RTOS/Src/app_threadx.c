@@ -19,6 +19,7 @@
 #include "app_threadx.h"
 
 #include "app_cam.h"
+#include "app_comm.h"
 #include "app_error.h"
 #include "app_nn.h"
 #include "app_postprocess.h"
@@ -50,6 +51,8 @@ UINT ThreadX_Start(VOID *memory_ptr) {
   NN_Thread_Start(memory_ptr);
 
   Postprocess_Thread_Start(memory_ptr);
+
+  Comm_Thread_Start();
 
   UI_Thread_Start();
 

@@ -10,3 +10,6 @@
 [submodule "External/stm32-vl53l5cx"]
 	path = External/stm32-vl53l5cx
 	url = https://github.com/STMicroelectronics/stm32-vl53l5cx.git
+[submodule "External/nanopb"]
+	path = External/nanopb
+	url = https://github.com/nanopb/nanopb.git

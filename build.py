@@ -92,7 +92,7 @@ def main():
         cmd_model(PROJECT_ROOT, resolve_model(args), NETWORK_BIN_ADDRESS)
     elif args.command == "build":
         cmd_build(
-            PROJECT_ROOT, PROJECTS, resolve_model(args), BUILD_TYPE, PROJECT_NAME_PREFIX
+            PROJECT_ROOT, PROJECTS, resolve_model(args), BUILD_TYPE, PROJECT_NAME_PREFIX,
         )
     elif args.command == "flash":
         cmd_flash(PROJECT_ROOT, BUILD_TYPE, PROJECT_NAME_PREFIX)

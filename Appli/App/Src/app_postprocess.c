@@ -18,6 +18,7 @@
 
 #include "app_postprocess.h"
 #include "app_bqueue.h"
+#include "app_datalog.h"
 #include "app_error.h"
 #include "app_nn.h"
 #include "app_nn_config.h"
@@ -150,6 +151,9 @@ static void pp_thread_entry(ULONG arg) {
 
     /* Signal overlay thread */
     Postprocess_SignalUpdate();
+
+    /* Send diagnostics */
+    Datalog_Send_DetectionResult(write_buf);
   }
 }
 

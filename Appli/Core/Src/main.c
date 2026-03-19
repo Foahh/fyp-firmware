@@ -21,6 +21,7 @@
 #include "app_bqueue.h"
 #include "app_buffers.h"
 #include "app_cam.h"
+#include "app_datalog.h"
 #include "app_error.h"
 #include "app_lcd.h"
 #include "app_nn.h"

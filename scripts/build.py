@@ -76,16 +76,19 @@ def cmd_build(project_root, projects, model, build_type, name_prefix):
     print(f"Building firmware (model: {model['define']})")
 
     build_project(project_root, "FSBL", projects["FSBL"], build_type, name_prefix)
+
+    appli_cmake_args = [
+        f"-DMODEL_DEFINE={model['define']}",
+        f"-DNETWORK_NAME={model['network_name']}",
+    ]
+
     build_project(
         project_root,
         "Appli",
         projects["Appli"],
         build_type,
         name_prefix,
-        extra_cmake_args=[
-            f"-DMODEL_DEFINE={model['define']}",
-            f"-DNETWORK_NAME={model['network_name']}",
-        ],
+        extra_cmake_args=appli_cmake_args,
     )
 
     print("\n=== Build completed successfully ===")

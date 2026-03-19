@@ -74,10 +74,12 @@ set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_bqueue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_buffers.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cam.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cpuload.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_lcd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_nn.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_postprocess.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_datalog.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_ui.c)
 
 # =============================================================================
@@ -135,6 +137,8 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ai_npu.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/vl53l5cx.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/network.cmake)
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nanopb.cmake)
+
 # =============================================================================
 # Main Executable
 # =============================================================================
@@ -161,6 +165,7 @@ target_link_libraries(
           AI_NPU
           VL53L5CX
           Network
+          Nanopb
           ${TOOLCHAIN_LINK_LIBRARIES})
 
 # Link options

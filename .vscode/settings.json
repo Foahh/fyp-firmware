@@ -16,4 +16,7 @@
         "External",
         "Libraries"
     ],
+    "python.analysis.extraPaths": [
+        "Appli/Proto/nanopb"
+    ],
 }
