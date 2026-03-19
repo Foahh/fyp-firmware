@@ -39,6 +39,9 @@ static uint8_t tx_buf_idx = 0;
 /* TX mutex for shared send helper */
 static TX_MUTEX tx_mutex;
 
+/* TX complete semaphore (signalled from HAL_UART_TxCpltCallback) */
+static TX_SEMAPHORE tx_done_sem;
+
 /* ============================================================================
  * Public API
  * ============================================================================ */
@@ -47,6 +50,9 @@ void Comm_TX_Start(void) {
   UINT status;
 
   status = tx_mutex_create(&tx_mutex, "comm_tx_mutex", TX_NO_INHERIT);
+  APP_REQUIRE(status == TX_SUCCESS);
+
+  status = tx_semaphore_create(&tx_done_sem, "comm_tx_done", 0);
   APP_REQUIRE(status == TX_SUCCESS);
 }
 
@@ -67,8 +73,8 @@ void Comm_TX_Send(const DeviceMessage *msg) {
   buf[3] = (uint8_t)(len >> 24);
 
   APP_REQUIRE(4 + len <= UINT16_MAX);
-  HAL_UART_Transmit(&hcom_uart[COM1], buf, (uint16_t)(4 + len),
-                    HAL_MAX_DELAY);
+  HAL_UART_Transmit_IT(&hcom_uart[COM1], buf, (uint16_t)(4 + len));
+  tx_semaphore_get(&tx_done_sem, TX_WAIT_FOREVER);
 
   tx_buf_idx ^= 1;
 
@@ -113,4 +119,14 @@ void Comm_Send_Ack(uint32_t command_id, bool success) {
   msg.payload.ack.success = success;
 
   Comm_TX_Send(&msg);
+}
+
+/* ============================================================================
+ * HAL UART TX complete callback (ISR context)
+ * ============================================================================ */
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+  if (huart->Instance == hcom_uart[COM1].Instance) {
+    tx_semaphore_put(&tx_done_sem);
+  }
 }

@@ -45,6 +45,7 @@ static void CAM_ConfigPipe(uint32_t pipe,
 static void cam_display_pipe_frame_event(void);
 static void cam_nn_pipe_frame_event(void);
 static void isp_thread_entry(ULONG arg);
+static void lcd_reload_thread_entry(ULONG arg);
 
 /* ============================================================================
  * Configuration Constants
@@ -53,6 +54,10 @@ static void isp_thread_entry(ULONG arg);
 /* ISP update thread configuration */
 #define ISP_THREAD_STACK_SIZE 2048
 #define ISP_THREAD_PRIORITY   5
+
+/* LCD reload thread configuration (high priority to minimize display latency) */
+#define LCD_RELOAD_THREAD_STACK_SIZE 1024
+#define LCD_RELOAD_THREAD_PRIORITY   4
 
 /* ============================================================================
  * Global State Variables
@@ -64,6 +69,14 @@ static struct {
   TX_THREAD thread;
   UCHAR stack[ISP_THREAD_STACK_SIZE];
 } isp_ctx;
+
+/* LCD reload thread resources */
+static struct {
+  TX_EVENT_FLAGS_GROUP reload_flags;
+  TX_THREAD thread;
+  UCHAR stack[LCD_RELOAD_THREAD_STACK_SIZE];
+  volatile uint8_t *pending_buffer;
+} lcd_reload_ctx;
 
 /* NN pipe running state */
 static volatile uint8_t nn_pipe_running = 0;
@@ -299,6 +312,15 @@ void CAM_ISP_Thread_Start(VOID *memory_ptr) {
                                isp_ctx.stack, ISP_THREAD_STACK_SIZE,
                                ISP_THREAD_PRIORITY, ISP_THREAD_PRIORITY,
                                TX_NO_TIME_SLICE, TX_AUTO_START) == TX_SUCCESS);
+
+  /* Create LCD reload thread */
+  APP_REQUIRE(tx_event_flags_create(&lcd_reload_ctx.reload_flags, "lcd_reload") == TX_SUCCESS);
+
+  APP_REQUIRE(tx_thread_create(&lcd_reload_ctx.thread, "lcd_reload",
+                               lcd_reload_thread_entry, 0,
+                               lcd_reload_ctx.stack, LCD_RELOAD_THREAD_STACK_SIZE,
+                               LCD_RELOAD_THREAD_PRIORITY, LCD_RELOAD_THREAD_PRIORITY,
+                               TX_NO_TIME_SLICE, TX_AUTO_START) == TX_SUCCESS);
 }
 
 /* ============================================================================
@@ -323,8 +345,9 @@ static void cam_display_pipe_frame_event(void) {
                                      (uint32_t)next_capt_buf);
   }
 
-  /* Update LCD to display completed buffer */
-  LCD_ReloadCameraLayer(Buffer_GetCameraDisplayBuffer(next_disp));
+  /* Defer LCD reload to thread context (avoids cache clean in ISR) */
+  lcd_reload_ctx.pending_buffer = Buffer_GetCameraDisplayBuffer(next_disp);
+  tx_event_flags_set(&lcd_reload_ctx.reload_flags, 0x01, TX_OR);
 
   /* Advance buffer indices */
   Buffer_SetCameraDisplayIndex(next_disp);
@@ -410,5 +433,24 @@ static void isp_thread_entry(ULONG arg) {
     tx_event_flags_get(&isp_ctx.vsync_flags, 0x01, TX_OR_CLEAR,
                        &actual_flags, TX_WAIT_FOREVER);
     CAM_IspUpdate();
+  }
+}
+
+/**
+ * @brief  LCD reload thread entry
+ *         Performs cache clean + LTDC reload deferred from display pipe ISR
+ * @param  arg: Thread argument (unused)
+ */
+static void lcd_reload_thread_entry(ULONG arg) {
+  UNUSED(arg);
+  ULONG actual_flags;
+
+  while (1) {
+    tx_event_flags_get(&lcd_reload_ctx.reload_flags, 0x01, TX_OR_CLEAR,
+                       &actual_flags, TX_WAIT_FOREVER);
+    uint8_t *buffer = (uint8_t *)lcd_reload_ctx.pending_buffer;
+    if (buffer != NULL) {
+      LCD_ReloadCameraLayer(buffer);
+    }
   }
 }
