@@ -19,7 +19,6 @@
 #include "app_postprocess.h"
 #include "app_bqueue.h"
 #include "app_cam.h"
-#include "app_datalog.h"
 #include "app_error.h"
 #include "app_nn.h"
 #include "app_nn_config.h"
@@ -151,11 +150,8 @@ static void pp_thread_entry(ULONG arg) {
     /* Release output buffer */
     bqueue_put_free(output_queue);
 
-    /* Signal overlay thread */
+    /* Signal consumers (comm thread, overlay thread) */
     Postprocess_SignalUpdate();
-
-    /* Send diagnostics */
-    Datalog_Send_DetectionResult(write_buf);
   }
 }
 

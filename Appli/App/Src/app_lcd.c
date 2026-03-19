@@ -150,6 +150,7 @@ void LCD_ReloadCameraLayer(uint8_t *frame_buffer) {
   SCB_CleanDCache_by_Addr((void *)frame_buffer,
                           DISPLAY_LETTERBOX_WIDTH * DISPLAY_LETTERBOX_HEIGHT * DISPLAY_BPP);
 
+  HAL_NVIC_DisableIRQ(DCMIPP_IRQn);
   status = HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
                                         LCD_LAYER_0_CAMERA);
   APP_REQUIRE(status == HAL_OK);

@@ -79,7 +79,6 @@ set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_lcd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_nn.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_postprocess.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_datalog.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_ui.c)
 
 # =============================================================================

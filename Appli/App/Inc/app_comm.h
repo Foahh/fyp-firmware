@@ -2,7 +2,7 @@
  ******************************************************************************
  * @file    app_comm.h
  * @author  Long Liangmao
- * @brief   Communication thread for non-blocking UART transmission
+ * @brief   Communication thread
  ******************************************************************************
  * @attention
  *
@@ -23,21 +23,11 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
-
 /**
- * @brief  Create the comm thread and TX message queue
+ * @brief  Create the comm thread
  * @note   Must be called from ThreadX_Start() before the kernel runs
  */
 void Comm_Thread_Start(void);
-
-/**
- * @brief  Enqueue a frame for transmission (non-blocking)
- * @param  data: Pointer to frame buffer (must remain valid until transmitted)
- * @param  len:  Frame length in bytes
- * @retval 0 on success, non-zero if queue is full (frame dropped)
- */
-int Comm_Send(const uint8_t *data, uint32_t len);
 
 #ifdef __cplusplus
 }
