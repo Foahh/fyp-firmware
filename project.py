@@ -82,7 +82,10 @@ def main():
         help=f"Model to use (default: {DEFAULT_MODEL})",
     )
 
-    sub.add_parser("flash", help="Flash pre-built firmware to device")
+    flash_parser = sub.add_parser("flash", help="Flash pre-built firmware to device")
+    flash_parser.add_argument(
+        "--force", "-f", action="store_true", help="Flash all images even if unchanged"
+    )
 
     args = parser.parse_args()
 
@@ -92,10 +95,14 @@ def main():
         cmd_model(PROJECT_ROOT, resolve_model(args), NETWORK_BIN_ADDRESS)
     elif args.command == "build":
         cmd_build(
-            PROJECT_ROOT, PROJECTS, resolve_model(args), BUILD_TYPE, PROJECT_NAME_PREFIX,
+            PROJECT_ROOT,
+            PROJECTS,
+            resolve_model(args),
+            BUILD_TYPE,
+            PROJECT_NAME_PREFIX,
         )
     elif args.command == "flash":
-        cmd_flash(PROJECT_ROOT, BUILD_TYPE, PROJECT_NAME_PREFIX)
+        cmd_flash(PROJECT_ROOT, BUILD_TYPE, PROJECT_NAME_PREFIX, force=args.force)
 
 
 if __name__ == "__main__":
