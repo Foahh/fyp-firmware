@@ -170,10 +170,8 @@ void LCD_SetUILayerAddress(uint8_t *frame_buffer) {
   APP_REQUIRE(lcd_initialized);
   APP_REQUIRE(frame_buffer != NULL);
 
-  __disable_irq();
   status = HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
                                         LCD_LAYER_1_UI);
-  __enable_irq();
   APP_REQUIRE(status == HAL_OK);
 }
 
@@ -190,14 +188,14 @@ void LCD_ReloadUILayer(uint8_t *frame_buffer) {
 
   SCB_CleanDCache_by_Addr((void *)frame_buffer, LCD_WIDTH * LCD_HEIGHT * 4);
 
-  __disable_irq();
+  HAL_NVIC_DisableIRQ(DCMIPP_IRQn);
   status = HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
                                         LCD_LAYER_1_UI);
   if (status == HAL_OK) {
     status = HAL_LTDC_ReloadLayer(&hlcd_ltdc, LTDC_RELOAD_VERTICAL_BLANKING,
                                   LCD_LAYER_1_UI);
   }
-  __enable_irq();
+  HAL_NVIC_EnableIRQ(DCMIPP_IRQn);
   APP_REQUIRE(status == HAL_OK);
 }
 

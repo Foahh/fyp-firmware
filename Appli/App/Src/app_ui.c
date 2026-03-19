@@ -323,8 +323,8 @@ static void UI_DrawHeader(void) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[1],
                            (uint8_t *)MDL_DISPLAY_NAME, LEFT_MODE);
 
-  /* Separator line (vertically centered in its line slot) */
-  UTIL_LCD_DrawHLine(UI_TEXT_MARGIN_X, g_line_y[2] + UI_LINE_HEIGHT / 2,
+  /* Separator line */
+  UTIL_LCD_DrawHLine(UI_TEXT_MARGIN_X, g_line_y[2] + UI_LINE_HEIGHT / 4,
                      UI_PANEL_WIDTH - 2 * UI_TEXT_MARGIN_X, UI_COLOR_TEXT);
 }
 
