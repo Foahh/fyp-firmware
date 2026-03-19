@@ -74,7 +74,7 @@ static void draw_detection(const od_pp_outBuffer_t *det,
 #define UI_PROGRESS_BAR_HEIGHT 12
 
 /* Update rate for periodic diagnostic updates */
-#define UI_UPDATE_FPS 24
+#define UI_UPDATE_FPS 30
 
 /* Calculate sleep ticks from FPS */
 #define UI_UPDATE_SLEEP_TICKS (TX_TIMER_TICKS_PER_SECOND / UI_UPDATE_FPS)

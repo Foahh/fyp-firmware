@@ -19,7 +19,7 @@
 #define APP_CAM_CONFIG_H
 
 /* Camera FPS configuration */
-#define CAMERA_FPS 30
+#define CAMERA_FPS 20
 
 /* Define sensor orientation */
 #define CAMERA_FLIP CMW_MIRRORFLIP_MIRROR
