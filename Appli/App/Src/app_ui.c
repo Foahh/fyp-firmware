@@ -520,9 +520,7 @@ static void ui_thread_entry(ULONG arg) {
       continue;
     }
 
-    /* Setup LCD context */
     LCD_SetUILayerAddress(ui_buffer);
-    UI_SetupLCDContext();
 
     /* Render all UI elements */
     /* Draw diagnostic panel background (left side) */
