@@ -7,6 +7,7 @@ from pathlib import Path
 from scripts.build import cmd_build
 from scripts.clean import cmd_clean
 from scripts.flash import cmd_flash
+from scripts.format import cmd_format
 from scripts.model import cmd_model
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -59,6 +60,7 @@ def main():
     sub.required = True
 
     sub.add_parser("clean", help="Remove build artifacts")
+    sub.add_parser("format", help="Format all source files with clang-format")
 
     gen_parser = sub.add_parser(
         "gen", help="Generate network model sources and binaries"
@@ -82,6 +84,19 @@ def main():
         help=f"Model to use (default: {DEFAULT_MODEL})",
     )
 
+    build_appli_parser = sub.add_parser(
+        "build-appli-debug", help="Build Appli only (Debug, no sign/hex)"
+    )
+    build_appli_parser.add_argument(
+        "--model",
+        "-m",
+        choices=list(MODELS),
+        default=DEFAULT_MODEL,
+        help=f"Model to use (default: {DEFAULT_MODEL})",
+    )
+
+    sub.add_parser("build-fsbl-debug", help="Build FSBL only (Debug, no sign/hex)")
+
     flash_parser = sub.add_parser("flash", help="Flash pre-built firmware to device")
     flash_parser.add_argument(
         "--force", "-f", action="store_true", help="Flash all images even if unchanged"
@@ -91,15 +106,33 @@ def main():
 
     if args.command == "clean":
         cmd_clean(PROJECT_ROOT)
+    elif args.command == "format":
+        cmd_format(PROJECT_ROOT)
     elif args.command == "model":
         cmd_model(PROJECT_ROOT, resolve_model(args), NETWORK_BIN_ADDRESS)
     elif args.command == "build":
         cmd_build(
+            PROJECT_ROOT, PROJECTS, resolve_model(args), BUILD_TYPE, PROJECT_NAME_PREFIX
+        )
+    elif args.command == "build-appli-debug":
+        cmd_build(
             PROJECT_ROOT,
             PROJECTS,
             resolve_model(args),
-            BUILD_TYPE,
+            "Debug",
             PROJECT_NAME_PREFIX,
+            fsbl=False,
+            sign=False,
+        )
+    elif args.command == "build-fsbl-debug":
+        cmd_build(
+            PROJECT_ROOT,
+            PROJECTS,
+            resolve_model(args),
+            "Debug",
+            PROJECT_NAME_PREFIX,
+            appli=False,
+            sign=False,
         )
     elif args.command == "flash":
         cmd_flash(PROJECT_ROOT, BUILD_TYPE, PROJECT_NAME_PREFIX, force=args.force)

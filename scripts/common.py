@@ -1,7 +1,10 @@
+import hashlib
 import shutil
 import stat
 import subprocess
 import sys
+
+SIGN_CACHE_FILE = ".sign_cache"
 
 
 def run(args, **kwargs):
@@ -25,6 +28,46 @@ def remove_if_exists(path):
     if path.exists():
         path.chmod(path.stat().st_mode | stat.S_IWRITE)
         path.unlink()
+
+
+def file_hash(path):
+    """Compute SHA-256 hex digest of a file."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def read_cached_hash(elf_file, cache_file):
+    """Read the previously cached hash for a file, or None."""
+    if not cache_file.exists():
+        return None
+    try:
+        for line in cache_file.read_text().splitlines():
+            name, _, digest = line.partition("=")
+            if name.strip() == elf_file.name:
+                return digest.strip()
+    except OSError:
+        pass
+    return None
+
+
+def write_cached_hash(elf_file, digest, cache_file):
+    """Write/update the cached hash for a file."""
+    entries = {}
+    if cache_file.exists():
+        try:
+            for line in cache_file.read_text().splitlines():
+                name, _, d = line.partition("=")
+                if name.strip():
+                    entries[name.strip()] = d.strip()
+        except OSError:
+            pass
+    entries[elf_file.name] = digest
+    cache_file.write_text(
+        "\n".join(f"{k}={v}" for k, v in sorted(entries.items())) + "\n"
+    )
 
 
 def bin_to_hex(bin_file, hex_file, base_address):

@@ -1,9 +1,8 @@
-import hashlib
 import shutil
 import sys
 from pathlib import Path
 
-from .common import require_tool, run
+from .common import file_hash, read_cached_hash, require_tool, run, write_cached_hash
 
 EXTERNAL_LOADER_NAME = "MX66UW1G45G_STM32N6570-DK.stldr"
 FLASH_CACHE_FILE = ".flash_cache"
@@ -18,53 +17,14 @@ def find_external_loader():
     return loader if loader.exists() else None
 
 
-def file_hash(path):
-    """Compute SHA-256 hex digest of a file."""
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def read_cached_hash(hex_file):
-    """Read the previously flashed hash for a HEX file, or None."""
-    cache = hex_file.parent / FLASH_CACHE_FILE
-    if not cache.exists():
-        return None
-    try:
-        for line in cache.read_text().splitlines():
-            name, _, digest = line.partition("=")
-            if name.strip() == hex_file.name:
-                return digest.strip()
-    except OSError:
-        pass
-    return None
-
-
-def write_cached_hash(hex_file, digest):
-    """Write/update the flashed hash for a HEX file."""
-    cache = hex_file.parent / FLASH_CACHE_FILE
-    entries = {}
-    if cache.exists():
-        try:
-            for line in cache.read_text().splitlines():
-                name, _, d = line.partition("=")
-                if name.strip():
-                    entries[name.strip()] = d.strip()
-        except OSError:
-            pass
-    entries[hex_file.name] = digest
-    cache.write_text("\n".join(f"{k}={v}" for k, v in sorted(entries.items())) + "\n")
-
-
 def flash_hex(label, hex_file, force=False):
     """Flash a single HEX image via SWD. Skips if unchanged. Raises on failure."""
     if not hex_file.exists():
         raise RuntimeError(f"Image not found: {hex_file}")
 
+    cache = hex_file.parent / FLASH_CACHE_FILE
     digest = file_hash(hex_file)
-    if not force and read_cached_hash(hex_file) == digest:
+    if not force and read_cached_hash(hex_file, cache) == digest:
         print(f"\n--- Skipping {label} (unchanged) ---")
         return
 
@@ -88,7 +48,7 @@ def flash_hex(label, hex_file, force=False):
             str(hex_file),
         ]
     )
-    write_cached_hash(hex_file, digest)
+    write_cached_hash(hex_file, digest, cache)
 
 
 def cmd_flash(project_root, build_type, name_prefix, force=False):

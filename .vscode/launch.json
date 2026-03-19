@@ -5,11 +5,11 @@
             "type": "stlinkgdbtarget",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+            "preLaunchTask": "Build Appli",
             "runEntry": "main",
             "imagesAndSymbols": [
                 {
-                    "imageFileName": "${workspaceFolder}/Appli/build/Firmware_Appli.elf"
+                    "imageFileName": "${workspaceFolder}/Appli/build/Debug/Firmware_Appli.elf"
                 }
             ],
             "verbose": false
@@ -19,11 +19,11 @@
             "type": "stlinkgdbtarget",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+            "preLaunchTask": "Build FSBL",
             "runEntry": "main",
             "imagesAndSymbols": [
                 {
-                    "imageFileName": "${workspaceFolder}/FSBL/build/Firmware_FSBL.elf"
+                    "imageFileName": "${workspaceFolder}/FSBL/build/Debug/Firmware_FSBL.elf"
                 }
             ],
             "verbose": false
