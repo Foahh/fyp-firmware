@@ -19,8 +19,8 @@ set(AI_NPU_SOURCES
     ${LIBRARY_ROOT}/AI/Npu/ll_aton/ll_aton_util.c
     ${LIBRARY_ROOT}/AI/Npu/ll_aton/ll_sw_float.c
     ${LIBRARY_ROOT}/AI/Npu/ll_aton/ll_sw_integer.c
-    ${LIBRARY_ROOT}/AI/Npu/Devices/STM32N6XX/mcu_cache.c
-    ${LIBRARY_ROOT}/AI/Npu/Devices/STM32N6XX/npu_cache.c
+    ${LIBRARY_ROOT}/AI/Npu/Devices/STM32N6xx/mcu_cache.c
+    ${LIBRARY_ROOT}/AI/Npu/Devices/STM32N6xx/npu_cache.c
 )
 
 target_include_directories(
