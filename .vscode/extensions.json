@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "stmicroelectronics.stm32-vscode-extension",
-        "ms-vscode.vscode-serial-monitor"
+        "ms-vscode.vscode-serial-monitor",
+        "bufbuild.vscode-buf"
     ]
 }

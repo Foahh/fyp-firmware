@@ -1,4 +1,5 @@
 syntax = "proto3";
+
 import "nanopb.proto";
 
 /* ============================================================================
@@ -6,18 +7,18 @@ import "nanopb.proto";
  * ============================================================================ */
 
 message Timing {
-  uint32 inference_ms   = 1;
+  uint32 inference_ms = 1;
   uint32 postprocess_ms = 2;
-  uint32 nn_period_ms   = 3;
-  uint32 frame_drops    = 4;
+  uint32 nn_period_ms = 3;
+  uint32 frame_drops = 4;
 }
 
 message Detection {
-  float x_center    = 1;
-  float y_center    = 2;
-  float width       = 3;
-  float height      = 4;
-  float conf        = 5;
+  float x_center = 1;
+  float y_center = 2;
+  float width = 3;
+  float height = 4;
+  float conf = 5;
   int32 class_index = 6;
 }
 
@@ -26,27 +27,30 @@ message Detection {
  * ============================================================================ */
 
 message DetectionResult {
-  uint32 timestamp              = 1;
-  Timing timing                 = 2;
+  uint32 timestamp = 1;
+  Timing timing = 2;
   repeated Detection detections = 3 [(nanopb).max_count = 10];
-  uint32 host_image_id          = 4;
+  uint32 host_image_id = 4;
 }
 
 message DeviceInfo {
-  uint32 display_width    = 1;
-  uint32 display_height   = 2;
-  uint32 letterbox_width  = 3;
+  uint32 display_width = 1;
+  uint32 display_height = 2;
+  uint32 letterbox_width = 3;
   uint32 letterbox_height = 4;
-  uint32 nn_width         = 5;
-  uint32 nn_height        = 6;
-  string model_name       = 7 [(nanopb).max_size = 64];
-  repeated string class_labels = 8 [(nanopb).max_size = 32, (nanopb).max_count = 10];
-  uint32 command_id       = 9;
+  uint32 nn_width = 5;
+  uint32 nn_height = 6;
+  string model_name = 7 [(nanopb).max_size = 64];
+  repeated string class_labels = 8 [
+    (nanopb).max_size = 32,
+    (nanopb).max_count = 10
+  ];
+  uint32 command_id = 9;
 }
 
 message Ack {
   uint32 command_id = 1;
-  bool success      = 2;
+  bool success = 2;
 }
 
 /* ============================================================================
@@ -61,14 +65,13 @@ message SetCameraEnabled {
   bool enabled = 1;
 }
 
-message GetDeviceInfo {
-}
+message GetDeviceInfo {}
 
 message ImageChunk {
-  uint32 offset     = 1;
+  uint32 offset = 1;
   uint32 total_size = 2;
-  bytes data        = 3 [(nanopb).max_size = 1024];
-  uint32 image_id   = 4;
+  bytes data = 3 [(nanopb).max_size = 1024];
+  uint32 image_id = 4;
 }
 
 /* ============================================================================
@@ -78,8 +81,8 @@ message ImageChunk {
 message DeviceMessage {
   oneof payload {
     DetectionResult detection_result = 1;
-    DeviceInfo      device_info      = 2;
-    Ack             ack              = 3;
+    DeviceInfo device_info = 2;
+    Ack ack = 3;
   }
 }
 
@@ -87,8 +90,8 @@ message HostMessage {
   uint32 command_id = 1;
   oneof command {
     SetDisplayEnabled set_display_enabled = 2;
-    SetCameraEnabled  set_camera_enabled  = 3;
-    GetDeviceInfo     get_device_info     = 4;
-    ImageChunk        image_chunk         = 5;
+    SetCameraEnabled set_camera_enabled = 3;
+    GetDeviceInfo get_device_info = 4;
+    ImageChunk image_chunk = 5;
   }
 }
