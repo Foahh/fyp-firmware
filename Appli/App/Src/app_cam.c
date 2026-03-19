@@ -68,6 +68,9 @@ static struct {
 /* NN pipe running state */
 static volatile uint8_t nn_pipe_running = 0;
 
+/* NN frame drop counter */
+static volatile uint32_t nn_frame_drop_count = 0;
+
 /* NN crop ROI in sensor coordinates (stored for overlay visualization) */
 static struct {
   uint32_t sensor_w;
@@ -269,6 +272,14 @@ nn_crop_info_display_t *CAM_GetNNCropROI_Display(void) {
 }
 
 /**
+ * @brief  Get cumulative NN frame drop count
+ * @retval Number of frames dropped since boot
+ */
+uint32_t CAM_GetFrameDropCount(void) {
+  return nn_frame_drop_count;
+}
+
+/**
  * @brief  Update ISP parameters (call periodically for auto exposure/white balance)
  */
 void CAM_IspUpdate(void) {
@@ -347,7 +358,7 @@ static void cam_nn_pipe_frame_event(void) {
     }
     bqueue_put_ready(nn_input_queue);
   } else {
-    // frame lost
+    nn_frame_drop_count++;
   }
 }
 

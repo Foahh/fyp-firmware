@@ -22,6 +22,7 @@ void Datalog_Send_DetectionResult(const detection_info_t *info) {
   df->timing.inference_ms = info->inference_ms;
   df->timing.postprocess_ms = info->postprocess_ms;
   df->timing.nn_period_ms = info->nn_period_ms;
+  df->timing.frame_drops = info->frame_drops;
 
   int n = info->nb_detect;
   if (n > DETECTION_MAX_BOXES) {

@@ -84,6 +84,12 @@ typedef struct {
  */
 nn_crop_info_display_t *CAM_GetNNCropROI_Display(void);
 
+/**
+ * @brief  Get cumulative NN frame drop count
+ * @retval Number of frames dropped since boot
+ */
+uint32_t CAM_GetFrameDropCount(void);
+
 #ifdef __cplusplus
 }
 #endif

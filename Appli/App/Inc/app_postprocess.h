@@ -42,6 +42,7 @@ typedef struct {
   uint32_t nn_period_ms;                          /**< NN inference period */
   uint32_t inference_ms;                          /**< Inference time */
   uint32_t postprocess_ms;                        /**< Postprocess time */
+  uint32_t frame_drops;                           /**< Cumulative NN frame drops */
 } detection_info_t;
 
 /**

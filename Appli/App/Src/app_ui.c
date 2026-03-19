@@ -74,7 +74,7 @@ static void draw_detection(const od_pp_outBuffer_t *det,
 #define UI_PROGRESS_BAR_HEIGHT 12
 
 /* Update rate for periodic diagnostic updates */
-#define UI_UPDATE_FPS 30
+#define UI_UPDATE_FPS 24
 
 /* Calculate sleep ticks from FPS */
 #define UI_UPDATE_SLEEP_TICKS (TX_TIMER_TICKS_PER_SECOND / UI_UPDATE_FPS)
@@ -106,24 +106,26 @@ static const uint32_t detection_colors[NUMBER_COLORS] = {
 
 /* Pre-computed line Y positions (avoids repeated macro expansion) */
 static const uint16_t g_line_y[] = {
-    UI_TEXT_MARGIN_Y + 0 * UI_LINE_HEIGHT,  /* Line 0: Title */
-    UI_TEXT_MARGIN_Y + 1 * UI_LINE_HEIGHT,  /* Line 1: Model Name */
-    UI_TEXT_MARGIN_Y + 2 * UI_LINE_HEIGHT,  /* Line 2: Separator */
-    UI_TEXT_MARGIN_Y + 3 * UI_LINE_HEIGHT,  /* Line 3: Runtime Label */
-    UI_TEXT_MARGIN_Y + 4 * UI_LINE_HEIGHT,  /* Line 4: Runtime Value */
-    UI_TEXT_MARGIN_Y + 5 * UI_LINE_HEIGHT,  /* Line 5: CPU Label */
-    UI_TEXT_MARGIN_Y + 6 * UI_LINE_HEIGHT,  /* Line 6: CPU Value */
-    UI_TEXT_MARGIN_Y + 7 * UI_LINE_HEIGHT,  /* Line 7: CPU Bar */
-    UI_TEXT_MARGIN_Y + 9 * UI_LINE_HEIGHT,  /* Line 9: Objects Label */
-    UI_TEXT_MARGIN_Y + 10 * UI_LINE_HEIGHT, /* Line 10: Objects Value */
-    UI_TEXT_MARGIN_Y + 11 * UI_LINE_HEIGHT, /* Line 11: Inference Label */
-    UI_TEXT_MARGIN_Y + 12 * UI_LINE_HEIGHT, /* Line 12: Inference Value */
-    UI_TEXT_MARGIN_Y + 13 * UI_LINE_HEIGHT, /* Line 13: Postprocess Label */
-    UI_TEXT_MARGIN_Y + 14 * UI_LINE_HEIGHT, /* Line 14: Postprocess Value */
-    UI_TEXT_MARGIN_Y + 15 * UI_LINE_HEIGHT, /* Line 15: Overhead Label */
-    UI_TEXT_MARGIN_Y + 16 * UI_LINE_HEIGHT, /* Line 16: Overhead Value */
-    UI_TEXT_MARGIN_Y + 17 * UI_LINE_HEIGHT, /* Line 17: FPS Label */
-    UI_TEXT_MARGIN_Y + 18 * UI_LINE_HEIGHT, /* Line 18: FPS Value */
+    UI_TEXT_MARGIN_Y + 0 * UI_LINE_HEIGHT,  /* [0]  Title */
+    UI_TEXT_MARGIN_Y + 1 * UI_LINE_HEIGHT,  /* [1]  Model Name */
+    UI_TEXT_MARGIN_Y + 2 * UI_LINE_HEIGHT,  /* [2]  Separator */
+    UI_TEXT_MARGIN_Y + 3 * UI_LINE_HEIGHT,  /* [3]  Runtime Label */
+    UI_TEXT_MARGIN_Y + 4 * UI_LINE_HEIGHT,  /* [4]  Runtime Value */
+    UI_TEXT_MARGIN_Y + 5 * UI_LINE_HEIGHT,  /* [5]  CPU Label */
+    UI_TEXT_MARGIN_Y + 6 * UI_LINE_HEIGHT,  /* [6]  CPU Value */
+    UI_TEXT_MARGIN_Y + 7 * UI_LINE_HEIGHT,  /* [7]  CPU Bar */
+    UI_TEXT_MARGIN_Y + 8 * UI_LINE_HEIGHT,  /* [8]  Objects Label */
+    UI_TEXT_MARGIN_Y + 9 * UI_LINE_HEIGHT,  /* [9]  Objects Value */
+    UI_TEXT_MARGIN_Y + 10 * UI_LINE_HEIGHT, /* [10] Inference Label */
+    UI_TEXT_MARGIN_Y + 11 * UI_LINE_HEIGHT, /* [11] Inference Value */
+    UI_TEXT_MARGIN_Y + 12 * UI_LINE_HEIGHT, /* [12] Postprocess Label */
+    UI_TEXT_MARGIN_Y + 13 * UI_LINE_HEIGHT, /* [13] Postprocess Value */
+    UI_TEXT_MARGIN_Y + 14 * UI_LINE_HEIGHT, /* [14] Overhead Label */
+    UI_TEXT_MARGIN_Y + 15 * UI_LINE_HEIGHT, /* [15] Overhead Value */
+    UI_TEXT_MARGIN_Y + 16 * UI_LINE_HEIGHT, /* [16] FPS Label */
+    UI_TEXT_MARGIN_Y + 17 * UI_LINE_HEIGHT, /* [17] FPS Value */
+    UI_TEXT_MARGIN_Y + 18 * UI_LINE_HEIGHT, /* [18] Drops Label */
+    UI_TEXT_MARGIN_Y + 19 * UI_LINE_HEIGHT, /* [19] Drops Value */
 };
 
 /* ============================================================================
@@ -321,8 +323,8 @@ static void UI_DrawHeader(void) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[1],
                            (uint8_t *)MDL_DISPLAY_NAME, LEFT_MODE);
 
-  /* Separator line */
-  UTIL_LCD_DrawHLine(UI_TEXT_MARGIN_X, g_line_y[2],
+  /* Separator line (vertically centered in its line slot) */
+  UTIL_LCD_DrawHLine(UI_TEXT_MARGIN_X, g_line_y[2] + UI_LINE_HEIGHT / 2,
                      UI_PANEL_WIDTH - 2 * UI_TEXT_MARGIN_X, UI_COLOR_TEXT);
 }
 
@@ -422,6 +424,15 @@ static void UI_DrawDetectionInfoSection(const detection_info_t *info) {
   snprintf(text_buf, sizeof(text_buf), "%.1f", fps);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[17],
                            (uint8_t *)text_buf, LEFT_MODE);
+
+  /* Frame drops */
+  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[18],
+                           (uint8_t *)"Drops", LEFT_MODE);
+  UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
+  snprintf(text_buf, sizeof(text_buf), "%lu", (unsigned long)info->frame_drops);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[19],
+                           (uint8_t *)text_buf, LEFT_MODE);
 }
 
 /**
@@ -488,6 +499,8 @@ static void ui_thread_entry(ULONG arg) {
   UI_SetupLCDContext();
 
   while (1) {
+    uint32_t frame_start = HAL_GetTick();
+
     /* Update CPU load measurement */
     CPULoad_Update(&g_cpu_load);
     cpu_load_pct = CPULoad_GetSmoothed(&g_cpu_load);
@@ -539,8 +552,13 @@ static void ui_thread_entry(ULONG arg) {
     Buffer_SetUIDisplayIndex(Buffer_GetNextUIDisplayIndex());
     LCD_ReloadUILayer(ui_buffer);
 
-    /* Frame-based periodic update */
-    tx_thread_sleep(UI_UPDATE_SLEEP_TICKS);
+    /* Adaptive frame timing: sleep remaining time to hit target FPS */
+    uint32_t elapsed = HAL_GetTick() - frame_start;
+    if (elapsed < UI_UPDATE_SLEEP_TICKS) {
+      tx_thread_sleep(UI_UPDATE_SLEEP_TICKS - elapsed);
+    } else {
+      tx_thread_sleep(1);
+    }
   }
 }
 

@@ -18,6 +18,7 @@
 
 #include "app_postprocess.h"
 #include "app_bqueue.h"
+#include "app_cam.h"
 #include "app_datalog.h"
 #include "app_error.h"
 #include "app_nn.h"
@@ -139,6 +140,7 @@ static void pp_thread_entry(ULONG arg) {
     write_buf->nn_period_ms = nn_timing.nn_period_ms;
     write_buf->inference_ms = nn_timing.inference_ms;
     write_buf->postprocess_ms = pp_ts[1] - pp_ts[0];
+    write_buf->frame_drops = CAM_GetFrameDropCount();
 
     /* Atomically swap read pointer */
     detection_info_read_ptr = write_buf;

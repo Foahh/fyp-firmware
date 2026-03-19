@@ -9,8 +9,8 @@
 #define MODEL_YOLOX_NANO_H
 
 #include "arm_math.h"
-#include "stai_od_yolo_x_person.h"
 #include "od_yolo_x_person.h"
+#include "stai_od_yolo_x_person.h"
 
 /* Network binding */
 #define MDL_NN_NETWORK_NAME od_yolo_x_person

@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 import nanopb_pb2 as nanopb__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0emessages.proto\x1a\x0cnanopb.proto\"L\n\x06Timing\x12\x14\n\x0cinference_ms\x18\x01 \x01(\r\x12\x16\n\x0epostprocess_ms\x18\x02 \x01(\r\x12\x14\n\x0cnn_period_ms\x18\x03 \x01(\r\"q\n\tDetection\x12\x10\n\x08x_center\x18\x01 \x01(\x02\x12\x10\n\x08y_center\x18\x02 \x01(\x02\x12\r\n\x05width\x18\x03 \x01(\x02\x12\x0e\n\x06height\x18\x04 \x01(\x02\x12\x0c\n\x04\x63onf\x18\x05 \x01(\x02\x12\x13\n\x0b\x63lass_index\x18\x06 \x01(\x05\"d\n\x0f\x44\x65tectionResult\x12\x11\n\ttimestamp\x18\x01 \x01(\r\x12\x17\n\x06timing\x18\x02 \x01(\x0b\x32\x07.Timing\x12%\n\ndetections\x18\x03 \x03(\x0b\x32\n.DetectionB\x05\x92?\x02\x10\n\"\\\n\rImageTransfer\x12\r\n\x05width\x18\x01 \x01(\r\x12\x0e\n\x06height\x18\x02 \x01(\r\x12\x10\n\x08\x63hannels\x18\x03 \x01(\r\x12\x1a\n\npixel_data\x18\x04 \x01(\x0c\x42\x06\x92?\x03\x08\x80\x08\"s\n\x0e\x44\x61talogMessage\x12,\n\x10\x64\x65tection_result\x18\x01 \x01(\x0b\x32\x10.DetectionResultH\x00\x12(\n\x0eimage_transfer\x18\x02 \x01(\x0b\x32\x0e.ImageTransferH\x00\x42\t\n\x07payloadb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0emessages.proto\x1a\x0cnanopb.proto\"a\n\x06Timing\x12\x14\n\x0cinference_ms\x18\x01 \x01(\r\x12\x16\n\x0epostprocess_ms\x18\x02 \x01(\r\x12\x14\n\x0cnn_period_ms\x18\x03 \x01(\r\x12\x13\n\x0b\x66rame_drops\x18\x04 \x01(\r\"q\n\tDetection\x12\x10\n\x08x_center\x18\x01 \x01(\x02\x12\x10\n\x08y_center\x18\x02 \x01(\x02\x12\r\n\x05width\x18\x03 \x01(\x02\x12\x0e\n\x06height\x18\x04 \x01(\x02\x12\x0c\n\x04\x63onf\x18\x05 \x01(\x02\x12\x13\n\x0b\x63lass_index\x18\x06 \x01(\x05\"d\n\x0f\x44\x65tectionResult\x12\x11\n\ttimestamp\x18\x01 \x01(\r\x12\x17\n\x06timing\x18\x02 \x01(\x0b\x32\x07.Timing\x12%\n\ndetections\x18\x03 \x03(\x0b\x32\n.DetectionB\x05\x92?\x02\x10\n\"\\\n\rImageTransfer\x12\r\n\x05width\x18\x01 \x01(\r\x12\x0e\n\x06height\x18\x02 \x01(\r\x12\x10\n\x08\x63hannels\x18\x03 \x01(\r\x12\x1a\n\npixel_data\x18\x04 \x01(\x0c\x42\x06\x92?\x03\x08\x80\x08\"s\n\x0e\x44\x61talogMessage\x12,\n\x10\x64\x65tection_result\x18\x01 \x01(\x0b\x32\x10.DetectionResultH\x00\x12(\n\x0eimage_transfer\x18\x02 \x01(\x0b\x32\x0e.ImageTransferH\x00\x42\t\n\x07payloadb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,13 +37,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_IMAGETRANSFER'].fields_by_name['pixel_data']._loaded_options = None
   _globals['_IMAGETRANSFER'].fields_by_name['pixel_data']._serialized_options = b'\222?\003\010\200\010'
   _globals['_TIMING']._serialized_start=32
-  _globals['_TIMING']._serialized_end=108
-  _globals['_DETECTION']._serialized_start=110
-  _globals['_DETECTION']._serialized_end=223
-  _globals['_DETECTIONRESULT']._serialized_start=225
-  _globals['_DETECTIONRESULT']._serialized_end=325
-  _globals['_IMAGETRANSFER']._serialized_start=327
-  _globals['_IMAGETRANSFER']._serialized_end=419
-  _globals['_DATALOGMESSAGE']._serialized_start=421
-  _globals['_DATALOGMESSAGE']._serialized_end=536
+  _globals['_TIMING']._serialized_end=129
+  _globals['_DETECTION']._serialized_start=131
+  _globals['_DETECTION']._serialized_end=244
+  _globals['_DETECTIONRESULT']._serialized_start=246
+  _globals['_DETECTIONRESULT']._serialized_end=346
+  _globals['_IMAGETRANSFER']._serialized_start=348
+  _globals['_IMAGETRANSFER']._serialized_end=440
+  _globals['_DATALOGMESSAGE']._serialized_start=442
+  _globals['_DATALOGMESSAGE']._serialized_end=557
 # @@protoc_insertion_point(module_scope)
