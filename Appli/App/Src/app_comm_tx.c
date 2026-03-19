@@ -46,7 +46,7 @@ static TX_SEMAPHORE tx_done_sem;
  * Public API
  * ============================================================================ */
 
-void Comm_TX_Start(void) {
+void COM_TX_Thread_Start(void) {
   UINT status;
 
   status = tx_mutex_create(&tx_mutex, "comm_tx_mutex", TX_NO_INHERIT);
@@ -56,7 +56,7 @@ void Comm_TX_Start(void) {
   APP_REQUIRE(status == TX_SUCCESS);
 }
 
-void Comm_TX_Send(const DeviceMessage *msg) {
+void COM_TX_Send(const DeviceMessage *msg) {
   UINT status = tx_mutex_get(&tx_mutex, TX_WAIT_FOREVER);
   APP_REQUIRE(status == TX_SUCCESS);
 
@@ -81,7 +81,7 @@ void Comm_TX_Send(const DeviceMessage *msg) {
   tx_mutex_put(&tx_mutex);
 }
 
-void Comm_Send_DeviceInfo(uint32_t command_id) {
+void COM_Send_DeviceInfo(uint32_t command_id) {
   DeviceMessage msg = DeviceMessage_init_zero;
   msg.which_payload = DeviceMessage_device_info_tag;
 
@@ -109,16 +109,16 @@ void Comm_Send_DeviceInfo(uint32_t command_id) {
     di->class_labels[i][sizeof(di->class_labels[i]) - 1] = '\0';
   }
 
-  Comm_TX_Send(&msg);
+  COM_TX_Send(&msg);
 }
 
-void Comm_Send_Ack(uint32_t command_id, bool success) {
+void COM_Send_Ack(uint32_t command_id, bool success) {
   DeviceMessage msg = DeviceMessage_init_zero;
   msg.which_payload = DeviceMessage_ack_tag;
   msg.payload.ack.command_id = command_id;
   msg.payload.ack.success = success;
 
-  Comm_TX_Send(&msg);
+  COM_TX_Send(&msg);
 }
 
 /* ============================================================================

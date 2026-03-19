@@ -52,7 +52,7 @@ static void handle_set_display_enabled(uint32_t cmd_id,
     BSP_LCD_DisplayOff(0);
     display_enabled = false;
   }
-  Comm_Send_Ack(cmd_id, true);
+  COM_Send_Ack(cmd_id, true);
 }
 
 static void handle_set_camera_enabled(uint32_t cmd_id,
@@ -71,11 +71,11 @@ static void handle_set_camera_enabled(uint32_t cmd_id,
     CMW_CAMERA_Suspend(DCMIPP_PIPE1);
     camera_enabled = false;
   }
-  Comm_Send_Ack(cmd_id, true);
+  COM_Send_Ack(cmd_id, true);
 }
 
 static void handle_get_device_info(uint32_t cmd_id) {
-  Comm_Send_DeviceInfo(cmd_id);
+  COM_Send_DeviceInfo(cmd_id);
 }
 
 static void handle_image_chunk(uint32_t cmd_id, const ImageChunk *chunk) {
@@ -83,13 +83,13 @@ static void handle_image_chunk(uint32_t cmd_id, const ImageChunk *chunk) {
 
   /* Reject if camera is still running */
   if (camera_enabled) {
-    Comm_Send_Ack(cmd_id, false);
+    COM_Send_Ack(cmd_id, false);
     return;
   }
 
   /* Validate total_size */
   if (chunk->total_size != expected_size) {
-    Comm_Send_Ack(cmd_id, false);
+    COM_Send_Ack(cmd_id, false);
     return;
   }
 
@@ -98,7 +98,7 @@ static void handle_image_chunk(uint32_t cmd_id, const ImageChunk *chunk) {
     bqueue_t *nn_q = NN_GetInputQueue();
     img_accum_buf = bqueue_get_free(nn_q, 0);
     if (img_accum_buf == NULL) {
-      Comm_Send_Ack(cmd_id, false);
+      COM_Send_Ack(cmd_id, false);
       return;
     }
     img_accum_size = chunk->total_size;
@@ -106,13 +106,13 @@ static void handle_image_chunk(uint32_t cmd_id, const ImageChunk *chunk) {
 
   /* Validate we have an active transfer */
   if (img_accum_buf == NULL) {
-    Comm_Send_Ack(cmd_id, false);
+    COM_Send_Ack(cmd_id, false);
     return;
   }
 
   /* Bounds check */
   if (chunk->offset + chunk->data.size > img_accum_size) {
-    Comm_Send_Ack(cmd_id, false);
+    COM_Send_Ack(cmd_id, false);
     img_accum_buf = NULL;
     return;
   }
@@ -136,14 +136,14 @@ static void handle_image_chunk(uint32_t cmd_id, const ImageChunk *chunk) {
     img_accum_size = 0;
   }
 
-  Comm_Send_Ack(cmd_id, true);
+  COM_Send_Ack(cmd_id, true);
 }
 
 /* ============================================================================
  * Public API
  * ============================================================================ */
 
-void Comm_Cmd_Dispatch(const HostMessage *msg) {
+void COM_Cmd_Dispatch(const HostMessage *msg) {
   uint32_t cmd_id = msg->command_id;
 
   switch (msg->which_command) {
@@ -160,7 +160,7 @@ void Comm_Cmd_Dispatch(const HostMessage *msg) {
     handle_image_chunk(cmd_id, &msg->command.image_chunk);
     break;
   default:
-    Comm_Send_Ack(cmd_id, false);
+    COM_Send_Ack(cmd_id, false);
     break;
   }
 }

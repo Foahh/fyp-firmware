@@ -25,9 +25,9 @@ extern "C" {
 
 /**
  * @brief  Create the comm RX thread and arm UART receive
- * @note   Must be called from ThreadX_Start() after Comm_TX_Start()
+ * @note   Must be called from ThreadX_Start() after COM_TX_Start()
  */
-void Comm_RX_Start(void);
+void COM_RX_Thread_Start(void);
 
 #ifdef __cplusplus
 }

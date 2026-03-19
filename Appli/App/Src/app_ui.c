@@ -23,7 +23,7 @@
 #include "app_error.h"
 #include "app_lcd.h"
 #include "app_lcd_config.h"
-#include "app_postprocess.h"
+#include "app_pp.h"
 #include "model_config.h"
 #include "stm32_lcd.h"
 #include "stm32n6570_discovery_lcd.h"
@@ -506,7 +506,7 @@ static void ui_thread_entry(ULONG arg) {
     cpu_load_pct = CPULoad_GetSmoothed(&g_cpu_load);
 
     /* Get latest detection info */
-    det_info = Postprocess_GetInfo();
+    det_info = PP_GetInfo();
 
     if (!g_ui_initialized || !g_ui_visible) {
       tx_thread_sleep(UI_UPDATE_SLEEP_TICKS);

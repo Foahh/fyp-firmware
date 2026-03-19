@@ -31,26 +31,26 @@ extern "C" {
  * @brief  Initialize TX mutex and buffers
  * @note   Must be called before any send function
  */
-void Comm_TX_Start(void);
+void COM_TX_Thread_Start(void);
 
 /**
  * @brief  Encode and transmit a DeviceMessage over UART (thread-safe)
  * @param  msg: Pointer to populated DeviceMessage
  */
-void Comm_TX_Send(const DeviceMessage *msg);
+void COM_TX_Send(const DeviceMessage *msg);
 
 /**
  * @brief  Send a DeviceInfo response
  * @param  command_id: The command_id from the originating HostMessage
  */
-void Comm_Send_DeviceInfo(uint32_t command_id);
+void COM_Send_DeviceInfo(uint32_t command_id);
 
 /**
  * @brief  Send an Ack response
  * @param  command_id: The command_id from the originating HostMessage
  * @param  success: true if command succeeded
  */
-void Comm_Send_Ack(uint32_t command_id, bool success);
+void COM_Send_Ack(uint32_t command_id, bool success);
 
 #ifdef __cplusplus
 }

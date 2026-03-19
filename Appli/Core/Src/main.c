@@ -24,7 +24,7 @@
 #include "app_error.h"
 #include "app_lcd.h"
 #include "app_nn.h"
-#include "app_postprocess.h"
+#include "app_pp.h"
 #include "app_threadx.h"
 #include "app_ui.h"
 #include "cmw_camera.h"

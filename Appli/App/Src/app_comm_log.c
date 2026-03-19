@@ -19,7 +19,7 @@
 #include "app_comm_log.h"
 #include "app_comm_tx.h"
 #include "app_error.h"
-#include "app_postprocess.h"
+#include "app_pp.h"
 #include "messages.pb.h"
 #include "stm32n6xx_hal.h"
 #include "tx_api.h"
@@ -72,7 +72,7 @@ static void comm_send_detection_result(const detection_info_t *info) {
 
   df->host_image_id = info->host_image_id;
 
-  Comm_TX_Send(&msg);
+  COM_TX_Send(&msg);
 }
 
 /* ============================================================================
@@ -82,7 +82,7 @@ static void comm_send_detection_result(const detection_info_t *info) {
 static void comm_log_thread_entry(ULONG arg) {
   UNUSED(arg);
 
-  TX_EVENT_FLAGS_GROUP *event_flags = Postprocess_GetUpdateEventFlags();
+  TX_EVENT_FLAGS_GROUP *event_flags = PP_GetUpdateEventFlags();
   ULONG actual_flags;
 
   while (1) {
@@ -92,7 +92,7 @@ static void comm_log_thread_entry(ULONG arg) {
       continue;
     }
 
-    detection_info_t *info = Postprocess_GetInfo();
+    detection_info_t *info = PP_GetInfo();
     if (info != NULL) {
       comm_send_detection_result(info);
     }
@@ -103,7 +103,7 @@ static void comm_log_thread_entry(ULONG arg) {
  * Public API
  * ============================================================================ */
 
-void Comm_Log_Start(void) {
+void COM_Log_Thread_Start(void) {
   UINT status;
 
   status =

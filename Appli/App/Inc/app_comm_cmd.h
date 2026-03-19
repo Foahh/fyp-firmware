@@ -29,7 +29,7 @@ extern "C" {
  * @brief  Dispatch a decoded HostMessage to the appropriate handler
  * @param  msg: Pointer to decoded HostMessage
  */
-void Comm_Cmd_Dispatch(const HostMessage *msg);
+void COM_Cmd_Dispatch(const HostMessage *msg);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file    app_postprocess.c
+ * @file    app_pp.c
  * @author  Long Liangmao
  * @brief   Postprocessing thread and detection state management implementation
  ******************************************************************************
@@ -16,7 +16,7 @@
  ******************************************************************************
  */
 
-#include "app_postprocess.h"
+#include "app_pp.h"
 #include "app_bqueue.h"
 #include "app_cam.h"
 #include "app_error.h"
@@ -153,7 +153,7 @@ static void pp_thread_entry(ULONG arg) {
     bqueue_put_free(output_queue);
 
     /* Signal consumers (comm thread, overlay thread) */
-    Postprocess_SignalUpdate();
+    PP_SignalUpdate();
   }
 }
 
@@ -165,7 +165,7 @@ static void pp_thread_entry(ULONG arg) {
  * @brief  Signal that new detection results are available
  *         Called by postprocess after updating detection state
  */
-void Postprocess_SignalUpdate(void) {
+void PP_SignalUpdate(void) {
   tx_event_flags_set(&update_event_flags, 0x01, TX_OR);
 }
 
@@ -174,7 +174,7 @@ void Postprocess_SignalUpdate(void) {
  * @retval Pointer to detection_info_t (read-only, no lock needed)
  * @note   Uses double buffering for lock-free access
  */
-detection_info_t *Postprocess_GetInfo(void) {
+detection_info_t *PP_GetInfo(void) {
   return (detection_info_t *)detection_info_read_ptr;
 }
 
@@ -182,7 +182,7 @@ detection_info_t *Postprocess_GetInfo(void) {
  * @brief  Get pointer to update event flags group (for overlay thread)
  * @retval Pointer to event flags group
  */
-TX_EVENT_FLAGS_GROUP *Postprocess_GetUpdateEventFlags(void) {
+TX_EVENT_FLAGS_GROUP *PP_GetUpdateEventFlags(void) {
   return &update_event_flags;
 }
 
@@ -190,7 +190,7 @@ TX_EVENT_FLAGS_GROUP *Postprocess_GetUpdateEventFlags(void) {
  * @brief  Initialize postprocessing module (thread, sync primitives)
  * @param  memory_ptr: ThreadX memory pool (unused, static allocation)
  */
-void Postprocess_Thread_Start(VOID *memory_ptr) {
+void PP_Thread_Start(VOID *memory_ptr) {
   UNUSED(memory_ptr);
   UINT status;
 

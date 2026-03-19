@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file    app_postprocess.h
+ * @file    app_pp.h
  * @author  Long Liangmao
  * @brief   Postprocessing thread and detection state management
  ******************************************************************************
@@ -15,8 +15,8 @@
  *
  ******************************************************************************
  */
-#ifndef APP_POSTPROCESS_H
-#define APP_POSTPROCESS_H
+#ifndef APP_PP_H
+#define APP_PP_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,28 +50,28 @@ typedef struct {
  * @brief  Initialize postprocessing module (thread, sync primitives)
  * @param  memory_ptr: ThreadX memory pool (unused, static allocation)
  */
-void Postprocess_Thread_Start(VOID *memory_ptr);
+void PP_Thread_Start(VOID *memory_ptr);
 
 /**
  * @brief  Signal that new detection results are available
  *         Called by postprocess after updating detection state
  */
-void Postprocess_SignalUpdate(void);
+void PP_SignalUpdate(void);
 
 /**
  * @brief  Get pointer to detection info structure (lock-free, read-only)
  * @retval Pointer to detection_info_t (read-only, no lock needed)
  */
-detection_info_t *Postprocess_GetInfo(void);
+detection_info_t *PP_GetInfo(void);
 
 /**
  * @brief  Get pointer to update event flags group (for overlay thread)
  * @retval Pointer to event flags group
  */
-TX_EVENT_FLAGS_GROUP *Postprocess_GetUpdateEventFlags(void);
+TX_EVENT_FLAGS_GROUP *PP_GetUpdateEventFlags(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* APP_POSTPROCESS_H */
+#endif /* APP_PP_H */

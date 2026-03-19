@@ -129,7 +129,7 @@ static void comm_rx_thread_entry(ULONG arg) {
     }
 
     /* Dispatch */
-    Comm_Cmd_Dispatch(&host_msg);
+    COM_Cmd_Dispatch(&host_msg);
   }
 }
 
@@ -137,7 +137,7 @@ static void comm_rx_thread_entry(ULONG arg) {
  * Public API
  * ============================================================================ */
 
-void Comm_RX_Start(void) {
+void COM_RX_Thread_Start(void) {
   UINT status;
 
   /* Initialize ring buffer indices */

@@ -24,7 +24,7 @@
 #include "app_comm_tx.h"
 #include "app_error.h"
 #include "app_nn.h"
-#include "app_postprocess.h"
+#include "app_pp.h"
 #include "app_ui.h"
 #include "cmw_camera.h"
 #include "main.h"
@@ -52,13 +52,13 @@ UINT ThreadX_Start(VOID *memory_ptr) {
 
   NN_Thread_Start(memory_ptr);
 
-  Postprocess_Thread_Start(memory_ptr);
+  PP_Thread_Start(memory_ptr);
 
-  Comm_TX_Start();
+  COM_TX_Thread_Start();
 
-  Comm_Log_Start();
+  COM_Log_Thread_Start();
 
-  Comm_RX_Start();
+  COM_RX_Thread_Start();
 
   UI_Thread_Start();
 
