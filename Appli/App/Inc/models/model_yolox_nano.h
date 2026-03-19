@@ -10,6 +10,7 @@
 
 #include "arm_math.h"
 #include "stai_od_yolo_x_person.h"
+#include "od_yolo_x_person.h"
 
 /* Network binding */
 #define MDL_NN_NETWORK_NAME od_yolo_x_person
@@ -47,6 +48,9 @@
 static const float32_t AI_OD_ST_YOLOX_PP_L_ANCHORS[2 * MDL_PP_NB_ANCHORS] = {30.0f, 30.0f, 4.2f, 15.0f, 13.8f, 42.0f};
 static const float32_t AI_OD_ST_YOLOX_PP_M_ANCHORS[2 * MDL_PP_NB_ANCHORS] = {15.0f, 15.0f, 2.1f, 7.5f, 6.9f, 21.0f};
 static const float32_t AI_OD_ST_YOLOX_PP_S_ANCHORS[2 * MDL_PP_NB_ANCHORS] = {7.5f, 7.5f, 1.05f, 3.75f, 3.45f, 10.5f};
+
+/* Display name */
+#define MDL_DISPLAY_NAME LL_ATON_OD_YOLO_X_PERSON_ORIGIN_MODEL_NAME
 
 /* Class labels */
 static const char *MDL_PP_CLASS_LABELS[] __attribute__((unused)) = {"person"};

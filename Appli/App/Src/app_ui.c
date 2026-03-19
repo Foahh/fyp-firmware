@@ -52,7 +52,7 @@ static void draw_detection(const od_pp_outBuffer_t *det,
 /* Panel geometry - left side of screen */
 #define UI_PANEL_X0     0
 #define UI_PANEL_Y0     0
-#define UI_PANEL_WIDTH  160 /* Width matches DISPLAY_LETTERBOX_X0 */
+#define UI_PANEL_WIDTH  160
 #define UI_PANEL_HEIGHT 480
 
 /* Text layout */
@@ -107,22 +107,23 @@ static const uint32_t detection_colors[NUMBER_COLORS] = {
 /* Pre-computed line Y positions (avoids repeated macro expansion) */
 static const uint16_t g_line_y[] = {
     UI_TEXT_MARGIN_Y + 0 * UI_LINE_HEIGHT,  /* Line 0: Title */
-    UI_TEXT_MARGIN_Y + 1 * UI_LINE_HEIGHT,  /* Line 1: Separator */
-    UI_TEXT_MARGIN_Y + 2 * UI_LINE_HEIGHT,  /* Line 2: Runtime Label */
-    UI_TEXT_MARGIN_Y + 3 * UI_LINE_HEIGHT,  /* Line 3: Runtime Value */
-    UI_TEXT_MARGIN_Y + 4 * UI_LINE_HEIGHT,  /* Line 4: CPU Label */
-    UI_TEXT_MARGIN_Y + 5 * UI_LINE_HEIGHT,  /* Line 5: CPU Value */
-    UI_TEXT_MARGIN_Y + 6 * UI_LINE_HEIGHT,  /* Line 6: CPU Bar */
-    UI_TEXT_MARGIN_Y + 8 * UI_LINE_HEIGHT,  /* Line 8: Objects Label */
-    UI_TEXT_MARGIN_Y + 9 * UI_LINE_HEIGHT,  /* Line 9: Objects Value */
-    UI_TEXT_MARGIN_Y + 10 * UI_LINE_HEIGHT, /* Line 10: Inference Label */
-    UI_TEXT_MARGIN_Y + 11 * UI_LINE_HEIGHT, /* Line 11: Inference Value */
-    UI_TEXT_MARGIN_Y + 12 * UI_LINE_HEIGHT, /* Line 12: Postprocess Label */
-    UI_TEXT_MARGIN_Y + 13 * UI_LINE_HEIGHT, /* Line 13: Postprocess Value */
-    UI_TEXT_MARGIN_Y + 14 * UI_LINE_HEIGHT, /* Line 14: Overhead Label */
-    UI_TEXT_MARGIN_Y + 15 * UI_LINE_HEIGHT, /* Line 15: Overhead Value */
-    UI_TEXT_MARGIN_Y + 16 * UI_LINE_HEIGHT, /* Line 16: FPS Label */
-    UI_TEXT_MARGIN_Y + 17 * UI_LINE_HEIGHT, /* Line 17: FPS Value */
+    UI_TEXT_MARGIN_Y + 1 * UI_LINE_HEIGHT,  /* Line 1: Model Name */
+    UI_TEXT_MARGIN_Y + 2 * UI_LINE_HEIGHT,  /* Line 2: Separator */
+    UI_TEXT_MARGIN_Y + 3 * UI_LINE_HEIGHT,  /* Line 3: Runtime Label */
+    UI_TEXT_MARGIN_Y + 4 * UI_LINE_HEIGHT,  /* Line 4: Runtime Value */
+    UI_TEXT_MARGIN_Y + 5 * UI_LINE_HEIGHT,  /* Line 5: CPU Label */
+    UI_TEXT_MARGIN_Y + 6 * UI_LINE_HEIGHT,  /* Line 6: CPU Value */
+    UI_TEXT_MARGIN_Y + 7 * UI_LINE_HEIGHT,  /* Line 7: CPU Bar */
+    UI_TEXT_MARGIN_Y + 9 * UI_LINE_HEIGHT,  /* Line 9: Objects Label */
+    UI_TEXT_MARGIN_Y + 10 * UI_LINE_HEIGHT, /* Line 10: Objects Value */
+    UI_TEXT_MARGIN_Y + 11 * UI_LINE_HEIGHT, /* Line 11: Inference Label */
+    UI_TEXT_MARGIN_Y + 12 * UI_LINE_HEIGHT, /* Line 12: Inference Value */
+    UI_TEXT_MARGIN_Y + 13 * UI_LINE_HEIGHT, /* Line 13: Postprocess Label */
+    UI_TEXT_MARGIN_Y + 14 * UI_LINE_HEIGHT, /* Line 14: Postprocess Value */
+    UI_TEXT_MARGIN_Y + 15 * UI_LINE_HEIGHT, /* Line 15: Overhead Label */
+    UI_TEXT_MARGIN_Y + 16 * UI_LINE_HEIGHT, /* Line 16: Overhead Value */
+    UI_TEXT_MARGIN_Y + 17 * UI_LINE_HEIGHT, /* Line 17: FPS Label */
+    UI_TEXT_MARGIN_Y + 18 * UI_LINE_HEIGHT, /* Line 18: FPS Value */
 };
 
 /* ============================================================================
@@ -304,7 +305,7 @@ static void draw_detection(const od_pp_outBuffer_t *det,
  */
 static void UI_DrawPanelBackground(void) {
   UTIL_LCD_FillRect(UI_PANEL_X0, UI_PANEL_Y0,
-                    UI_PANEL_WIDTH, UI_PANEL_HEIGHT, 0x00000000);
+                    UI_PANEL_WIDTH, UI_PANEL_HEIGHT, UI_COLOR_BG);
 }
 
 /**
@@ -315,8 +316,13 @@ static void UI_DrawHeader(void) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[0],
                            (uint8_t *)"DIAGNOSTICS", LEFT_MODE);
 
+  /* Model name */
+  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[1],
+                           (uint8_t *)MDL_DISPLAY_NAME, LEFT_MODE);
+
   /* Separator line */
-  UTIL_LCD_DrawHLine(UI_TEXT_MARGIN_X, g_line_y[1],
+  UTIL_LCD_DrawHLine(UI_TEXT_MARGIN_X, g_line_y[2],
                      UI_PANEL_WIDTH - 2 * UI_TEXT_MARGIN_X, UI_COLOR_TEXT);
 }
 
@@ -329,18 +335,18 @@ static void UI_DrawCPULoadSection(float cpu_load_pct) {
 
   /* Label */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[4],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[5],
                            (uint8_t *)"CPU Load", LEFT_MODE);
 
   /* Value */
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   UI_FormatCPULoad(text_buf, sizeof(text_buf), cpu_load_pct);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[5],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[6],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* Progress bar */
   bar_width = UI_PANEL_WIDTH - 2 * UI_TEXT_MARGIN_X;
-  UI_DrawProgressBar(UI_TEXT_MARGIN_X, g_line_y[6], bar_width,
+  UI_DrawProgressBar(UI_TEXT_MARGIN_X, g_line_y[7], bar_width,
                      UI_PROGRESS_BAR_HEIGHT, cpu_load_pct);
 }
 
@@ -353,14 +359,14 @@ static void UI_DrawRuntimeSection(void) {
 
   /* Label */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[2],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[3],
                            (uint8_t *)"Runtime", LEFT_MODE);
 
   /* Value */
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   tick = HAL_GetTick();
   UI_FormatRuntime(text_buf, sizeof(text_buf), tick);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[3],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[4],
                            (uint8_t *)text_buf, LEFT_MODE);
 }
 
@@ -372,49 +378,49 @@ static void UI_DrawDetectionInfoSection(const detection_info_t *info) {
 
   /* Objects count */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[7],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[8],
                            (uint8_t *)"Objects", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   snprintf(text_buf, sizeof(text_buf), "%d", (int)info->nb_detect);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[8],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[9],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* Inference time */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[9],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[10],
                            (uint8_t *)"Inference", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)info->inference_ms);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[10],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[11],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* Postprocess time */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[11],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[12],
                            (uint8_t *)"Postprocess", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)info->postprocess_ms);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[12],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[13],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* Overhead time */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[13],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[14],
                            (uint8_t *)"Overhead", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   uint32_t overhead_ms = info->nn_period_ms > info->inference_ms ? info->nn_period_ms - info->inference_ms : 0;
   snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)overhead_ms);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[14],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[15],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* FPS */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[15],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[16],
                            (uint8_t *)"FPS", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   float fps = info->nn_period_ms > 0 ? 1000.0f / info->nn_period_ms : 0.0f;
   snprintf(text_buf, sizeof(text_buf), "%.1f", fps);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[16],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[17],
                            (uint8_t *)text_buf, LEFT_MODE);
 }
 
@@ -423,12 +429,6 @@ static void UI_DrawDetectionInfoSection(const detection_info_t *info) {
  */
 static void UI_DrawDetectionOverlays(const detection_info_t *info,
                                      const nn_crop_info_display_t *roi_info) {
-  /* Clear overlay area - only the detection overlay region */
-  /* Leave the diagnostic panel area (left side) untouched */
-  UTIL_LCD_FillRect(DISPLAY_LETTERBOX_X0, 0,
-                    DISPLAY_LETTERBOX_WIDTH, DISPLAY_LETTERBOX_HEIGHT,
-                    0x00000000);
-
   /* Draw bounding boxes */
   UTIL_LCD_SetTextColor(0xFF00FF00); /* Green for boxes */
   for (int i = 0; i < info->nb_detect; i++) {
@@ -512,8 +512,15 @@ static void ui_thread_entry(ULONG arg) {
     UI_SetupLCDContext();
 
     /* Render all UI elements */
-    /* Draw diagnostic panel (left side) */
+    /* Draw diagnostic panel background (left side) */
     UI_DrawPanelBackground();
+
+    /* Clear detection overlay area */
+    UTIL_LCD_FillRect(DISPLAY_LETTERBOX_X0, 0,
+                      DISPLAY_LETTERBOX_WIDTH, DISPLAY_LETTERBOX_HEIGHT,
+                      0x00000000);
+
+    /* Draw panel text (may extend into camera area) */
     UI_DrawHeader();
     UI_DrawRuntimeSection();
     UI_DrawCPULoadSection(cpu_load_pct);
@@ -523,7 +530,7 @@ static void ui_thread_entry(ULONG arg) {
       UI_DrawDetectionInfoSection(det_info);
     }
 
-    /* Draw detection overlays (right side) if available */
+    /* Draw detection overlays last so boxes appear on top of text */
     if (det_info != NULL && roi_info != NULL) {
       UI_DrawDetectionOverlays(det_info, roi_info);
     }
