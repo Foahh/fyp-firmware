@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
- * @file    app_comm.c
+ * @file    app_comm_log.c
  * @author  Long Liangmao
- * @brief   Communication thread
+ * @brief   Periodic device-to-host reporting
  ******************************************************************************
  * @attention
  *
@@ -16,12 +16,11 @@
  ******************************************************************************
  */
 
-#include "app_comm.h"
+#include "app_comm_log.h"
+#include "app_comm_tx.h"
 #include "app_error.h"
 #include "app_postprocess.h"
 #include "messages.pb.h"
-#include "pb_encode.h"
-#include "stm32n6570_discovery.h"
 #include "stm32n6xx_hal.h"
 #include "tx_api.h"
 
@@ -29,28 +28,23 @@
  * Configuration
  * ============================================================================ */
 
-#define COMM_THREAD_STACK_SIZE 2048U
-#define COMM_THREAD_PRIORITY   8
+#define COMM_LOG_THREAD_STACK_SIZE 2048U
+#define COMM_LOG_THREAD_PRIORITY   8
 
 /* ============================================================================
  * Static resources
  * ============================================================================ */
 
-static TX_THREAD comm_thread;
-static UCHAR comm_thread_stack[COMM_THREAD_STACK_SIZE];
-
-/* Double buffer */
-#define FRAME_BUF_SIZE (4 + DatalogMessage_size)
-static uint8_t frame_bufs[2][FRAME_BUF_SIZE];
-static uint8_t buf_idx = 0;
+static TX_THREAD comm_log_thread;
+static UCHAR comm_log_thread_stack[COMM_LOG_THREAD_STACK_SIZE];
 
 /* ============================================================================
  * Internal helpers
  * ============================================================================ */
 
 static void comm_send_detection_result(const detection_info_t *info) {
-  DatalogMessage msg = DatalogMessage_init_zero;
-  msg.which_payload = DatalogMessage_detection_result_tag;
+  DeviceMessage msg = DeviceMessage_init_zero;
+  msg.which_payload = DeviceMessage_detection_result_tag;
 
   DetectionResult *df = &msg.payload.detection_result;
   df->timestamp = HAL_GetTick();
@@ -76,30 +70,16 @@ static void comm_send_detection_result(const detection_info_t *info) {
     df->detections[i].class_index = d->class_index;
   }
 
-  uint8_t *buf = frame_bufs[buf_idx];
+  df->host_image_id = info->host_image_id;
 
-  pb_ostream_t stream = pb_ostream_from_buffer(buf + 4, FRAME_BUF_SIZE - 4);
-  bool ok = pb_encode(&stream, DatalogMessage_fields, &msg);
-  APP_REQUIRE(ok);
-
-  uint32_t len = (uint32_t)stream.bytes_written;
-  buf[0] = (uint8_t)(len);
-  buf[1] = (uint8_t)(len >> 8);
-  buf[2] = (uint8_t)(len >> 16);
-  buf[3] = (uint8_t)(len >> 24);
-
-  APP_REQUIRE(4 + len <= UINT16_MAX);
-  HAL_UART_Transmit(&hcom_uart[COM1], buf, (uint16_t)(4 + len),
-                    HAL_MAX_DELAY);
-
-  buf_idx ^= 1;
+  Comm_TX_Send(&msg);
 }
 
 /* ============================================================================
- * Thread entry
+ * Log thread entry
  * ============================================================================ */
 
-static void comm_thread_entry(ULONG arg) {
+static void comm_log_thread_entry(ULONG arg) {
   UNUSED(arg);
 
   TX_EVENT_FLAGS_GROUP *event_flags = Postprocess_GetUpdateEventFlags();
@@ -123,12 +103,13 @@ static void comm_thread_entry(ULONG arg) {
  * Public API
  * ============================================================================ */
 
-void Comm_Thread_Start(void) {
+void Comm_Log_Start(void) {
   UINT status;
 
-  status = tx_thread_create(&comm_thread, "comm", comm_thread_entry, 0,
-                            comm_thread_stack, COMM_THREAD_STACK_SIZE,
-                            COMM_THREAD_PRIORITY, COMM_THREAD_PRIORITY,
-                            TX_NO_TIME_SLICE, TX_AUTO_START);
+  status =
+      tx_thread_create(&comm_log_thread, "comm_log", comm_log_thread_entry, 0,
+                        comm_log_thread_stack, COMM_LOG_THREAD_STACK_SIZE,
+                        COMM_LOG_THREAD_PRIORITY, COMM_LOG_THREAD_PRIORITY,
+                        TX_NO_TIME_SLICE, TX_AUTO_START);
   APP_REQUIRE(status == TX_SUCCESS);
 }

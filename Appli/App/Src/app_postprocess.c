@@ -25,6 +25,7 @@
 #include "model_config.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
+#include <stdbool.h>
 #include <string.h>
 
 /* Include library headers */
@@ -140,6 +141,7 @@ static void pp_thread_entry(ULONG arg) {
     write_buf->inference_ms = nn_timing.inference_ms;
     write_buf->postprocess_ms = pp_ts[1] - pp_ts[0];
     write_buf->frame_drops = CAM_GetFrameDropCount();
+    write_buf->host_image_id = NN_ConsumeHostImageId();
 
     /* Atomically swap read pointer */
     detection_info_read_ptr = write_buf;

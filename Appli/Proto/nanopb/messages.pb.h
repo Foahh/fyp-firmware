@@ -32,23 +32,66 @@ typedef struct _DetectionResult {
     Timing timing;
     pb_size_t detections_count;
     Detection detections[10];
+    uint32_t host_image_id;
 } DetectionResult;
 
-typedef PB_BYTES_ARRAY_T(1024) ImageTransfer_pixel_data_t;
-typedef struct _ImageTransfer {
-    uint32_t width;
-    uint32_t height;
-    uint32_t channels;
-    ImageTransfer_pixel_data_t pixel_data;
-} ImageTransfer;
+typedef struct _DeviceInfo {
+    uint32_t display_width;
+    uint32_t display_height;
+    uint32_t letterbox_width;
+    uint32_t letterbox_height;
+    uint32_t nn_width;
+    uint32_t nn_height;
+    char model_name[64];
+    pb_size_t class_labels_count;
+    char class_labels[10][32];
+    uint32_t command_id;
+} DeviceInfo;
 
-typedef struct _DatalogMessage {
+typedef struct _Ack {
+    uint32_t command_id;
+    bool success;
+} Ack;
+
+typedef struct _SetDisplayEnabled {
+    bool enabled;
+} SetDisplayEnabled;
+
+typedef struct _SetCameraEnabled {
+    bool enabled;
+} SetCameraEnabled;
+
+typedef struct _GetDeviceInfo {
+    char dummy_field;
+} GetDeviceInfo;
+
+typedef PB_BYTES_ARRAY_T(1024) ImageChunk_data_t;
+typedef struct _ImageChunk {
+    uint32_t offset;
+    uint32_t total_size;
+    ImageChunk_data_t data;
+    uint32_t image_id;
+} ImageChunk;
+
+typedef struct _DeviceMessage {
     pb_size_t which_payload;
-    union _DatalogMessage_payload {
+    union _DeviceMessage_payload {
         DetectionResult detection_result;
-        ImageTransfer image_transfer;
+        DeviceInfo device_info;
+        Ack ack;
     } payload;
-} DatalogMessage;
+} DeviceMessage;
+
+typedef struct _HostMessage {
+    uint32_t command_id;
+    pb_size_t which_command;
+    union _HostMessage_command {
+        SetDisplayEnabled set_display_enabled;
+        SetCameraEnabled set_camera_enabled;
+        GetDeviceInfo get_device_info;
+        ImageChunk image_chunk;
+    } command;
+} HostMessage;
 
 
 #ifdef __cplusplus
@@ -58,14 +101,26 @@ extern "C" {
 /* Initializer values for message structs */
 #define Timing_init_default                      {0, 0, 0, 0}
 #define Detection_init_default                   {0, 0, 0, 0, 0, 0}
-#define DetectionResult_init_default             {0, false, Timing_init_default, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}}
-#define ImageTransfer_init_default               {0, 0, 0, {0, {0}}}
-#define DatalogMessage_init_default              {0, {DetectionResult_init_default}}
+#define DetectionResult_init_default             {0, false, Timing_init_default, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, 0}
+#define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0}
+#define Ack_init_default                         {0, 0}
+#define SetDisplayEnabled_init_default           {0}
+#define SetCameraEnabled_init_default            {0}
+#define GetDeviceInfo_init_default               {0}
+#define ImageChunk_init_default                  {0, 0, {0, {0}}, 0}
+#define DeviceMessage_init_default               {0, {DetectionResult_init_default}}
+#define HostMessage_init_default                 {0, 0, {SetDisplayEnabled_init_default}}
 #define Timing_init_zero                         {0, 0, 0, 0}
 #define Detection_init_zero                      {0, 0, 0, 0, 0, 0}
-#define DetectionResult_init_zero                {0, false, Timing_init_zero, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}}
-#define ImageTransfer_init_zero                  {0, 0, 0, {0, {0}}}
-#define DatalogMessage_init_zero                 {0, {DetectionResult_init_zero}}
+#define DetectionResult_init_zero                {0, false, Timing_init_zero, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, 0}
+#define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0}
+#define Ack_init_zero                            {0, 0}
+#define SetDisplayEnabled_init_zero              {0}
+#define SetCameraEnabled_init_zero               {0}
+#define GetDeviceInfo_init_zero                  {0}
+#define ImageChunk_init_zero                     {0, 0, {0, {0}}, 0}
+#define DeviceMessage_init_zero                  {0, {DetectionResult_init_zero}}
+#define HostMessage_init_zero                    {0, 0, {SetDisplayEnabled_init_zero}}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define Timing_inference_ms_tag                  1
@@ -81,12 +136,32 @@ extern "C" {
 #define DetectionResult_timestamp_tag            1
 #define DetectionResult_timing_tag               2
 #define DetectionResult_detections_tag           3
-#define ImageTransfer_width_tag                  1
-#define ImageTransfer_height_tag                 2
-#define ImageTransfer_channels_tag               3
-#define ImageTransfer_pixel_data_tag             4
-#define DatalogMessage_detection_result_tag      1
-#define DatalogMessage_image_transfer_tag        2
+#define DetectionResult_host_image_id_tag        4
+#define DeviceInfo_display_width_tag             1
+#define DeviceInfo_display_height_tag            2
+#define DeviceInfo_letterbox_width_tag           3
+#define DeviceInfo_letterbox_height_tag          4
+#define DeviceInfo_nn_width_tag                  5
+#define DeviceInfo_nn_height_tag                 6
+#define DeviceInfo_model_name_tag                7
+#define DeviceInfo_class_labels_tag              8
+#define DeviceInfo_command_id_tag                9
+#define Ack_command_id_tag                       1
+#define Ack_success_tag                          2
+#define SetDisplayEnabled_enabled_tag            1
+#define SetCameraEnabled_enabled_tag             1
+#define ImageChunk_offset_tag                    1
+#define ImageChunk_total_size_tag                2
+#define ImageChunk_data_tag                      3
+#define ImageChunk_image_id_tag                  4
+#define DeviceMessage_detection_result_tag       1
+#define DeviceMessage_device_info_tag            2
+#define DeviceMessage_ack_tag                    3
+#define HostMessage_command_id_tag               1
+#define HostMessage_set_display_enabled_tag      2
+#define HostMessage_set_camera_enabled_tag       3
+#define HostMessage_get_device_info_tag          4
+#define HostMessage_image_chunk_tag              5
 
 /* Struct field encoding specification for nanopb */
 #define Timing_FIELDLIST(X, a) \
@@ -110,47 +185,115 @@ X(a, STATIC,   SINGULAR, INT32,    class_index,       6)
 #define DetectionResult_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   timestamp,         1) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  timing,            2) \
-X(a, STATIC,   REPEATED, MESSAGE,  detections,        3)
+X(a, STATIC,   REPEATED, MESSAGE,  detections,        3) \
+X(a, STATIC,   SINGULAR, UINT32,   host_image_id,     4)
 #define DetectionResult_CALLBACK NULL
 #define DetectionResult_DEFAULT NULL
 #define DetectionResult_timing_MSGTYPE Timing
 #define DetectionResult_detections_MSGTYPE Detection
 
-#define ImageTransfer_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   width,             1) \
-X(a, STATIC,   SINGULAR, UINT32,   height,            2) \
-X(a, STATIC,   SINGULAR, UINT32,   channels,          3) \
-X(a, STATIC,   SINGULAR, BYTES,    pixel_data,        4)
-#define ImageTransfer_CALLBACK NULL
-#define ImageTransfer_DEFAULT NULL
+#define DeviceInfo_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   display_width,     1) \
+X(a, STATIC,   SINGULAR, UINT32,   display_height,    2) \
+X(a, STATIC,   SINGULAR, UINT32,   letterbox_width,   3) \
+X(a, STATIC,   SINGULAR, UINT32,   letterbox_height,   4) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_width,          5) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_height,         6) \
+X(a, STATIC,   SINGULAR, STRING,   model_name,        7) \
+X(a, STATIC,   REPEATED, STRING,   class_labels,      8) \
+X(a, STATIC,   SINGULAR, UINT32,   command_id,        9)
+#define DeviceInfo_CALLBACK NULL
+#define DeviceInfo_DEFAULT NULL
 
-#define DatalogMessage_FIELDLIST(X, a) \
+#define Ack_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   command_id,        1) \
+X(a, STATIC,   SINGULAR, BOOL,     success,           2)
+#define Ack_CALLBACK NULL
+#define Ack_DEFAULT NULL
+
+#define SetDisplayEnabled_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, BOOL,     enabled,           1)
+#define SetDisplayEnabled_CALLBACK NULL
+#define SetDisplayEnabled_DEFAULT NULL
+
+#define SetCameraEnabled_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, BOOL,     enabled,           1)
+#define SetCameraEnabled_CALLBACK NULL
+#define SetCameraEnabled_DEFAULT NULL
+
+#define GetDeviceInfo_FIELDLIST(X, a) \
+
+#define GetDeviceInfo_CALLBACK NULL
+#define GetDeviceInfo_DEFAULT NULL
+
+#define ImageChunk_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   offset,            1) \
+X(a, STATIC,   SINGULAR, UINT32,   total_size,        2) \
+X(a, STATIC,   SINGULAR, BYTES,    data,              3) \
+X(a, STATIC,   SINGULAR, UINT32,   image_id,          4)
+#define ImageChunk_CALLBACK NULL
+#define ImageChunk_DEFAULT NULL
+
+#define DeviceMessage_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (payload,detection_result,payload.detection_result),   1) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (payload,image_transfer,payload.image_transfer),   2)
-#define DatalogMessage_CALLBACK NULL
-#define DatalogMessage_DEFAULT NULL
-#define DatalogMessage_payload_detection_result_MSGTYPE DetectionResult
-#define DatalogMessage_payload_image_transfer_MSGTYPE ImageTransfer
+X(a, STATIC,   ONEOF,    MESSAGE,  (payload,device_info,payload.device_info),   2) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (payload,ack,payload.ack),   3)
+#define DeviceMessage_CALLBACK NULL
+#define DeviceMessage_DEFAULT NULL
+#define DeviceMessage_payload_detection_result_MSGTYPE DetectionResult
+#define DeviceMessage_payload_device_info_MSGTYPE DeviceInfo
+#define DeviceMessage_payload_ack_MSGTYPE Ack
+
+#define HostMessage_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   command_id,        1) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (command,set_display_enabled,command.set_display_enabled),   2) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (command,set_camera_enabled,command.set_camera_enabled),   3) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (command,get_device_info,command.get_device_info),   4) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (command,image_chunk,command.image_chunk),   5)
+#define HostMessage_CALLBACK NULL
+#define HostMessage_DEFAULT NULL
+#define HostMessage_command_set_display_enabled_MSGTYPE SetDisplayEnabled
+#define HostMessage_command_set_camera_enabled_MSGTYPE SetCameraEnabled
+#define HostMessage_command_get_device_info_MSGTYPE GetDeviceInfo
+#define HostMessage_command_image_chunk_MSGTYPE ImageChunk
 
 extern const pb_msgdesc_t Timing_msg;
 extern const pb_msgdesc_t Detection_msg;
 extern const pb_msgdesc_t DetectionResult_msg;
-extern const pb_msgdesc_t ImageTransfer_msg;
-extern const pb_msgdesc_t DatalogMessage_msg;
+extern const pb_msgdesc_t DeviceInfo_msg;
+extern const pb_msgdesc_t Ack_msg;
+extern const pb_msgdesc_t SetDisplayEnabled_msg;
+extern const pb_msgdesc_t SetCameraEnabled_msg;
+extern const pb_msgdesc_t GetDeviceInfo_msg;
+extern const pb_msgdesc_t ImageChunk_msg;
+extern const pb_msgdesc_t DeviceMessage_msg;
+extern const pb_msgdesc_t HostMessage_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define Timing_fields &Timing_msg
 #define Detection_fields &Detection_msg
 #define DetectionResult_fields &DetectionResult_msg
-#define ImageTransfer_fields &ImageTransfer_msg
-#define DatalogMessage_fields &DatalogMessage_msg
+#define DeviceInfo_fields &DeviceInfo_msg
+#define Ack_fields &Ack_msg
+#define SetDisplayEnabled_fields &SetDisplayEnabled_msg
+#define SetCameraEnabled_fields &SetCameraEnabled_msg
+#define GetDeviceInfo_fields &GetDeviceInfo_msg
+#define ImageChunk_fields &ImageChunk_msg
+#define DeviceMessage_fields &DeviceMessage_msg
+#define HostMessage_fields &HostMessage_msg
 
 /* Maximum encoded size of messages (where known) */
-#define DatalogMessage_size                      1048
-#define DetectionResult_size                     412
+#define Ack_size                                 8
+#define DetectionResult_size                     418
 #define Detection_size                           36
-#define ImageTransfer_size                       1045
-#define MESSAGES_PB_H_MAX_SIZE                   DatalogMessage_size
+#define DeviceInfo_size                          437
+#define DeviceMessage_size                       440
+#define GetDeviceInfo_size                       0
+#define HostMessage_size                         1054
+#define ImageChunk_size                          1045
+#define MESSAGES_PB_H_MAX_SIZE                   HostMessage_size
+#define SetCameraEnabled_size                    2
+#define SetDisplayEnabled_size                   2
 #define Timing_size                              24
 
 #ifdef __cplusplus

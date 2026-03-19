@@ -15,10 +15,28 @@ PB_BIND(Detection, Detection, AUTO)
 PB_BIND(DetectionResult, DetectionResult, 2)
 
 
-PB_BIND(ImageTransfer, ImageTransfer, 2)
+PB_BIND(DeviceInfo, DeviceInfo, 2)
 
 
-PB_BIND(DatalogMessage, DatalogMessage, 2)
+PB_BIND(Ack, Ack, AUTO)
+
+
+PB_BIND(SetDisplayEnabled, SetDisplayEnabled, AUTO)
+
+
+PB_BIND(SetCameraEnabled, SetCameraEnabled, AUTO)
+
+
+PB_BIND(GetDeviceInfo, GetDeviceInfo, AUTO)
+
+
+PB_BIND(ImageChunk, ImageChunk, 2)
+
+
+PB_BIND(DeviceMessage, DeviceMessage, 2)
+
+
+PB_BIND(HostMessage, HostMessage, 2)
 
 
 

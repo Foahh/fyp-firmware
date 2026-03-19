@@ -22,6 +22,7 @@
 #include "stm32n6xx_hal.h"
 
 #include "cmw_camera.h"
+#include "stm32n6570_discovery.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -128,4 +129,11 @@ void CSI_IRQHandler(void) {
 void IAC_IRQHandler(void) {
   while (1) {
   }
+}
+
+/**
+ * @brief This function handles USART1 global interrupt.
+ */
+void USART1_IRQHandler(void) {
+  HAL_UART_IRQHandler(&hcom_uart[COM1]);
 }

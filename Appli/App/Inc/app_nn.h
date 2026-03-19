@@ -73,6 +73,18 @@ const uint32_t *NN_GetOutputSizes(void);
 stai_network_info *NN_GetNetworkInfo(void);
 
 /**
+ * @brief  Set the host image ID for the next inference result
+ * @param  image_id: non-zero ID from host, 0 means camera frame
+ */
+void NN_SetHostImageId(uint32_t image_id);
+
+/**
+ * @brief  Read and consume the host image ID
+ * @retval image_id if the current inference was triggered by a host image, 0 otherwise
+ */
+uint32_t NN_ConsumeHostImageId(void);
+
+/**
  * @brief  Initialize NN thread and resources
  * @param  memory_ptr: ThreadX memory pool (unused, static allocation)
  */

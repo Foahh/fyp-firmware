@@ -74,7 +74,10 @@ set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_bqueue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_buffers.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cam.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm_cmd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm_log.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm_rx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm_tx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cpuload.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_lcd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_nn.c

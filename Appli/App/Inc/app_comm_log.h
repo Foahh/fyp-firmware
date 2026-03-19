@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
- * @file    app_comm.h
+ * @file    app_comm_log.h
  * @author  Long Liangmao
- * @brief   Communication thread
+ * @brief   Periodic device-to-host reporting
  ******************************************************************************
  * @attention
  *
@@ -16,21 +16,21 @@
  ******************************************************************************
  */
 
-#ifndef APP_COMM_H
-#define APP_COMM_H
+#ifndef APP_COMM_LOG_H
+#define APP_COMM_LOG_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief  Create the comm thread
- * @note   Must be called from ThreadX_Start() before the kernel runs
+ * @brief  Create the comm log thread
+ * @note   Must be called after Comm_TX_Start()
  */
-void Comm_Thread_Start(void);
+void Comm_Log_Start(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* APP_COMM_H */
+#endif /* APP_COMM_LOG_H */
