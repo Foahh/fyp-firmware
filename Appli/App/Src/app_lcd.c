@@ -153,10 +153,11 @@ void LCD_ReloadCameraLayer(uint8_t *frame_buffer) {
   HAL_NVIC_DisableIRQ(DCMIPP_IRQn);
   status = HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
                                         LCD_LAYER_0_CAMERA);
-  APP_REQUIRE(status == HAL_OK);
-
-  status = HAL_LTDC_ReloadLayer(&hlcd_ltdc, LTDC_RELOAD_VERTICAL_BLANKING,
-                                LCD_LAYER_0_CAMERA);
+  if (status == HAL_OK) {
+    status = HAL_LTDC_ReloadLayer(&hlcd_ltdc, LTDC_RELOAD_VERTICAL_BLANKING,
+                                  LCD_LAYER_0_CAMERA);
+  }
+  HAL_NVIC_EnableIRQ(DCMIPP_IRQn);
   APP_REQUIRE(status == HAL_OK);
 }
 
