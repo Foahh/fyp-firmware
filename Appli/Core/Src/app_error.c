@@ -18,6 +18,7 @@
 
 #include "app_error.h"
 #include "stm32n6570_discovery.h"
+#include "tx_api.h"
 
 /**
  * @brief  This function is executed in case of error occurrence.
@@ -43,6 +44,14 @@ void Error_Handler(void) {
     }
   }
 }
+
+#ifdef DEBUG
+void _tx_thread_stack_error_handler(TX_THREAD *thread) {
+  g_error_file = (volatile uint8_t *)thread->tx_thread_name;
+  g_error_line = 0;
+  Error_Handler();
+}
+#endif
 
 #ifdef USE_FULL_ASSERT
 /**
