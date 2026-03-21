@@ -59,7 +59,7 @@ def build_project(project_root, name, cfg, build_type, extra_cmake_args=None):
     cmake_build(project_dir, build_type)
 
 
-def sign_project(project_root, name, cfg, build_type, name_prefix):
+def sign_project(project_root, name, cfg, build_type, name_prefix, force=False):
     """Sign and convert a compiled project to flashable HEX. Skips if ELF unchanged."""
     project_dir = project_root / cfg["sub_dir"]
     build_dir = project_dir / "build" / build_type
@@ -68,7 +68,7 @@ def sign_project(project_root, name, cfg, build_type, name_prefix):
     elf = build_dir / f"{full_name}.elf"
     cache = build_dir / SIGN_CACHE_FILE
     digest = file_hash(elf)
-    if read_cached_hash(elf, cache) == digest:
+    if not force and read_cached_hash(elf, cache) == digest:
         print(f"\n--- Skipping sign {name} (unchanged) ---")
         return
 
@@ -93,6 +93,7 @@ def cmd_build(
     appli=True,
     fsbl=True,
     sign=True,
+    force=False,
 ):
     require_tool("cmake")
 
@@ -111,7 +112,12 @@ def cmd_build(
         build_project(project_root, "FSBL", projects["FSBL"], build_type)
         if sign:
             sign_project(
-                project_root, "FSBL", projects["FSBL"], build_type, name_prefix
+                project_root,
+                "FSBL",
+                projects["FSBL"],
+                build_type,
+                name_prefix,
+                force=force,
             )
 
     if appli:
@@ -120,7 +126,12 @@ def cmd_build(
         )
         if sign:
             sign_project(
-                project_root, "Appli", projects["Appli"], build_type, name_prefix
+                project_root,
+                "Appli",
+                projects["Appli"],
+                build_type,
+                name_prefix,
+                force=force,
             )
 
     print("\n=== Build completed successfully ===")

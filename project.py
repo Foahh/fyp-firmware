@@ -83,6 +83,12 @@ def main():
         default=DEFAULT_MODEL,
         help=f"Model to use (default: {DEFAULT_MODEL})",
     )
+    build_parser.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Re-sign firmware even if unchanged (ignore sign cache)",
+    )
 
     build_appli_parser = sub.add_parser(
         "build-appli-debug", help="Build Appli only (Debug, no sign/hex)"
@@ -112,7 +118,12 @@ def main():
         cmd_model(PROJECT_ROOT, resolve_model(args), NETWORK_BIN_ADDRESS)
     elif args.command == "build":
         cmd_build(
-            PROJECT_ROOT, PROJECTS, resolve_model(args), BUILD_TYPE, PROJECT_NAME_PREFIX
+            PROJECT_ROOT,
+            PROJECTS,
+            resolve_model(args),
+            BUILD_TYPE,
+            PROJECT_NAME_PREFIX,
+            force=args.force,
         )
     elif args.command == "build-appli-debug":
         cmd_build(
