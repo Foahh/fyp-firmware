@@ -42,8 +42,11 @@ void power_measurement_sync_end(void) {
 
 #else /* !PWR_MEASUREMENT_SYNC_ENABLE */
 
-void power_measurement_sync_init(void) {}
-void power_measurement_sync_begin(void) {}
-void power_measurement_sync_end(void) {}
+void power_measurement_sync_init(void) {
+}
+void power_measurement_sync_begin(void) {
+}
+void power_measurement_sync_end(void) {
+}
 
 #endif /* PWR_MEASUREMENT_SYNC_ENABLE */
