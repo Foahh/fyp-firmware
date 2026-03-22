@@ -45,6 +45,7 @@
 static void clamp_point(int *x, int *y);
 static void draw_detection(const od_pp_outBuffer_t *det,
                            int roi_x0, int roi_y0, int roi_w, int roi_h);
+static void UI_DrawBuildOptions(void);
 
 /* ============================================================================
  * UI Configuration Constants
@@ -61,6 +62,7 @@ static void draw_detection(const od_pp_outBuffer_t *det,
 #define UI_TEXT_MARGIN_Y 8
 #define UI_LINE_SPACING  4
 #define UI_FONT_HEIGHT   16 /* Cache Font16.Height to avoid struct access */
+#define UI_FONT_WIDTH    11 /* Cache Font16.Width to avoid struct access */
 
 /* Colors (ARGB8888 format) */
 #define UI_COLOR_BG     0xC0000000 /* Semi-transparent black */
@@ -456,6 +458,43 @@ static void UI_DrawPanelBackground(void) {
 }
 
 /**
+ * @brief  Show build-time options (project.py: --snapshot, --performance) at top right
+ */
+static void UI_DrawBuildOptions(void) {
+  char line[40];
+  const char *snap_label;
+  const char *perf_label;
+  uint32_t y;
+  uint32_t tw;
+  uint32_t x0;
+
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+  snap_label = "SNAPSHOT";
+#else
+  snap_label = "CONTINUOUS";
+#endif
+#ifdef PERFORMANCE_MODE
+  perf_label = "PERFORMANCE";
+#else
+  perf_label = "NOMINAL";
+#endif
+
+  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+
+  y = UI_TEXT_MARGIN_Y;
+  snprintf(line, sizeof(line), "%s", snap_label);
+  tw = (uint32_t)strlen(line) * UI_FONT_WIDTH;
+  x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
+  UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)line, LEFT_MODE);
+
+  y += UI_FONT_HEIGHT + UI_LINE_SPACING;
+  snprintf(line, sizeof(line), "%s", perf_label);
+  tw = (uint32_t)strlen(line) * UI_FONT_WIDTH;
+  x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
+  UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)line, LEFT_MODE);
+}
+
+/**
  * @brief  Draw UI title and separator
  */
 static void UI_DrawHeader(void) {
@@ -736,6 +775,7 @@ static void ui_thread_entry(ULONG arg) {
 
     /* Draw panel text (may extend into camera area) */
     UI_DrawHeader();
+    UI_DrawBuildOptions();
     UI_DrawRuntimeSection();
     UI_DrawCPULoadSection(cpu_load_pct);
 
