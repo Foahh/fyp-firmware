@@ -20,6 +20,7 @@
 #include "app_error.h"
 #include "app_nn_config.h"
 #include "model_config.h"
+#include "power_measurement_sync.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
 #include <string.h>
@@ -102,12 +103,14 @@ static volatile uint32_t nn_host_image_id;
 static void NN_RunInference(stai_network *network) {
   stai_return_code ret;
 
+  power_measurement_sync_begin();
   do {
     ret = mdl_run(network, STAI_MODE_ASYNC);
     if (ret == STAI_RUNNING_WFE) {
       LL_ATON_OSAL_WFE();
     }
   } while (ret == STAI_RUNNING_WFE || ret == STAI_RUNNING_NO_WFE);
+  power_measurement_sync_end();
 
   ret = mdl_new_inference(network);
   APP_REQUIRE(ret == STAI_SUCCESS);

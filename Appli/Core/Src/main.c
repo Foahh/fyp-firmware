@@ -29,6 +29,7 @@
 #include "app_ui.h"
 #include "cmw_camera.h"
 #include "npu_cache.h"
+#include "power_measurement_sync.h"
 #include "stm32n6570_discovery_errno.h"
 #include "stm32n6570_discovery_xspi.h"
 #include "stm32n6xx_hal_ramcfg.h"
@@ -78,6 +79,7 @@ int main(void) {
   SystemClock_Config();
 
   GPIO_Config();
+
   SystemIsolation_Config();
 
   SMPS_Config();
@@ -104,6 +106,8 @@ int main(void) {
   CAM_Init();
 
   Priority_Config();
+
+  power_measurement_sync_init();
 
   ThreadX_Init();
 
