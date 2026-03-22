@@ -104,11 +104,13 @@ def cmd_build(
         f"-DNETWORK_NAME={model['network_name']}",
     ]
 
-    if snapshot:
-        appli_cmake_args.append("-DCAMERA_NN_SNAPSHOT_MODE=1")
+    appli_cmake_args.append(
+        "-DCAMERA_NN_SNAPSHOT_MODE=ON" if snapshot else "-DCAMERA_NN_SNAPSHOT_MODE=OFF"
+    )
 
-    if performance:
-        appli_cmake_args.append("-DPERFORMANCE_MODE=1")
+    appli_cmake_args.append(
+        "-DPERFORMANCE_MODE=ON" if performance else "-DPERFORMANCE_MODE=OFF"
+    )
 
     print(f"Building firmware (model: {model['define']})")
 
