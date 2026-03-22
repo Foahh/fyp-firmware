@@ -162,7 +162,7 @@ static cpuload_info_t g_cpu_load;
 /* UI state */
 static uint8_t g_ui_visible = 1;
 static uint8_t g_ui_initialized = 0;
-static volatile uint8_t g_tof_overlay_visible = 1;
+static volatile uint8_t g_tof_overlay_visible = 0;
 
 /* ============================================================================
  * Thread Configuration
