@@ -137,3 +137,10 @@ void IAC_IRQHandler(void) {
 void USART1_IRQHandler(void) {
   HAL_UART_IRQHandler(&hcom_uart[COM1]);
 }
+
+/**
+ * @brief This function handles EXTI Line 13 interrupt (USER1 button).
+ */
+void EXTI13_IRQHandler(void) {
+  BSP_PB_IRQHandler(BUTTON_USER1);
+}

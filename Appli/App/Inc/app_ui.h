@@ -48,6 +48,11 @@ uint8_t UI_IsVisible(void);
  */
 void UI_Update(void);
 
+/**
+ * @brief  Toggle ToF alert overlay (depth grid, proximity section, alert banner)
+ */
+void UI_ToggleTOFOverlay(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -155,9 +155,7 @@ static cpuload_info_t g_cpu_load;
 /* UI state */
 static uint8_t g_ui_visible = 1;
 static uint8_t g_ui_initialized = 0;
-
-/* Detection update tracking */
-static volatile uint8_t g_detection_update_pending = 0;
+static volatile uint8_t g_tof_overlay_visible = 1;
 
 /* ============================================================================
  * Thread Configuration
@@ -751,7 +749,6 @@ static void ui_thread_entry(ULONG arg) {
       UI_DrawDetectionOverlays(det_info, roi_info);
     }
 
-    /* Draw proximity info in diagnostic panel */
     if (tof_alert != NULL) {
       UI_DrawProximitySection(tof_alert);
       if (tof_alert->alert) {
@@ -759,10 +756,12 @@ static void ui_thread_entry(ULONG arg) {
       }
     }
 
-    /* Draw ToF depth grid overlay on camera view */
-    const tof_depth_grid_t *depth_grid = TOF_GetDepthGrid();
-    if (depth_grid->valid) {
-      UI_DrawDepthGrid(depth_grid);
+    /* Draw depth grid (toggled by user button) */
+    if (g_tof_overlay_visible) {
+      const tof_depth_grid_t *depth_grid = TOF_GetDepthGrid();
+      if (depth_grid->valid) {
+        UI_DrawDepthGrid(depth_grid);
+      }
     }
 
     /* Swap buffers and reload display */
@@ -840,4 +839,8 @@ void UI_SetVisible(uint8_t visible) {
 
 uint8_t UI_IsVisible(void) {
   return g_ui_visible;
+}
+
+void UI_ToggleTOFOverlay(void) {
+  g_tof_overlay_visible ^= 1;
 }

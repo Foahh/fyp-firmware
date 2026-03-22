@@ -51,6 +51,7 @@ static void ClockSleep_Config(void);
 static void NPU_Config(void);
 static void Priority_Config(void);
 static void GPIO_Config(void);
+static void Button_Config(void);
 #if (USE_BSP_COM_FEATURE > 0)
 static void COM_Config(void);
 #endif /* USE_BSP_COM_FEATURE */
@@ -96,6 +97,8 @@ int main(void) {
   XSPI_Config();
 
   LED_Config();
+
+  Button_Config();
 
   ClockSleep_Config();
 
@@ -497,4 +500,14 @@ void HAL_MspInit(void) {
   HAL_PWREx_EnableVddIO3();
   HAL_PWREx_EnableVddIO4();
   HAL_PWREx_EnableVddIO5();
+}
+
+static void Button_Config(void) {
+  BSP_PB_Init(BUTTON_USER1, BUTTON_MODE_EXTI);
+}
+
+void BSP_PB_Callback(Button_TypeDef Button) {
+  if (Button == BUTTON_USER1) {
+    UI_ToggleTOFOverlay();
+  }
 }
