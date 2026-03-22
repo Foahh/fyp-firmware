@@ -96,6 +96,7 @@ def cmd_build(
     force=False,
     snapshot=False,
     performance=False,
+    camera_fps=30,
 ):
     require_tool("cmake")
 
@@ -112,7 +113,9 @@ def cmd_build(
         "-DPERFORMANCE_MODE=ON" if performance else "-DPERFORMANCE_MODE=OFF"
     )
 
-    print(f"Building firmware (model: {model['define']})")
+    appli_cmake_args.append(f"-DCAMERA_FPS={camera_fps}")
+
+    print(f"Building firmware (model: {model['define']}, CAMERA_FPS={camera_fps})")
 
     if sign:
         require_tool("STM32_SigningTool_CLI")

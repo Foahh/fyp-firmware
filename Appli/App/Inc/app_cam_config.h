@@ -18,8 +18,10 @@
 #ifndef APP_CAM_CONFIG_H
 #define APP_CAM_CONFIG_H
 
-/* Camera FPS configuration */
+/* Camera FPS: overridden by CMake (-DCAMERA_FPS=...) when using project.py build */
+#ifndef CAMERA_FPS
 #define CAMERA_FPS 30
+#endif
 
 /* Define sensor orientation */
 #define CAMERA_FLIP CMW_MIRRORFLIP_MIRROR

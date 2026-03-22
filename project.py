@@ -42,6 +42,9 @@ MODELS = {
 
 DEFAULT_MODEL = "yolox_nano"
 
+CAMERA_FPS_CHOICES = (10, 15, 20, 25, 30)
+DEFAULT_CAMERA_FPS = 30
+
 
 def resolve_model(args):
     key = getattr(args, "model", DEFAULT_MODEL) or DEFAULT_MODEL
@@ -99,6 +102,14 @@ def main():
         action="store_true",
         help="Run NPU at 1000 MHz instead of 800 MHz",
     )
+    build_parser.add_argument(
+        "--fps",
+        type=int,
+        choices=CAMERA_FPS_CHOICES,
+        default=DEFAULT_CAMERA_FPS,
+        metavar="N",
+        help=f"Camera frame rate (default: {DEFAULT_CAMERA_FPS})",
+    )
 
     build_appli_parser = sub.add_parser(
         "build-appli-debug", help="Build Appli only (Debug, no sign/hex)"
@@ -119,6 +130,14 @@ def main():
         "--performance",
         action="store_true",
         help="Run NPU at 1000 MHz instead of 800 MHz",
+    )
+    build_appli_parser.add_argument(
+        "--fps",
+        type=int,
+        choices=CAMERA_FPS_CHOICES,
+        default=DEFAULT_CAMERA_FPS,
+        metavar="N",
+        help=f"Camera frame rate (default: {DEFAULT_CAMERA_FPS})",
     )
 
     sub.add_parser("build-fsbl-debug", help="Build FSBL only (Debug, no sign/hex)")
@@ -146,6 +165,7 @@ def main():
             force=args.force,
             snapshot=args.snapshot,
             performance=args.performance,
+            camera_fps=args.fps,
         )
     elif args.command == "build-appli-debug":
         cmd_build(
@@ -158,6 +178,7 @@ def main():
             sign=False,
             snapshot=args.snapshot,
             performance=args.performance,
+            camera_fps=args.fps,
         )
     elif args.command == "build-fsbl-debug":
         cmd_build(
