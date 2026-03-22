@@ -90,15 +90,21 @@ void ThreadX_Init(void) {
 static void startup_thread_entry(ULONG arg) {
   UNUSED(arg);
 
+#ifndef CAMERA_NN_SNAPSHOT_MODE
   bqueue_t *nn_input_queue;
   uint8_t *first_nn_buffer;
+#endif
 
   CAM_DisplayPipe_Start(CMW_MODE_CONTINUOUS);
 
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+  CAM_NNPipe_Start(NN_GetSnapshotBuffer(), CMW_MODE_SNAPSHOT);
+#else
   nn_input_queue = NN_GetInputQueue();
   first_nn_buffer = bqueue_get_free(nn_input_queue, 0);
   APP_REQUIRE(first_nn_buffer != NULL);
   CAM_NNPipe_Start(first_nn_buffer, CMW_MODE_CONTINUOUS);
+#endif
 
   /* Startup thread has completed its task, so it can exit */
   tx_thread_delete(&startup_thread);

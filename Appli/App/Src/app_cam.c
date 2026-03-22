@@ -273,6 +273,17 @@ void CAM_NNPipe_Stop(void) {
   CMW_CAMERA_Suspend(DCMIPP_PIPE2);
 }
 
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+/**
+ * @brief  Request a single snapshot from the NN pipe
+ * @param  nn_buffer: Pointer to the NN buffer to capture into
+ */
+void CAM_NNPipe_RequestSnapshot(uint8_t *nn_buffer) {
+  APP_REQUIRE(nn_buffer != NULL);
+  APP_REQUIRE(CMW_CAMERA_Start(DCMIPP_PIPE2, nn_buffer, CMW_MODE_SNAPSHOT) == CMW_ERROR_NONE);
+}
+#endif
+
 /**
  * @brief  Get NN crop ROI in display coordinates
  * @retval Pointer to nn_crop_info_display_t struct if initialized, NULL otherwise
@@ -359,12 +370,15 @@ static void cam_display_pipe_frame_event(void) {
  *         Gets next free buffer from NN input queue and programs DCMIPP
  */
 static void cam_nn_pipe_frame_event(void) {
-  bqueue_t *nn_input_queue;
-  uint8_t *next_buffer;
-
   if (!nn_pipe_running) {
     return;
   }
+
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+  NN_SignalSnapshotReady();
+#else
+  bqueue_t *nn_input_queue;
+  uint8_t *next_buffer;
 
   nn_input_queue = NN_GetInputQueue();
   if (nn_input_queue == NULL) {
@@ -383,6 +397,7 @@ static void cam_nn_pipe_frame_event(void) {
   } else {
     nn_frame_drop_count++;
   }
+#endif
 }
 
 /* ============================================================================

@@ -17,6 +17,7 @@
  */
 
 #include "app_nn.h"
+#include "app_cam.h"
 #include "app_error.h"
 #include "app_nn_config.h"
 #include "model_config.h"
@@ -40,8 +41,9 @@ static void nn_thread_entry(ULONG arg);
  * ============================================================================ */
 
 /* Thread configuration */
-#define NN_THREAD_STACK_SIZE 4096
-#define NN_THREAD_PRIORITY   6
+#define NN_THREAD_STACK_SIZE       4096
+#define NN_THREAD_PRIORITY         6
+#define NN_SLOW_FRAME_THRESHOLD_MS 50
 
 /* NN output sizes from model header */
 
@@ -70,14 +72,18 @@ static struct {
   UCHAR stack[NN_THREAD_STACK_SIZE];
 } nn_ctx;
 
-/* Buffer queues */
+/* Buffer queues and input buffers */
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+static TX_EVENT_FLAGS_GROUP nn_snapshot_flags;
+static uint8_t nn_input_buffers[2][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
+static volatile int nn_snap_write_idx;
+#else
 static bqueue_t nn_input_queue;
-static bqueue_t nn_output_queue;
-
-/* NN input buffers */
 static uint8_t nn_input_buffers[3][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
+#endif
 
 /* NN output buffers */
+static bqueue_t nn_output_queue;
 static uint8_t nn_output_buffers[2][NN_OUT_BUFFER_SIZE] ALIGN_32;
 
 /* Output sizes array */
@@ -146,10 +152,27 @@ static void nn_thread_entry(ULONG arg) {
     nn_period[0] = nn_period[1];
     nn_period[1] = HAL_GetTick();
     nn_timing.nn_period_ms = nn_period[1] - nn_period[0];
+    if (nn_timing.nn_period_ms > NN_SLOW_FRAME_THRESHOLD_MS) {
+      nn_timing.slow_frames++;
+    }
 
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+    /* Wait for snapshot frame */
+    ULONG actual_flags;
+    tx_event_flags_get(&nn_snapshot_flags, 0x01, TX_OR_CLEAR,
+                       &actual_flags, TX_WAIT_FOREVER);
+    /* The buffer that just finished capturing is the current write buffer */
+    int captured_idx = nn_snap_write_idx;
+    /* Swap to other buffer for next capture */
+    nn_snap_write_idx ^= 1;
+    /* Pre-request next snapshot (overlaps with inference) */
+    CAM_NNPipe_RequestSnapshot(nn_input_buffers[nn_snap_write_idx]);
+    capture_buffer = nn_input_buffers[captured_idx];
+#else
     /* Get input buffer (blocking) */
     capture_buffer = bqueue_get_ready(&nn_input_queue);
     APP_REQUIRE(capture_buffer != NULL);
+#endif
 
     /* Get output buffer (blocking) */
     output_buffer = bqueue_get_free(&nn_output_queue, 1);
@@ -178,8 +201,10 @@ static void nn_thread_entry(ULONG arg) {
     NN_RunInference(nn_ctx_network);
     nn_timing.inference_ms = HAL_GetTick() - ts;
 
+#ifndef CAMERA_NN_SNAPSHOT_MODE
     /* Release input buffer back to free pool */
     bqueue_put_free(&nn_input_queue);
+#endif
 
     /* Mark output buffer as ready for postprocess */
     bqueue_put_ready(&nn_output_queue);
@@ -190,6 +215,18 @@ static void nn_thread_entry(ULONG arg) {
  * Public API Functions
  * ============================================================================ */
 
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+
+void NN_SignalSnapshotReady(void) {
+  tx_event_flags_set(&nn_snapshot_flags, 0x01, TX_OR);
+}
+
+uint8_t *NN_GetSnapshotBuffer(void) {
+  return nn_input_buffers[nn_snap_write_idx];
+}
+
+#else
+
 /**
  * @brief  Get pointer to NN input buffer queue
  * @retval Pointer to input queue
@@ -197,6 +234,8 @@ static void nn_thread_entry(ULONG arg) {
 bqueue_t *NN_GetInputQueue(void) {
   return &nn_input_queue;
 }
+
+#endif /* CAMERA_NN_SNAPSHOT_MODE */
 
 /**
  * @brief  Get pointer to NN output buffer queue
@@ -214,6 +253,7 @@ void NN_GetTiming(nn_timing_t *timing) {
   if (timing != NULL) {
     timing->nn_period_ms = nn_timing.nn_period_ms;
     timing->inference_ms = nn_timing.inference_ms;
+    timing->slow_frames = nn_timing.slow_frames;
   }
 }
 
@@ -282,19 +322,27 @@ void NN_Thread_Start(VOID *memory_ptr) {
     APP_REQUIRE(nn_info.outputs[i].size_bytes == nn_out_sizes[i]);
   }
 
+  /* Initialize input buffer(s) */
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+  APP_REQUIRE(tx_event_flags_create(&nn_snapshot_flags, "nn_snapshot") == TX_SUCCESS);
+  memset(nn_input_buffers, 0, sizeof(nn_input_buffers));
+  SCB_CleanInvalidateDCache_by_Addr((void *)nn_input_buffers, sizeof(nn_input_buffers));
+  nn_snap_write_idx = 0;
+#else
   /* Initialize input buffer queue - using 3 buffers to handle 30 FPS pipeline latency */
   uint8_t *in_bufs[3] = {nn_input_buffers[0], nn_input_buffers[1], nn_input_buffers[2]};
   ret = bqueue_init(&nn_input_queue, 3, in_bufs);
   APP_REQUIRE(ret == 0);
+  memset(nn_input_buffers, 0, sizeof(nn_input_buffers));
+  SCB_CleanInvalidateDCache_by_Addr((void *)nn_input_buffers, sizeof(nn_input_buffers));
+#endif
 
   /* Initialize output buffer queue */
   uint8_t *out_bufs[2] = {nn_output_buffers[0], nn_output_buffers[1]};
   ret = bqueue_init(&nn_output_queue, 2, out_bufs);
   APP_REQUIRE(ret == 0);
 
-  /* Clear buffers */
-  memset(nn_input_buffers, 0, sizeof(nn_input_buffers));
-  SCB_CleanInvalidateDCache_by_Addr((void *)nn_input_buffers, sizeof(nn_input_buffers));
+  /* Clear output buffers */
   memset(nn_output_buffers, 0, sizeof(nn_output_buffers));
   SCB_CleanInvalidateDCache_by_Addr((void *)nn_output_buffers, sizeof(nn_output_buffers));
 

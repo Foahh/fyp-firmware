@@ -94,6 +94,7 @@ def cmd_build(
     fsbl=True,
     sign=True,
     force=False,
+    snapshot=False,
 ):
     require_tool("cmake")
 
@@ -101,6 +102,9 @@ def cmd_build(
         f"-DMODEL_DEFINE={model['define']}",
         f"-DNETWORK_NAME={model['network_name']}",
     ]
+
+    if snapshot:
+        appli_cmake_args.append("-DCAMERA_NN_SNAPSHOT_MODE=1")
 
     print(f"Building firmware (model: {model['define']})")
 

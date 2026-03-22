@@ -89,6 +89,11 @@ def main():
         action="store_true",
         help="Re-sign firmware even if unchanged (ignore sign cache)",
     )
+    build_parser.add_argument(
+        "--snapshot",
+        action="store_true",
+        help="Use snapshot mode for NN camera pipe",
+    )
 
     build_appli_parser = sub.add_parser(
         "build-appli-debug", help="Build Appli only (Debug, no sign/hex)"
@@ -99,6 +104,11 @@ def main():
         choices=list(MODELS),
         default=DEFAULT_MODEL,
         help=f"Model to use (default: {DEFAULT_MODEL})",
+    )
+    build_appli_parser.add_argument(
+        "--snapshot",
+        action="store_true",
+        help="Use snapshot mode for NN camera pipe",
     )
 
     sub.add_parser("build-fsbl-debug", help="Build FSBL only (Debug, no sign/hex)")
@@ -124,6 +134,7 @@ def main():
             BUILD_TYPE,
             PROJECT_NAME_PREFIX,
             force=args.force,
+            snapshot=args.snapshot,
         )
     elif args.command == "build-appli-debug":
         cmd_build(
@@ -134,6 +145,7 @@ def main():
             PROJECT_NAME_PREFIX,
             fsbl=False,
             sign=False,
+            snapshot=args.snapshot,
         )
     elif args.command == "build-fsbl-debug":
         cmd_build(

@@ -60,11 +60,15 @@ static void handle_set_camera_enabled(uint32_t cmd_id,
   if (cmd->enabled && !camera_enabled) {
     CAM_DisplayPipe_Start(CMW_MODE_CONTINUOUS);
 
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+    CAM_NNPipe_Start(NN_GetSnapshotBuffer(), CMW_MODE_SNAPSHOT);
+#else
     bqueue_t *nn_q = NN_GetInputQueue();
     uint8_t *buf = bqueue_get_free(nn_q, 0);
     if (buf != NULL) {
       CAM_NNPipe_Start(buf, CMW_MODE_CONTINUOUS);
     }
+#endif
     camera_enabled = true;
   } else if (!cmd->enabled && camera_enabled) {
     CAM_NNPipe_Stop();
@@ -95,8 +99,12 @@ static void handle_image_chunk(uint32_t cmd_id, const ImageChunk *chunk) {
 
   /* On offset == 0, start a new transfer */
   if (chunk->offset == 0) {
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+    img_accum_buf = NN_GetSnapshotBuffer();
+#else
     bqueue_t *nn_q = NN_GetInputQueue();
     img_accum_buf = bqueue_get_free(nn_q, 0);
+#endif
     if (img_accum_buf == NULL) {
       COM_Send_Ack(cmd_id, false);
       return;
@@ -126,8 +134,12 @@ static void handle_image_chunk(uint32_t cmd_id, const ImageChunk *chunk) {
     SCB_CleanDCache_by_Addr((uint32_t *)img_accum_buf, (int32_t)img_accum_size);
 
     /* Inject into NN pipeline */
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+    NN_SignalSnapshotReady();
+#else
     bqueue_t *nn_q = NN_GetInputQueue();
     bqueue_put_ready(nn_q);
+#endif
 
     /* Mark next result with the host image ID */
     NN_SetHostImageId(chunk->image_id);

@@ -418,19 +418,24 @@ static void UI_DrawDetectionInfoSection(const detection_info_t *info) {
   /* FPS */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[16],
-                           (uint8_t *)"FPS", LEFT_MODE);
+                           (uint8_t *)"Inf. FPS", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   float fps = info->nn_period_ms > 0 ? 1000.0f / info->nn_period_ms : 0.0f;
   snprintf(text_buf, sizeof(text_buf), "%.1f", fps);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[17],
                            (uint8_t *)text_buf, LEFT_MODE);
 
-  /* Frame drops */
+  /* Frame drops / slow frames */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[18],
+                           (uint8_t *)"Slow", LEFT_MODE);
+#else
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[18],
                            (uint8_t *)"Drops", LEFT_MODE);
+#endif
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
-  snprintf(text_buf, sizeof(text_buf), "%lu", (unsigned long)info->frame_drops);
+  snprintf(text_buf, sizeof(text_buf), "%lu", (unsigned long)info->slow_frames);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[19],
                            (uint8_t *)text_buf, LEFT_MODE);
 }

@@ -14,7 +14,7 @@ typedef struct _Timing {
     uint32_t inference_ms;
     uint32_t postprocess_ms;
     uint32_t nn_period_ms;
-    uint32_t frame_drops;
+    uint32_t slow_frames;
 } Timing;
 
 typedef struct _Detection {
@@ -126,7 +126,7 @@ extern "C" {
 #define Timing_inference_ms_tag                  1
 #define Timing_postprocess_ms_tag                2
 #define Timing_nn_period_ms_tag                  3
-#define Timing_frame_drops_tag                   4
+#define Timing_slow_frames_tag                   4
 #define Detection_x_center_tag                   1
 #define Detection_y_center_tag                   2
 #define Detection_width_tag                      3
@@ -168,7 +168,7 @@ extern "C" {
 X(a, STATIC,   SINGULAR, UINT32,   inference_ms,      1) \
 X(a, STATIC,   SINGULAR, UINT32,   postprocess_ms,    2) \
 X(a, STATIC,   SINGULAR, UINT32,   nn_period_ms,      3) \
-X(a, STATIC,   SINGULAR, UINT32,   frame_drops,       4)
+X(a, STATIC,   SINGULAR, UINT32,   slow_frames,       4)
 #define Timing_CALLBACK NULL
 #define Timing_DEFAULT NULL
 

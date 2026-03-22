@@ -140,7 +140,7 @@ static void pp_thread_entry(ULONG arg) {
     write_buf->nn_period_ms = nn_timing.nn_period_ms;
     write_buf->inference_ms = nn_timing.inference_ms;
     write_buf->postprocess_ms = pp_ts[1] - pp_ts[0];
-    write_buf->frame_drops = CAM_GetFrameDropCount();
+    write_buf->slow_frames = nn_timing.slow_frames;
     write_buf->host_image_id = NN_ConsumeHostImageId();
 
     /* Atomically swap read pointer */

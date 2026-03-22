@@ -33,13 +33,31 @@ extern "C" {
 typedef struct {
   uint32_t nn_period_ms; /**< Period between inference starts */
   uint32_t inference_ms; /**< Inference duration */
+  uint32_t slow_frames;  /**< Cumulative count of frames exceeding period threshold */
 } nn_timing_t;
+
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+
+/**
+ * @brief  Signal that a snapshot frame is ready (ISR-safe)
+ */
+void NN_SignalSnapshotReady(void);
+
+/**
+ * @brief  Get the single NN snapshot input buffer
+ * @retval Pointer to the NN input buffer
+ */
+uint8_t *NN_GetSnapshotBuffer(void);
+
+#else
 
 /**
  * @brief  Get pointer to NN input buffer queue
  * @retval Pointer to input queue
  */
 bqueue_t *NN_GetInputQueue(void);
+
+#endif /* CAMERA_NN_SNAPSHOT_MODE */
 
 /**
  * @brief  Get pointer to NN output buffer queue

@@ -119,6 +119,10 @@ set(COMPILE_DEFINITIONS
     LL_ATON_DBG_BUFFER_INFO_EXCLUDED=1
     ${MODEL_DEFINE})
 
+if(DEFINED CAMERA_NN_SNAPSHOT_MODE)
+  list(APPEND COMPILE_DEFINITIONS CAMERA_NN_SNAPSHOT_MODE)
+endif()
+
 # =============================================================================
 # Interface Library for Common Configuration
 # =============================================================================

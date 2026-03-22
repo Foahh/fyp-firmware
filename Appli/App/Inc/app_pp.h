@@ -42,7 +42,7 @@ typedef struct {
   uint32_t nn_period_ms;                          /**< NN inference period */
   uint32_t inference_ms;                          /**< Inference time */
   uint32_t postprocess_ms;                        /**< Postprocess time */
-  uint32_t frame_drops;                           /**< Cumulative NN frame drops */
+  uint32_t slow_frames;                           /**< Cumulative slow frame count (period > threshold) */
   uint32_t host_image_id;                         /**< Non-zero if from host-sent image */
 } detection_info_t;
 

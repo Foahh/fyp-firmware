@@ -90,6 +90,14 @@ nn_crop_info_display_t *CAM_GetNNCropROI_Display(void);
  */
 uint32_t CAM_GetFrameDropCount(void);
 
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+/**
+ * @brief  Request a single snapshot from the NN pipe
+ * @param  nn_buffer: Pointer to the NN buffer to capture into
+ */
+void CAM_NNPipe_RequestSnapshot(uint8_t *nn_buffer);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
