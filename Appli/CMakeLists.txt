@@ -83,6 +83,7 @@ set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_lcd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_nn.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_pp.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_tof.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_ui.c)
 
 # =============================================================================

@@ -4,7 +4,7 @@
 set(VL53L5CX_ROOT "${EXTERNAL_ROOT}/stm32-vl53l5cx")
 
 set(VL53L5CX_SOURCES
-    ${VL53L5CX_ROOT}/porting/platform.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/vl53l5cx_platform.c
     ${VL53L5CX_ROOT}/vl53l5cx.c
     ${VL53L5CX_ROOT}/modules/vl53l5cx_api.c
     ${VL53L5CX_ROOT}/modules/vl53l5cx_plugin_detection_thresholds.c

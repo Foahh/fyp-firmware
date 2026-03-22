@@ -24,6 +24,7 @@
 #include "app_lcd.h"
 #include "app_lcd_config.h"
 #include "app_pp.h"
+#include "app_tof.h"
 #include "model_config.h"
 #include "stm32_lcd.h"
 #include "stm32n6570_discovery_lcd.h"
@@ -79,6 +80,20 @@ static void draw_detection(const od_pp_outBuffer_t *det,
 /* Calculate sleep ticks from FPS */
 #define UI_UPDATE_SLEEP_TICKS (TX_TIMER_TICKS_PER_SECOND / UI_UPDATE_FPS)
 
+/* Depth grid overlay (8x8 ToF heatmap on camera view) */
+#define DEPTH_CELL_SIZE   20
+#define DEPTH_GRID_PIXELS (DEPTH_CELL_SIZE * TOF_GRID_SIZE) /* 160 */
+#define DEPTH_GRID_X0     (DISPLAY_LETTERBOX_X0 + 8)
+#define DEPTH_GRID_Y0     (DISPLAY_LETTERBOX_HEIGHT - DEPTH_GRID_PIXELS - 48)
+
+/* Center zone: rows/cols 3 and 4 (0-indexed) */
+#define DEPTH_CENTER_ROW_MIN 3
+#define DEPTH_CENTER_ROW_MAX 4
+#define DEPTH_CENTER_COL_MIN 3
+#define DEPTH_CENTER_COL_MAX 4
+
+#define DEPTH_FONT_HEIGHT 8 /* Font8.Height */
+
 /* Detection overlay colors (ARGB8888) */
 #define NUMBER_COLORS 10
 static const uint32_t detection_colors[NUMBER_COLORS] = {
@@ -126,6 +141,8 @@ static const uint16_t g_line_y[] = {
     UI_TEXT_MARGIN_Y + 17 * UI_LINE_HEIGHT, /* [17] FPS Value */
     UI_TEXT_MARGIN_Y + 18 * UI_LINE_HEIGHT, /* [18] Drops Label */
     UI_TEXT_MARGIN_Y + 19 * UI_LINE_HEIGHT, /* [19] Drops Value */
+    UI_TEXT_MARGIN_Y + 20 * UI_LINE_HEIGHT, /* [20] Proximity Label */
+    UI_TEXT_MARGIN_Y + 21 * UI_LINE_HEIGHT, /* [21] Proximity Value */
 };
 
 /* ============================================================================
@@ -299,6 +316,136 @@ static void draw_detection(const od_pp_outBuffer_t *det,
 }
 
 /* ============================================================================
+ * Depth Grid Visualization
+ * ============================================================================ */
+
+/**
+ * @brief  Map a depth value to an ARGB8888 color
+ */
+static uint32_t depth_to_color(int16_t distance_mm, uint8_t status) {
+  if (status != 5 && status != 9) {
+    return 0x60404040;
+  }
+  if (distance_mm <= 0) {
+    return 0x60404040;
+  }
+  if (distance_mm < 200) {
+    return 0xC0FF0000; /* Red — very close */
+  }
+  if (distance_mm < 500) {
+    return 0xC0FF6600; /* Orange */
+  }
+  if (distance_mm < 1000) {
+    return 0xC0FFCC00; /* Yellow */
+  }
+  if (distance_mm < 1500) {
+    return 0xC000FF00; /* Green */
+  }
+  if (distance_mm < 2500) {
+    return 0xC000CCFF; /* Light blue */
+  }
+  return 0xC00066FF; /* Blue — far */
+}
+
+/**
+ * @brief  Draw 8x8 ToF depth heatmap with per-cell cm values and center readout
+ */
+static void UI_DrawDepthGrid(const tof_depth_grid_t *grid) {
+  if (grid == NULL || !grid->valid) {
+    return;
+  }
+
+  /* Skip if data is stale (>1s) */
+  uint32_t now = HAL_GetTick();
+  if ((now - grid->timestamp_ms) > 1000) {
+    return;
+  }
+
+  /* Draw color-filled cells */
+  for (int row = 0; row < TOF_GRID_SIZE; row++) {
+    for (int col = 0; col < TOF_GRID_SIZE; col++) {
+      uint32_t color = depth_to_color(grid->distance_mm[row][col],
+                                      grid->status[row][col]);
+      uint32_t x = DEPTH_GRID_X0 + col * DEPTH_CELL_SIZE;
+      uint32_t y = DEPTH_GRID_Y0 + row * DEPTH_CELL_SIZE;
+      UTIL_LCD_FillRect(x, y, DEPTH_CELL_SIZE - 1, DEPTH_CELL_SIZE - 1, color);
+    }
+  }
+
+  /* Border around entire grid */
+  UTIL_LCD_DrawRect(DEPTH_GRID_X0 - 1, DEPTH_GRID_Y0 - 1,
+                    DEPTH_GRID_PIXELS + 1, DEPTH_GRID_PIXELS + 1, UI_COLOR_TEXT);
+
+  /* Highlight center 2x2 zone with white border (calibration target) */
+  for (int row = DEPTH_CENTER_ROW_MIN; row <= DEPTH_CENTER_ROW_MAX; row++) {
+    for (int col = DEPTH_CENTER_COL_MIN; col <= DEPTH_CENTER_COL_MAX; col++) {
+      uint32_t x = DEPTH_GRID_X0 + col * DEPTH_CELL_SIZE;
+      uint32_t y = DEPTH_GRID_Y0 + row * DEPTH_CELL_SIZE;
+      UTIL_LCD_DrawRect(x, y, DEPTH_CELL_SIZE - 1, DEPTH_CELL_SIZE - 1,
+                        0xFFFFFFFF);
+    }
+  }
+
+  /* Overlay per-cell distance values in cm using Font8 */
+  UTIL_LCD_SetFont(&Font8);
+  uint32_t text_y_offset = (DEPTH_CELL_SIZE - DEPTH_FONT_HEIGHT) / 2;
+  for (int row = 0; row < TOF_GRID_SIZE; row++) {
+    for (int col = 0; col < TOF_GRID_SIZE; col++) {
+      int16_t dist = grid->distance_mm[row][col];
+      uint8_t stat = grid->status[row][col];
+      uint32_t x = DEPTH_GRID_X0 + col * DEPTH_CELL_SIZE + 1;
+      uint32_t y = DEPTH_GRID_Y0 + row * DEPTH_CELL_SIZE + text_y_offset;
+
+      char val_str[5];
+      if ((stat != 5 && stat != 9) || dist <= 0) {
+        strncpy(val_str, "---", sizeof(val_str));
+        UTIL_LCD_SetTextColor(0xFF606060);
+      } else {
+        int cm = dist / 10;
+        if (cm > 999) {
+          strncpy(val_str, "FAR", sizeof(val_str));
+        } else {
+          snprintf(val_str, sizeof(val_str), "%3d", cm);
+        }
+        UTIL_LCD_SetTextColor(0xFFFFFFFF);
+      }
+      UTIL_LCD_DisplayStringAt(x, y, (uint8_t *)val_str, LEFT_MODE);
+    }
+  }
+  UTIL_LCD_SetFont(&Font16);
+
+  /* Label above grid */
+  UTIL_LCD_SetTextColor(UI_COLOR_TEXT);
+  UTIL_LCD_DisplayStringAt(DEPTH_GRID_X0, DEPTH_GRID_Y0 - UI_FONT_HEIGHT - 2,
+                           (uint8_t *)"ToF [cm]  [ctr=white]", LEFT_MODE);
+
+  /* Center zone average distance readout below grid */
+  int32_t center_sum = 0;
+  int32_t center_count = 0;
+  for (int row = DEPTH_CENTER_ROW_MIN; row <= DEPTH_CENTER_ROW_MAX; row++) {
+    for (int col = DEPTH_CENTER_COL_MIN; col <= DEPTH_CENTER_COL_MAX; col++) {
+      int16_t d = grid->distance_mm[row][col];
+      uint8_t s = grid->status[row][col];
+      if ((s == 5 || s == 9) && d > 0) {
+        center_sum += d;
+        center_count++;
+      }
+    }
+  }
+
+  char ctr_str[24];
+  if (center_count > 0) {
+    int32_t avg_mm = center_sum / center_count;
+    snprintf(ctr_str, sizeof(ctr_str), "Ctr: %ldmm", (long)avg_mm);
+  } else {
+    strncpy(ctr_str, "Ctr: ---", sizeof(ctr_str));
+  }
+  UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
+  UTIL_LCD_DisplayStringAt(DEPTH_GRID_X0, DEPTH_GRID_Y0 + DEPTH_GRID_PIXELS + 4,
+                           (uint8_t *)ctr_str, LEFT_MODE);
+}
+
+/* ============================================================================
  * UI Drawing Functions
  * ============================================================================ */
 
@@ -460,6 +607,55 @@ static void UI_DrawDetectionOverlays(const detection_info_t *info,
 }
 
 /**
+ * @brief  Draw proximity info section in diagnostic panel
+ */
+static void UI_DrawProximitySection(const tof_alert_t *alert) {
+  char text_buf[UI_TEXT_BUFFER_SIZE];
+
+  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[20],
+                           (uint8_t *)"Hand/Hazard", LEFT_MODE);
+
+  if (!alert->has_hand_depth && !alert->has_hazard_depth) {
+    UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+    UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[21],
+                             (uint8_t *)"--/--", LEFT_MODE);
+  } else {
+    uint32_t color = alert->alert ? 0xFFFF0000 : 0xFF00FF00;
+    UTIL_LCD_SetTextColor(color);
+
+    char hand_str[16] = "--";
+    char haz_str[16] = "--";
+    if (alert->has_hand_depth) {
+      snprintf(hand_str, sizeof(hand_str), "%.2fm",
+               alert->hand_distance_mm / 1000.0f);
+    }
+    if (alert->has_hazard_depth) {
+      snprintf(haz_str, sizeof(haz_str), "%.2fm",
+               alert->hazard_distance_mm / 1000.0f);
+    }
+    snprintf(text_buf, sizeof(text_buf), "%s/%s", hand_str, haz_str);
+    UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[21],
+                             (uint8_t *)text_buf, LEFT_MODE);
+  }
+}
+
+/**
+ * @brief  Draw hazard proximity alert banner on the camera view
+ */
+static void UI_DrawProximityAlertBanner(void) {
+  uint32_t banner_y = DISPLAY_LETTERBOX_HEIGHT - 40;
+  uint32_t banner_x = DISPLAY_LETTERBOX_X0;
+
+  UTIL_LCD_FillRect(banner_x, banner_y,
+                    DISPLAY_LETTERBOX_WIDTH, 36, 0xC0FF0000);
+  UTIL_LCD_SetTextColor(0xFFFFFFFF);
+  UTIL_LCD_DisplayStringAt(
+      banner_x + (DISPLAY_LETTERBOX_WIDTH - 16 * 12) / 2,
+      banner_y + 10, (uint8_t *)"HAZARD ALERT", LEFT_MODE);
+}
+
+/**
  * @brief  Setup LCD context for UI rendering
  */
 static void UI_SetupLCDContext(void) {
@@ -496,6 +692,7 @@ static void ui_thread_entry(ULONG arg) {
   uint8_t *ui_buffer;
   const detection_info_t *det_info = NULL;
   const nn_crop_info_display_t *roi_info = NULL;
+  const tof_alert_t *tof_alert = NULL;
 
   /* Get NN crop ROI (constant after initialization) */
   roi_info = CAM_GetNNCropROI_Display();
@@ -512,6 +709,9 @@ static void ui_thread_entry(ULONG arg) {
 
     /* Get latest detection info */
     det_info = PP_GetInfo();
+
+    /* Get latest proximity alert */
+    tof_alert = TOF_GetAlert();
 
     if (!g_ui_initialized || !g_ui_visible) {
       tx_thread_sleep(UI_UPDATE_SLEEP_TICKS);
@@ -549,6 +749,20 @@ static void ui_thread_entry(ULONG arg) {
     /* Draw detection overlays last so boxes appear on top of text */
     if (det_info != NULL && roi_info != NULL) {
       UI_DrawDetectionOverlays(det_info, roi_info);
+    }
+
+    /* Draw proximity info in diagnostic panel */
+    if (tof_alert != NULL) {
+      UI_DrawProximitySection(tof_alert);
+      if (tof_alert->alert) {
+        UI_DrawProximityAlertBanner();
+      }
+    }
+
+    /* Draw ToF depth grid overlay on camera view */
+    const tof_depth_grid_t *depth_grid = TOF_GetDepthGrid();
+    if (depth_grid->valid) {
+      UI_DrawDepthGrid(depth_grid);
     }
 
     /* Swap buffers and reload display */

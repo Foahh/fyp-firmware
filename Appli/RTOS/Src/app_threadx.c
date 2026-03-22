@@ -25,6 +25,7 @@
 #include "app_error.h"
 #include "app_nn.h"
 #include "app_pp.h"
+#include "app_tof.h"
 #include "app_ui.h"
 #include "cmw_camera.h"
 #include "main.h"
@@ -61,6 +62,8 @@ UINT ThreadX_Start(VOID *memory_ptr) {
   COM_RX_Thread_Start();
 
   UI_Thread_Start();
+
+  TOF_Thread_Start();
 
   ret = tx_thread_create(&startup_thread, "startup",
                          startup_thread_entry, 0,
