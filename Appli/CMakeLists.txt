@@ -124,6 +124,10 @@ if(DEFINED CAMERA_NN_SNAPSHOT_MODE)
   list(APPEND COMPILE_DEFINITIONS CAMERA_NN_SNAPSHOT_MODE)
 endif()
 
+if(DEFINED PERFORMANCE_MODE)
+  list(APPEND COMPILE_DEFINITIONS PERFORMANCE_MODE)
+endif()
+
 # =============================================================================
 # Interface Library for Common Configuration
 # =============================================================================

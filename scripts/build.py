@@ -95,6 +95,7 @@ def cmd_build(
     sign=True,
     force=False,
     snapshot=False,
+    performance=False,
 ):
     require_tool("cmake")
 
@@ -105,6 +106,9 @@ def cmd_build(
 
     if snapshot:
         appli_cmake_args.append("-DCAMERA_NN_SNAPSHOT_MODE=1")
+
+    if performance:
+        appli_cmake_args.append("-DPERFORMANCE_MODE=1")
 
     print(f"Building firmware (model: {model['define']})")
 

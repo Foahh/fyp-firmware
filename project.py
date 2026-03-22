@@ -94,6 +94,11 @@ def main():
         action="store_true",
         help="Use snapshot mode for NN camera pipe",
     )
+    build_parser.add_argument(
+        "--performance",
+        action="store_true",
+        help="Run NPU at 1000 MHz instead of 800 MHz",
+    )
 
     build_appli_parser = sub.add_parser(
         "build-appli-debug", help="Build Appli only (Debug, no sign/hex)"
@@ -109,6 +114,11 @@ def main():
         "--snapshot",
         action="store_true",
         help="Use snapshot mode for NN camera pipe",
+    )
+    build_appli_parser.add_argument(
+        "--performance",
+        action="store_true",
+        help="Run NPU at 1000 MHz instead of 800 MHz",
     )
 
     sub.add_parser("build-fsbl-debug", help="Build FSBL only (Debug, no sign/hex)")
@@ -135,6 +145,7 @@ def main():
             PROJECT_NAME_PREFIX,
             force=args.force,
             snapshot=args.snapshot,
+            performance=args.performance,
         )
     elif args.command == "build-appli-debug":
         cmd_build(
@@ -146,6 +157,7 @@ def main():
             fsbl=False,
             sign=False,
             snapshot=args.snapshot,
+            performance=args.performance,
         )
     elif args.command == "build-fsbl-debug":
         cmd_build(
