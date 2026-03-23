@@ -17,6 +17,7 @@
  */
 
 #include "comm_tx.h"
+#include "cam_config.h"
 #include "error.h"
 #include "lcd_config.h"
 #include "model_config.h"
@@ -92,7 +93,24 @@ void COM_Send_DeviceInfo(uint32_t command_id) {
   di->letterbox_height = DISPLAY_LETTERBOX_HEIGHT;
   di->nn_width = NN_WIDTH;
   di->nn_height = NN_HEIGHT;
+  di->nn_input_size_bytes = (uint32_t)(NN_WIDTH * NN_HEIGHT * NN_BPP);
   di->command_id = command_id;
+
+#ifdef OVERDRIVE_MODE
+  di->overdrive_mode = true;
+  di->mcu_freq_mhz = 800U;
+  di->npu_freq_mhz = 1000U;
+#else
+  di->overdrive_mode = false;
+  di->mcu_freq_mhz = 600U;
+  di->npu_freq_mhz = 800U;
+#endif
+
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+  di->camera_fps = 0;
+#else
+  di->camera_fps = CAMERA_FPS;
+#endif
 
   /* Model name */
   strncpy(di->model_name, MDL_DISPLAY_NAME, sizeof(di->model_name) - 1);

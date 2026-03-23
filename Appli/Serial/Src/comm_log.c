@@ -44,7 +44,8 @@ static UCHAR comm_log_thread_stack[COMM_LOG_THREAD_STACK_SIZE];
  * ============================================================================ */
 
 static void comm_send_detection_result(const detection_info_t *info) {
-  DeviceMessage msg = DeviceMessage_init_zero;
+  static DeviceMessage msg;
+  msg = (DeviceMessage)DeviceMessage_init_zero;
   msg.which_payload = DeviceMessage_detection_result_tag;
 
   DetectionResult *df = &msg.payload.detection_result;

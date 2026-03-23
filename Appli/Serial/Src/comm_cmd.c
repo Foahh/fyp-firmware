@@ -17,6 +17,7 @@
  */
 
 #include "comm_cmd.h"
+#include "cam.h"
 #include "comm_tx.h"
 #include "display.h"
 #include "stm32n6570_discovery_lcd.h"
@@ -27,9 +28,10 @@
  * State
  * ============================================================================ */
 
-static bool display_enabled = true;
-static bool host_recognized = false;
-static uint32_t host_last_seen_tick = 0;
+static volatile bool display_enabled = true;
+static volatile bool display_pipe_enabled = true;
+static volatile bool host_recognized = false;
+static volatile uint32_t host_last_seen_tick = 0;
 
 /* ============================================================================
  * Handlers
@@ -43,20 +45,49 @@ static void handle_set_display_enabled(uint32_t cmd_id,
     __HAL_RCC_DMA2D_CLK_SLEEP_ENABLE();
 
     LCD_Init();
+
+    CAM_LCDReloadThreadResume();
+    CAM_DisplayPipe_Resume();
+
     UI_ThreadResume();
+
     display_enabled = true;
+    display_pipe_enabled = true;
   } else if (!cmd->enabled && display_enabled) {
-    /* Suspend UI thread first (stops DMA2D usage) */
+    CAM_DisplayPipe_Suspend();
+    CAM_LCDReloadThreadSuspend();
+
     UI_ThreadSuspend();
 
-    /* Full LTDC deinit (disables LTDC clock, resets hardware) */
     LCD_DeInit();
 
-    /* Disable clock sleep so LTDC/DMA2D draw no power during WFI */
     __HAL_RCC_DMA2D_CLK_SLEEP_DISABLE();
     __HAL_RCC_LTDC_CLK_SLEEP_DISABLE();
 
     display_enabled = false;
+    display_pipe_enabled = false;
+  }
+  COM_Send_Ack(cmd_id, true);
+}
+
+static void handle_set_debug_op_enabled(uint32_t cmd_id,
+                                        const SetDebugOpEnabled *cmd) {
+  /* Pipe-only command: do not touch UI/LCD/global display power state. */
+  if (!display_enabled) {
+    COM_Send_Ack(cmd_id, false);
+    return;
+  }
+
+  if (cmd->enabled && !display_pipe_enabled) {
+    CAM_LCDReloadThreadResume();
+    CAM_DisplayPipe_Resume();
+    UI_ThreadResume();
+    display_pipe_enabled = true;
+  } else if (!cmd->enabled && display_pipe_enabled) {
+    CAM_DisplayPipe_Suspend();
+    CAM_LCDReloadThreadSuspend();
+    UI_ThreadSuspend();
+    display_pipe_enabled = false;
   }
   COM_Send_Ack(cmd_id, true);
 }
@@ -82,6 +113,11 @@ void COM_Cmd_Dispatch(const HostMessage *msg) {
     host_recognized = true;
     host_last_seen_tick = HAL_GetTick();
     handle_get_device_info(cmd_id);
+    break;
+  case HostMessage_set_debug_op_enabled_tag:
+    host_recognized = true;
+    host_last_seen_tick = HAL_GetTick();
+    handle_set_debug_op_enabled(cmd_id, &msg->command.set_debug_op_enabled);
     break;
   default:
     COM_Send_Ack(cmd_id, false);
