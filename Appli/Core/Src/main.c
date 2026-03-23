@@ -588,7 +588,7 @@ void MPU_Config(void) {
  * @param  htim : TIM handle
  * @retval None
  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+__attribute__((used)) void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   if (htim->Instance == TIM2) {
     HAL_IncTick();
   }
@@ -621,7 +621,7 @@ static void GPIO_Config(void) {
   HAL_GPIO_Init(GPIOQ, &gpio);
 }
 
-void HAL_MspInit(void) {
+__attribute__((used)) void HAL_MspInit(void) {
   HAL_PWREx_EnableVddIO2();
   HAL_PWREx_EnableVddIO3();
   HAL_PWREx_EnableVddIO4();
@@ -632,7 +632,7 @@ static void Button_Config(void) {
   BSP_PB_Init(BUTTON_USER1, BUTTON_MODE_EXTI);
 }
 
-void BSP_PB_Callback(Button_TypeDef Button) {
+__attribute__((used)) void BSP_PB_Callback(Button_TypeDef Button) {
   if (Button == BUTTON_USER1) {
     UI_ToggleTOFOverlay();
   }

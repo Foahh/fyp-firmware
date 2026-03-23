@@ -42,7 +42,7 @@ typedef struct {
   uint32_t nn_period_ms;                          /**< NN inference period */
   uint32_t inference_ms;                          /**< Inference time */
   uint32_t postprocess_ms;                        /**< Postprocess time */
-  uint32_t slow_frames;                           /**< Cumulative slow frame count (period > threshold) */
+  uint32_t frame_drops;                           /**< Cumulative frame drop count */
   uint32_t timestamp_ms;                          /**< HAL_GetTick() at postprocess completion */
 } detection_info_t;
 

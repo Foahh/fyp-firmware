@@ -41,9 +41,8 @@ static void nn_thread_entry(ULONG arg);
  * ============================================================================ */
 
 /* Thread configuration */
-#define NN_THREAD_STACK_SIZE       4096
-#define NN_THREAD_PRIORITY         6
-#define NN_SLOW_FRAME_THRESHOLD_MS 50
+#define NN_THREAD_STACK_SIZE 4096
+#define NN_THREAD_PRIORITY   5
 
 /* NN output sizes from model header */
 
@@ -91,6 +90,11 @@ static const uint32_t nn_out_sizes[NN_OUT_NB] = {NN_OUT0_SIZE, NN_OUT1_SIZE, NN_
 
 /* Timing statistics (volatile for cross-thread access) */
 static volatile nn_timing_t nn_timing;
+
+#ifndef CAMERA_NN_SNAPSHOT_MODE
+/* Frame drop counter (accumulated from bqueue skips in NN thread) */
+static uint32_t nn_frame_drop_count = 0;
+#endif
 
 /* Network info (initialized in NN_Thread_Start, used by postprocess) */
 static stai_network_info nn_info;
@@ -149,9 +153,6 @@ static void nn_thread_entry(ULONG arg) {
     nn_period[0] = nn_period[1];
     nn_period[1] = HAL_GetTick();
     nn_timing.nn_period_ms = nn_period[1] - nn_period[0];
-    if (nn_timing.nn_period_ms > NN_SLOW_FRAME_THRESHOLD_MS) {
-      nn_timing.slow_frames++;
-    }
 
 #ifdef CAMERA_NN_SNAPSHOT_MODE
     /* Wait for snapshot frame */
@@ -167,7 +168,9 @@ static void nn_thread_entry(ULONG arg) {
     capture_buffer = nn_input_buffers[captured_idx];
 #else
     /* Get latest input buffer (LIFO), discarding stale frames */
-    capture_buffer = bqueue_get_ready_latest(&nn_input_queue, NULL);
+    uint32_t skipped = 0;
+    capture_buffer = bqueue_get_ready_latest(&nn_input_queue, &skipped);
+    nn_frame_drop_count += skipped;
     APP_REQUIRE(capture_buffer != NULL);
 #endif
 
@@ -250,7 +253,11 @@ void NN_GetTiming(nn_timing_t *timing) {
   if (timing != NULL) {
     timing->nn_period_ms = nn_timing.nn_period_ms;
     timing->inference_ms = nn_timing.inference_ms;
-    timing->slow_frames = nn_timing.slow_frames;
+#ifndef CAMERA_NN_SNAPSHOT_MODE
+    timing->frame_drops = nn_frame_drop_count;
+#else
+    timing->frame_drops = 0;
+#endif
   }
 }
 

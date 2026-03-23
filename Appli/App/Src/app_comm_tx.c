@@ -125,7 +125,7 @@ void COM_Send_Ack(uint32_t command_id, bool success) {
  * HAL UART TX complete callback (ISR context)
  * ============================================================================ */
 
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+__attribute__((used)) void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
   if (huart->Instance == hcom_uart[COM1].Instance) {
     tx_semaphore_put(&tx_done_sem);
   }

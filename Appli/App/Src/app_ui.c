@@ -637,17 +637,12 @@ static void UI_DrawDetectionInfoSection(const detection_info_t *info) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[16],
                            (uint8_t *)text_buf, LEFT_MODE);
 
-  /* Frame drops / slow frames */
+  /* Frame drops */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-#ifdef CAMERA_NN_SNAPSHOT_MODE
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[17],
-                           (uint8_t *)"Slow", LEFT_MODE);
-#else
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[17],
                            (uint8_t *)"Drops", LEFT_MODE);
-#endif
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
-  snprintf(text_buf, sizeof(text_buf), "%lu", (unsigned long)info->slow_frames);
+  snprintf(text_buf, sizeof(text_buf), "%lu", (unsigned long)info->frame_drops);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[18],
                            (uint8_t *)text_buf, LEFT_MODE);
 }

@@ -240,7 +240,7 @@ static void LED_Config(void) {
   BSP_LED_On(LED_GREEN);
   BSP_LED_Off(LED_RED);
 }
-
+UNUSED
 static void GPIO_Config(void) {
   __HAL_RCC_GPIOP_CLK_ENABLE();
   __HAL_RCC_GPIOO_CLK_ENABLE();

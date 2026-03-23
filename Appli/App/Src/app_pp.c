@@ -53,7 +53,7 @@ static void pp_thread_entry(ULONG arg);
 
 /* Thread configurations */
 #define PP_THREAD_STACK_SIZE 4096
-#define PP_THREAD_PRIORITY   7
+#define PP_THREAD_PRIORITY   4
 
 /* ============================================================================
  * Global State Variables
@@ -140,7 +140,7 @@ static void pp_thread_entry(ULONG arg) {
     write_buf->nn_period_ms = nn_timing.nn_period_ms;
     write_buf->inference_ms = nn_timing.inference_ms;
     write_buf->postprocess_ms = pp_ts[1] - pp_ts[0];
-    write_buf->slow_frames = nn_timing.slow_frames;
+    write_buf->frame_drops = nn_timing.frame_drops;
     write_buf->timestamp_ms = HAL_GetTick();
 
     /* Atomically swap read pointer */

@@ -10,7 +10,7 @@ message Timing {
   uint32 inference_ms = 1;
   uint32 postprocess_ms = 2;
   uint32 nn_period_ms = 3;
-  uint32 slow_frames = 4;
+  uint32 frame_drops = 4;
 }
 
 message Detection {

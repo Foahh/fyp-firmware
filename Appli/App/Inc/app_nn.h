@@ -33,7 +33,7 @@ extern "C" {
 typedef struct {
   uint32_t nn_period_ms; /**< Period between inference starts */
   uint32_t inference_ms; /**< Inference duration */
-  uint32_t slow_frames;  /**< Cumulative count of frames exceeding period threshold */
+  uint32_t frame_drops;  /**< Cumulative count of dropped/skipped frames */
 } nn_timing_t;
 
 #ifdef CAMERA_NN_SNAPSHOT_MODE

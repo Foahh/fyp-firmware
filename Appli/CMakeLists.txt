@@ -175,6 +175,11 @@ add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES} ${APP_SOURCES}
                                        ${RTOS_SOURCES})
 
+# Disable LTO for interrupt handlers (referenced only from vector table in assembly)
+set_source_files_properties(
+  ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
+  PROPERTIES COMPILE_OPTIONS "-fno-lto")
+
 # Include directories and compile definitions are inherited from stm32_interface
 # via linked libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE stm32_interface)

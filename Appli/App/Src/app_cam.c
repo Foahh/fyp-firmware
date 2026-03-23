@@ -52,11 +52,11 @@ static void lcd_reload_thread_entry(ULONG arg);
 
 /* ISP update thread configuration */
 #define ISP_THREAD_STACK_SIZE 2048
-#define ISP_THREAD_PRIORITY   5
+#define ISP_THREAD_PRIORITY   7
 
 /* LCD reload thread configuration (high priority to minimize display latency) */
 #define LCD_RELOAD_THREAD_STACK_SIZE 1024
-#define LCD_RELOAD_THREAD_PRIORITY   4
+#define LCD_RELOAD_THREAD_PRIORITY   6
 
 /* ============================================================================
  * Global State Variables
@@ -84,9 +84,6 @@ static struct {
 
 /* NN pipe running state */
 static volatile uint8_t nn_pipe_running = 0;
-
-/* NN frame drop counter */
-static volatile uint32_t nn_frame_drop_count = 0;
 
 /* NN crop ROI in sensor coordinates (stored for overlay visualization) */
 static struct {
@@ -322,14 +319,6 @@ nn_crop_info_display_t *CAM_GetNNCropROI_Display(void) {
 }
 
 /**
- * @brief  Get cumulative NN frame drop count
- * @retval Number of frames dropped since boot
- */
-uint32_t CAM_GetFrameDropCount(void) {
-  return nn_frame_drop_count;
-}
-
-/**
  * @brief  Full camera deinit (DCMIPP, CSI, sensor power down)
  */
 void CAM_DeInit(void) {
@@ -444,8 +433,6 @@ static void cam_nn_pipe_frame_event(void) {
                                        (uint32_t)next_buffer);
     }
     bqueue_put_ready(nn_input_queue);
-  } else {
-    nn_frame_drop_count++;
   }
 #endif
 }
