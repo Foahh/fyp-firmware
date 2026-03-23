@@ -48,39 +48,40 @@ extern "C" {
 #define IMU_INACTIVITY_TIMEOUT_MS 10000
 
 /**
- * @brief  Accelerometer reading in milligravity units.
+ * @brief  IMU snapshot: latest accelerometer reading and wake state.
+ *         Updated by the IMU sampling thread, read-only for consumers.
  */
 typedef struct {
   int32_t x_mg;
   int32_t y_mg;
   int32_t z_mg;
-} imu_accel_t;
+  uint8_t wake;
+  uint32_t timestamp_ms;
+} imu_data_t;
 
 /**
- * @brief  Initialize IMU (ISM330DLC) via I2C and enable accelerometer.
- * @retval 0 on success, -1 on failure
+ * @brief  Create and start the IMU sampling thread.
+ *         Initializes the ISM330DLC sensor and periodically reads
+ *         accelerometer data into a double-buffered snapshot.
  */
-int32_t IMU_Init(void);
+void IMU_Thread_Start(void);
 
 /**
- * @brief  Read current accelerometer values.
- * @param  accel: Output accelerometer data in mg
- * @retval 0 on success, -1 on failure
+ * @brief  Get pointer to latest IMU snapshot (read-only, double-buffered).
+ * @retval Pointer to the current read buffer (always valid, check timestamp_ms
+ *         for freshness; 0 means no data yet).
  */
-int32_t IMU_ReadAccel(imu_accel_t *accel);
+const imu_data_t *IMU_GetData(void);
 
 /**
- * @brief  Evaluate wake condition from current accelerometer data.
- *         Wake = significant motion (delta > threshold) AND tilted posture
- *         (Z axis below tilt threshold, indicating device not flat).
- * @retval 1 if wake condition met, 0 otherwise
+ * @brief  Stop IMU thread and power down sensor.
  */
-uint8_t IMU_IsWakeCondition(void);
+void IMU_Stop(void);
 
 /**
- * @brief  De-initialize IMU to reduce power.
+ * @brief  Resume IMU thread and re-initialize sensor.
  */
-void IMU_DeInit(void);
+void IMU_Resume(void);
 
 #ifdef __cplusplus
 }

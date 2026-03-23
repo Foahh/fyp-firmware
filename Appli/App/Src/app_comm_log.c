@@ -72,13 +72,13 @@ static void comm_send_detection_result(const detection_info_t *info) {
     df->detections[i].class_index = d->class_index;
   }
 
-  imu_accel_t accel;
-  if (IMU_ReadAccel(&accel) == 0) {
-    df->has_imu = true;
-    df->imu.x_mg = accel.x_mg;
-    df->imu.y_mg = accel.y_mg;
-    df->imu.z_mg = accel.z_mg;
-    df->imu.wake = IMU_IsWakeCondition();
+  df->has_imu = true;
+  const imu_data_t *imu = IMU_GetData();
+  if (imu->timestamp_ms != 0) {
+    df->imu.x_mg = imu->x_mg;
+    df->imu.y_mg = imu->y_mg;
+    df->imu.z_mg = imu->z_mg;
+    df->imu.wake = imu->wake;
   }
 
   const tof_alert_t *alert = TOF_GetAlert();

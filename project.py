@@ -8,7 +8,7 @@ from scripts.build import cmd_build
 from scripts.clean import cmd_clean
 from scripts.flash import cmd_flash
 from scripts.format import cmd_format
-from scripts.model import cmd_model
+from scripts.generate_model import cmd_model
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 PROJECT_NAME_PREFIX = "Firmware_"
@@ -65,10 +65,10 @@ def main():
     sub.add_parser("clean", help="Remove build artifacts")
     sub.add_parser("format", help="Format all source files with clang-format")
 
-    gen_parser = sub.add_parser(
-        "gen", help="Generate network model sources and binaries"
+    generate_parser = sub.add_parser(
+        "generate", help="Generate network model sources and binaries"
     )
-    gen_parser.add_argument(
+    generate_parser.add_argument(
         "--model",
         "-m",
         choices=list(MODELS),
@@ -153,7 +153,7 @@ def main():
         cmd_clean(PROJECT_ROOT)
     elif args.command == "format":
         cmd_format(PROJECT_ROOT)
-    elif args.command == "model":
+    elif args.command == "generate":
         cmd_model(PROJECT_ROOT, resolve_model(args), NETWORK_BIN_ADDRESS)
     elif args.command == "build":
         cmd_build(

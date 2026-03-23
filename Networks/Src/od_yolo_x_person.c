@@ -19,25 +19,25 @@
 
 /*
  * GIT_SHA         "7cc654104236b2ac726c804c5d7f201e2afd1c79"
- * GIT_BRANCH      "HEAD"
- * GIT_DESCRIPTION "STAI-3.0.0-254-g7cc654104"
+ * GIT_BRANCH      "STAI-4.0"
+ * GIT_DESCRIPTION "STAI-3.0.0-254-g7cc65410"
  *
  * Command Line options:
- * --load-mdesc-file = "D:/ST/STEdgeAI/4.0/Utilities/configs/stm32n6"
- * --load-cdesc-file = "D:/ST/STEdgeAI/4.0/Utilities/configs/cortex-m55"
- * --load-mpool-file = "D:/FYP/Firmware/Networks/configs/stm32n6_od"
+ * --load-mdesc-file = "/home/fn/ST/STEdgeAI/4.0/Utilities/configs/stm32n6"
+ * --load-cdesc-file = "/home/fn/ST/STEdgeAI/4.0/Utilities/configs/cortex-m55"
+ * --load-mpool-file = "/home/fn/fyp-firmware/Networks/configs/stm32n6_od"
  * --cache-maintenance = true
  * --enable-virtual-mem-pools = true
  * --native-float = true
- * --json-quant-file = "D:/FYP/Firmware/Networks/st_ai_output/st_yolo_x_nano_480_1.0_0.25_3_int8_OE_3_3_1_Q.json"
+ * --json-quant-file = "/home/fn/fyp-firmware/Networks/st_ai_output/st_yolo_x_nano_480_1.0_0.25_3_int8_OE_3_3_1_Q.json"
  * --optimization = 3
  * --Os = true
  * --Omax-ca-pipe = 4
  * --Ocache-opt = true
  * --enable-epoch-controller = true
  * --output-info-file = "c_info"
- * --onnx-input = "D:/FYP/Firmware/Networks/st_ai_output/st_yolo_x_nano_480_1.0_0.25_3_int8_OE_3_3_1.onnx"
- * --out-dir-prefix = "D:/FYP/Firmware/Networks/st_ai_ws/neural_art__od_yolo_x_person/"
+ * --onnx-input = "/home/fn/fyp-firmware/Networks/st_ai_output/st_yolo_x_nano_480_1.0_0.25_3_int8_OE_3_3_1.onnx"
+ * --out-dir-prefix = "/home/fn/fyp-firmware/Networks/st_ai_ws/neural_art__od_yolo_x_person/"
  * --network-name = "od_yolo_x_person"
  * --all-buffers-info = true
  * --generate-stai = true

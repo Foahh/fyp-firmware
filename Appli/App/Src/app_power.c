@@ -33,11 +33,11 @@
 #include "stm32n6xx_hal.h"
 #include "tx_api.h"
 
-#define POWER_THREAD_STACK_SIZE 2048U
-#define POWER_THREAD_PRIORITY   9 /* Lower priority than all pipeline threads */
+#define POWER_THREAD_STACK_SIZE 1024U
+#define POWER_THREAD_PRIORITY   10 /* Lower priority than all pipeline threads */
 
-/** IMU poll interval (ms) — fast enough for responsive wake, low overhead */
-#define POWER_IMU_POLL_MS 100
+/** Power poll interval (ms) — checks IMU snapshot for wake/inactivity */
+#define POWER_POLL_MS 100
 
 static TX_THREAD power_thread;
 static UCHAR power_thread_stack[POWER_THREAD_STACK_SIZE];
@@ -69,17 +69,12 @@ static void power_enter_active(void) {
 static void power_thread_entry(ULONG arg) {
   UNUSED(arg);
 
-  /* Initialize IMU; if it fails, stay in ACTIVE permanently */
-  if (IMU_Init() != 0) {
-    /* IMU not available — remain ACTIVE, thread exits */
-    return;
-  }
-
   uint32_t last_wake_ms = HAL_GetTick();
 
   while (1) {
     uint32_t now = HAL_GetTick();
-    uint8_t wake = IMU_IsWakeCondition();
+    const imu_data_t *imu = IMU_GetData();
+    uint8_t wake = (imu->timestamp_ms != 0) ? imu->wake : 0;
 
     if (wake) {
       last_wake_ms = now;
@@ -99,7 +94,7 @@ static void power_thread_entry(ULONG arg) {
       break;
     }
 
-    tx_thread_sleep((POWER_IMU_POLL_MS * TX_TIMER_TICKS_PER_SECOND + 999) / 1000);
+    tx_thread_sleep((POWER_POLL_MS * TX_TIMER_TICKS_PER_SECOND + 999) / 1000);
   }
 }
 
