@@ -97,7 +97,8 @@ static void UI_DrawModelNameBottomRight(void);
 #define DEPTH_CENTER_COL_MIN 3
 #define DEPTH_CENTER_COL_MAX 4
 
-#define DEPTH_FONT_HEIGHT 8 /* Font8.Height */
+#define DEPTH_FONT_HEIGHT 16 /* Font16.Height */
+#define DEPTH_FONT_WIDTH  11 /* Font16.Width */
 
 /* Detection overlay colors (ARGB8888) */
 #define NUMBER_COLORS 10
@@ -357,9 +358,12 @@ static uint32_t depth_to_color(int16_t distance_mm, uint8_t status) {
 }
 
 /**
- * @brief  Draw 8x8 ToF depth heatmap with per-cell cm values and center readout
+ * @brief  Draw 8x8 ToF depth heatmap with per-cell cm values.
+ *         When `roi_info` is provided, the grid is mapped directly onto the
+ *         NN inference display ROI to aid calibration.
  */
-static void UI_DrawDepthGrid(const tof_depth_grid_t *grid) {
+static void UI_DrawDepthGrid(const tof_depth_grid_t *grid,
+                             const nn_crop_info_display_t *roi_info) {
   if (grid == NULL || !grid->valid) {
     return;
   }
@@ -370,40 +374,82 @@ static void UI_DrawDepthGrid(const tof_depth_grid_t *grid) {
     return;
   }
 
-  /* Draw color-filled cells */
+  /* Map the ToF 8x8 grid onto the NN ROI (preferred) */
+  uint32_t draw_x0, draw_y0, draw_w, draw_h;
+  uint8_t use_roi = 0;
+
+  if (roi_info != NULL && roi_info->roi_w > 0 && roi_info->roi_h > 0) {
+    draw_x0 = DISPLAY_LETTERBOX_X0 + (uint32_t)roi_info->roi_x0;
+    draw_y0 = (uint32_t)roi_info->roi_y0;
+    draw_w = (uint32_t)roi_info->roi_w;
+    draw_h = (uint32_t)roi_info->roi_h;
+    use_roi = 1;
+  } else {
+    /* Fallback: keep the previous fixed placement on the camera view */
+    draw_x0 = DEPTH_GRID_X0;
+    draw_y0 = DEPTH_GRID_Y0;
+    draw_w = DEPTH_GRID_PIXELS;
+    draw_h = DEPTH_GRID_PIXELS;
+  }
+
+  /* Draw color-filled cells (cell boundaries computed to align to ROI) */
   for (int row = 0; row < TOF_GRID_SIZE; row++) {
     for (int col = 0; col < TOF_GRID_SIZE; col++) {
       uint32_t color = depth_to_color(grid->distance_mm[row][col],
-                                      grid->status[row][col]);
-      uint32_t x = DEPTH_GRID_X0 + col * DEPTH_CELL_SIZE;
-      uint32_t y = DEPTH_GRID_Y0 + row * DEPTH_CELL_SIZE;
-      UTIL_LCD_FillRect(x, y, DEPTH_CELL_SIZE - 1, DEPTH_CELL_SIZE - 1, color);
+                                        grid->status[row][col]);
+
+      uint32_t x0 = draw_x0 + (uint32_t)(((uint64_t)col * draw_w) / TOF_GRID_SIZE);
+      uint32_t x1 = draw_x0 + (uint32_t)(((uint64_t)(col + 1) * draw_w) / TOF_GRID_SIZE);
+      uint32_t y0 = draw_y0 + (uint32_t)(((uint64_t)row * draw_h) / TOF_GRID_SIZE);
+      uint32_t y1 = draw_y0 + (uint32_t)(((uint64_t)(row + 1) * draw_h) / TOF_GRID_SIZE);
+
+      if (x1 > x0 && y1 > y0) {
+        UTIL_LCD_FillRect(x0, y0, x1 - x0, y1 - y0, color);
+      }
     }
   }
 
   /* Border around entire grid */
-  UTIL_LCD_DrawRect(DEPTH_GRID_X0 - 1, DEPTH_GRID_Y0 - 1,
-                    DEPTH_GRID_PIXELS + 1, DEPTH_GRID_PIXELS + 1, UI_COLOR_TEXT);
+  UTIL_LCD_DrawRect(draw_x0, draw_y0, draw_w, draw_h, UI_COLOR_TEXT);
 
   /* Highlight center 2x2 zone with white border (calibration target) */
   for (int row = DEPTH_CENTER_ROW_MIN; row <= DEPTH_CENTER_ROW_MAX; row++) {
     for (int col = DEPTH_CENTER_COL_MIN; col <= DEPTH_CENTER_COL_MAX; col++) {
-      uint32_t x = DEPTH_GRID_X0 + col * DEPTH_CELL_SIZE;
-      uint32_t y = DEPTH_GRID_Y0 + row * DEPTH_CELL_SIZE;
-      UTIL_LCD_DrawRect(x, y, DEPTH_CELL_SIZE - 1, DEPTH_CELL_SIZE - 1,
-                        0xFFFFFFFF);
+      uint32_t x0 = draw_x0 + (uint32_t)(((uint64_t)col * draw_w) / TOF_GRID_SIZE);
+      uint32_t x1 = draw_x0 + (uint32_t)(((uint64_t)(col + 1) * draw_w) / TOF_GRID_SIZE);
+      uint32_t y0 = draw_y0 + (uint32_t)(((uint64_t)row * draw_h) / TOF_GRID_SIZE);
+      uint32_t y1 = draw_y0 + (uint32_t)(((uint64_t)(row + 1) * draw_h) / TOF_GRID_SIZE);
+
+      if (x1 > x0 && y1 > y0) {
+        UTIL_LCD_DrawRect(x0, y0, x1 - x0, y1 - y0, 0xFFFFFFFF);
+      }
     }
   }
 
-  /* Overlay per-cell distance values in cm using Font8 */
-  UTIL_LCD_SetFont(&Font8);
-  uint32_t text_y_offset = (DEPTH_CELL_SIZE - DEPTH_FONT_HEIGHT) / 2;
+  /* Overlay per-cell distance values in cm using larger centered text */
+  UTIL_LCD_SetFont(&Font16);
   for (int row = 0; row < TOF_GRID_SIZE; row++) {
     for (int col = 0; col < TOF_GRID_SIZE; col++) {
       int16_t dist = grid->distance_mm[row][col];
       uint8_t stat = grid->status[row][col];
-      uint32_t x = DEPTH_GRID_X0 + col * DEPTH_CELL_SIZE + 1;
-      uint32_t y = DEPTH_GRID_Y0 + row * DEPTH_CELL_SIZE + text_y_offset;
+      uint32_t x0 = draw_x0 + (uint32_t)(((uint64_t)col * draw_w) / TOF_GRID_SIZE);
+      uint32_t x1 = draw_x0 + (uint32_t)(((uint64_t)(col + 1) * draw_w) / TOF_GRID_SIZE);
+      uint32_t y0 = draw_y0 + (uint32_t)(((uint64_t)row * draw_h) / TOF_GRID_SIZE);
+      uint32_t y1 = draw_y0 + (uint32_t)(((uint64_t)(row + 1) * draw_h) / TOF_GRID_SIZE);
+
+      uint32_t cell_w = (x1 > x0) ? (x1 - x0) : 0;
+      uint32_t cell_h = (y1 > y0) ? (y1 - y0) : 0;
+
+      /* Values are fixed to 3 chars ("---", "FAR", or "%3d"). */
+      uint32_t text_w = 3U * DEPTH_FONT_WIDTH;
+
+      /* Only draw text when the cell is large enough. */
+      if (cell_w < text_w || cell_h < DEPTH_FONT_HEIGHT) {
+        continue;
+      }
+
+      uint32_t x = x0 + (cell_w - text_w) / 2U;
+      uint32_t y = y0 + (cell_h - DEPTH_FONT_HEIGHT) / 2U;
 
       char val_str[5];
       if ((stat != 5 && stat != 9) || dist <= 0) {
@@ -423,35 +469,7 @@ static void UI_DrawDepthGrid(const tof_depth_grid_t *grid) {
   }
   UTIL_LCD_SetFont(&Font16);
 
-  /* Label above grid */
-  UTIL_LCD_SetTextColor(UI_COLOR_TEXT);
-  UTIL_LCD_DisplayStringAt(DEPTH_GRID_X0, DEPTH_GRID_Y0 - UI_FONT_HEIGHT - 2,
-                           (uint8_t *)"ToF [cm]", LEFT_MODE);
-
-  /* Center zone average distance readout below grid */
-  int32_t center_sum = 0;
-  int32_t center_count = 0;
-  for (int row = DEPTH_CENTER_ROW_MIN; row <= DEPTH_CENTER_ROW_MAX; row++) {
-    for (int col = DEPTH_CENTER_COL_MIN; col <= DEPTH_CENTER_COL_MAX; col++) {
-      int16_t d = grid->distance_mm[row][col];
-      uint8_t s = grid->status[row][col];
-      if ((s == 5 || s == 9) && d > 0) {
-        center_sum += d;
-        center_count++;
-      }
-    }
-  }
-
-  char ctr_str[24];
-  if (center_count > 0) {
-    int32_t avg_mm = center_sum / center_count;
-    snprintf(ctr_str, sizeof(ctr_str), "Ctr: %ldmm", (long)avg_mm);
-  } else {
-    strncpy(ctr_str, "Ctr: ---", sizeof(ctr_str));
-  }
-  UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
-  UTIL_LCD_DisplayStringAt(DEPTH_GRID_X0, DEPTH_GRID_Y0 + DEPTH_GRID_PIXELS + 4,
-                           (uint8_t *)ctr_str, LEFT_MODE);
+  UNUSED(use_roi);
 }
 
 /* ============================================================================
@@ -824,7 +842,7 @@ static void ui_thread_entry(ULONG arg) {
     if (g_tof_overlay_visible) {
       const tof_depth_grid_t *depth_grid = TOF_GetDepthGrid();
       if (depth_grid->valid) {
-        UI_DrawDepthGrid(depth_grid);
+        UI_DrawDepthGrid(depth_grid, roi_info);
       }
     }
 
