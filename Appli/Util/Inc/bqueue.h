@@ -35,12 +35,12 @@ extern "C" {
  *         Uses counting semaphores for blocking synchronization and lock-free index updates
  */
 typedef struct {
-  TX_SEMAPHORE free_sem;                /**< Counts available free buffers */
-  TX_SEMAPHORE ready_sem;               /**< Counts buffers ready for consumption */
-  uint8_t buffer_nb;                    /**< Number of buffers in the queue */
+  TX_SEMAPHORE free_sem;              /**< Counts available free buffers */
+  TX_SEMAPHORE ready_sem;             /**< Counts buffers ready for consumption */
+  uint8_t buffer_nb;                  /**< Number of buffers in the queue */
   uint8_t *buffers[BQUE_MAX_BUFFERS]; /**< Array of buffer pointers */
-  volatile uint8_t free_idx;            /**< Next free buffer index (producer-only) */
-  volatile uint8_t ready_idx;           /**< Next ready buffer index (consumer-only) */
+  volatile uint8_t free_idx;          /**< Next free buffer index (producer-only) */
+  volatile uint8_t ready_idx;         /**< Next ready buffer index (consumer-only) */
 } bqueue_t;
 
 /**

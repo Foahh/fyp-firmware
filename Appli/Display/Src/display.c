@@ -18,9 +18,9 @@
  ******************************************************************************
  */
 
-#include "error.h"
 #include "display.h"
 #include "cam.h"
+#include "error.h"
 #include "stm32_lcd.h"
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"

@@ -18,11 +18,11 @@
 
 #include "ui_internal.h"
 
-#include "error.h"
-#include "display.h"
 #include "cam.h"
 #include "cam_config.h"
 #include "cpuload.h"
+#include "display.h"
+#include "error.h"
 #include "lcd_config.h"
 #include "model_config.h"
 #include "pp.h"

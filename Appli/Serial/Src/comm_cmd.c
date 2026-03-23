@@ -17,8 +17,8 @@
  */
 
 #include "comm_cmd.h"
-#include "display.h"
 #include "comm_tx.h"
+#include "display.h"
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"
 #include "ui.h"

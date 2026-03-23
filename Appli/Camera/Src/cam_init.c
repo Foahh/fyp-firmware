@@ -16,9 +16,9 @@
  ******************************************************************************
  */
 
-#include "error.h"
 #include "cam_config.h"
 #include "cam_internal.h"
+#include "error.h"
 #include "lcd_config.h"
 #include "nn_config.h"
 #include "utils.h"

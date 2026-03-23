@@ -16,9 +16,9 @@
  ******************************************************************************
  */
 
-#include "error.h"
 #include "bqueue.h"
 #include "cam.h"
+#include "error.h"
 #include "model_config.h"
 #include "nn.h"
 #include "nn_config.h"

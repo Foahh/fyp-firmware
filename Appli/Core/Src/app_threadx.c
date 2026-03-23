@@ -18,12 +18,12 @@
 
 #include "app_threadx.h"
 
-#include "error.h"
 #include "cam.h"
 #include "cmw_camera.h"
 #include "comm_log.h"
 #include "comm_rx.h"
 #include "comm_tx.h"
+#include "error.h"
 #include "main.h"
 #include "nn.h"
 #include "pp.h"

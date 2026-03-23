@@ -17,8 +17,8 @@
  */
 
 #include "comm_rx.h"
-#include "error.h"
 #include "comm_cmd.h"
+#include "error.h"
 #include "messages.pb.h"
 #include "pb_decode.h"
 #include "stm32n6570_discovery.h"

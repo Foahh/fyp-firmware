@@ -17,8 +17,8 @@
  */
 
 #include "comm_log.h"
-#include "error.h"
 #include "comm_tx.h"
+#include "error.h"
 #include "messages.pb.h"
 #include "pp.h"
 #include "stm32n6xx_hal.h"

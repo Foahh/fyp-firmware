@@ -26,9 +26,9 @@
  */
 
 #include "tof.h"
-#include "error.h"
 #include "cam_config.h"
 #include "cmw_camera.h"
+#include "error.h"
 #include "haptic.h"
 #include "pp.h"
 #include "stm32n6570_discovery.h"

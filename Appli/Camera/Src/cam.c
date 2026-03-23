@@ -16,9 +16,9 @@
  ******************************************************************************
  */
 
-#include "error.h"
-#include "display.h"
 #include "cam_internal.h"
+#include "display.h"
+#include "error.h"
 #include "utils.h"
 
 /* ============================================================================
