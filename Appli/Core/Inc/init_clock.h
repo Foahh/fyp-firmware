@@ -15,6 +15,10 @@ extern "C" {
 void SystemClock_Config(void);
 void ClockSleep_Config(void);
 
+/* Captured in SystemClock_Config() from HAL (CPU = sysa_ck / IC1, NPU = sysc_ck / IC6). */
+uint32_t AppClock_GetCpuFreqMHz(void);
+uint32_t AppClock_GetNpuFreqMHz(void);
+
 #ifdef __cplusplus
 }
 #endif

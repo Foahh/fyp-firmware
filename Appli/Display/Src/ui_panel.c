@@ -20,6 +20,7 @@
 
 #include "cam_config.h"
 #include "cpuload.h"
+#include "init_clock.h"
 #include "lcd_config.h"
 #include "model_config.h"
 #include "stm32_lcd.h"
@@ -232,20 +233,14 @@ void UI_DrawProximitySection(const tof_alert_t *alert) {
 void UI_DrawBuildOptions(void) {
   char line[48];
   const char *perf_label;
-  uint32_t cpu_freq_mhz;
-  uint32_t npu_freq_mhz;
   uint32_t y;
   uint32_t tw;
   uint32_t x0;
 
 #ifdef OVERDRIVE_MODE
   perf_label = "OVERDRIVE MODE";
-  cpu_freq_mhz = 800U;
-  npu_freq_mhz = 1000U;
 #else
   perf_label = "NOMINAL MODE";
-  cpu_freq_mhz = 600U;
-  npu_freq_mhz = 800U;
 #endif
 
   UTIL_LCD_SetTextColor(UI_COLOR_METADATA);
@@ -258,7 +253,8 @@ void UI_DrawBuildOptions(void) {
 
   y += UI_FONT_HEIGHT + UI_LINE_SPACING;
   snprintf(line, sizeof(line), "CPU %lu / NPU %lu MHz",
-           (unsigned long)cpu_freq_mhz, (unsigned long)npu_freq_mhz);
+           (unsigned long)AppClock_GetCpuFreqMHz(),
+           (unsigned long)AppClock_GetNpuFreqMHz());
   tw = (uint32_t)strlen(line) * UI_FONT_WIDTH;
   x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
   UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)line, LEFT_MODE);

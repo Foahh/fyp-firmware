@@ -20,6 +20,17 @@
 #include "error.h"
 #include "init_clock.h"
 
+static uint32_t g_app_cpu_mhz;
+static uint32_t g_app_npu_mhz;
+
+uint32_t AppClock_GetCpuFreqMHz(void) {
+  return g_app_cpu_mhz;
+}
+
+uint32_t AppClock_GetNpuFreqMHz(void) {
+  return g_app_npu_mhz;
+}
+
 void SystemClock_Config(void) {
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -150,6 +161,9 @@ void SystemClock_Config(void) {
   RCC_ClkInitStruct.APB5CLKDivider = RCC_APB5_DIV1;
 
   APP_REQUIRE(HAL_RCC_ClockConfig(&RCC_ClkInitStruct) == HAL_OK);
+
+  g_app_cpu_mhz = (HAL_RCC_GetCpuClockFreq() + 500000U) / 1000000U;
+  g_app_npu_mhz = (HAL_RCC_GetNPUClockFreq() + 500000U) / 1000000U;
 }
 
 void ClockSleep_Config(void) {
