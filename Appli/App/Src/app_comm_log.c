@@ -19,7 +19,9 @@
 #include "app_comm_log.h"
 #include "app_comm_tx.h"
 #include "app_error.h"
+#include "app_imu.h"
 #include "app_pp.h"
+#include "app_tof.h"
 #include "messages.pb.h"
 #include "stm32n6xx_hal.h"
 #include "tx_api.h"
@@ -68,6 +70,34 @@ static void comm_send_detection_result(const detection_info_t *info) {
     df->detections[i].height = d->height;
     df->detections[i].conf = d->conf;
     df->detections[i].class_index = d->class_index;
+  }
+
+  imu_accel_t accel;
+  if (IMU_ReadAccel(&accel) == 0) {
+    df->has_imu = true;
+    df->imu.x_mg = accel.x_mg;
+    df->imu.y_mg = accel.y_mg;
+    df->imu.z_mg = accel.z_mg;
+    df->imu.wake = IMU_IsWakeCondition();
+  }
+
+  const tof_alert_t *alert = TOF_GetAlert();
+  const tof_depth_grid_t *grid = TOF_GetDepthGrid();
+  df->has_tof = true;
+  if (alert != NULL) {
+    df->tof.hand_distance_mm = alert->hand_distance_mm;
+    df->tof.hazard_distance_mm = alert->hazard_distance_mm;
+    df->tof.alert = alert->alert;
+    df->tof.distance_3d_mm = alert->distance_3d_mm;
+    df->tof.stale = alert->stale;
+  }
+  if (grid != NULL && grid->valid) {
+    df->tof.depth_grid_count = TOF_GRID_SIZE * TOF_GRID_SIZE;
+    for (int r = 0; r < TOF_GRID_SIZE; r++) {
+      for (int c = 0; c < TOF_GRID_SIZE; c++) {
+        df->tof.depth_grid[r * TOF_GRID_SIZE + c] = grid->distance_mm[r][c];
+      }
+    }
   }
 
   COM_TX_Send(&msg);

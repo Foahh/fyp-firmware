@@ -26,12 +26,33 @@ typedef struct _Detection {
     int32_t class_index;
 } Detection;
 
+typedef struct _ImuData {
+    int32_t x_mg;
+    int32_t y_mg;
+    int32_t z_mg;
+    bool wake;
+} ImuData;
+
+typedef struct _TofAlert {
+    uint32_t hand_distance_mm;
+    uint32_t hazard_distance_mm;
+    bool alert;
+    float distance_3d_mm;
+    bool stale;
+    pb_size_t depth_grid_count;
+    int32_t depth_grid[64];
+} TofAlert;
+
 typedef struct _DetectionResult {
     uint32_t timestamp;
     bool has_timing;
     Timing timing;
     pb_size_t detections_count;
     Detection detections[10];
+    bool has_imu;
+    ImuData imu;
+    bool has_tof;
+    TofAlert tof;
 } DetectionResult;
 
 typedef struct _DeviceInfo {
@@ -86,7 +107,9 @@ extern "C" {
 /* Initializer values for message structs */
 #define Timing_init_default                      {0, 0, 0, 0}
 #define Detection_init_default                   {0, 0, 0, 0, 0, 0}
-#define DetectionResult_init_default             {0, false, Timing_init_default, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}}
+#define ImuData_init_default                     {0, 0, 0, 0}
+#define TofAlert_init_default                    {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
+#define DetectionResult_init_default             {0, false, Timing_init_default, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, false, ImuData_init_default, false, TofAlert_init_default}
 #define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0}
 #define Ack_init_default                         {0, 0}
 #define SetDisplayEnabled_init_default           {0}
@@ -95,7 +118,9 @@ extern "C" {
 #define HostMessage_init_default                 {0, 0, {SetDisplayEnabled_init_default}}
 #define Timing_init_zero                         {0, 0, 0, 0}
 #define Detection_init_zero                      {0, 0, 0, 0, 0, 0}
-#define DetectionResult_init_zero                {0, false, Timing_init_zero, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}}
+#define ImuData_init_zero                        {0, 0, 0, 0}
+#define TofAlert_init_zero                       {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
+#define DetectionResult_init_zero                {0, false, Timing_init_zero, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, false, ImuData_init_zero, false, TofAlert_init_zero}
 #define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0}
 #define Ack_init_zero                            {0, 0}
 #define SetDisplayEnabled_init_zero              {0}
@@ -114,9 +139,21 @@ extern "C" {
 #define Detection_height_tag                     4
 #define Detection_conf_tag                       5
 #define Detection_class_index_tag                6
+#define ImuData_x_mg_tag                         1
+#define ImuData_y_mg_tag                         2
+#define ImuData_z_mg_tag                         3
+#define ImuData_wake_tag                         4
+#define TofAlert_hand_distance_mm_tag            1
+#define TofAlert_hazard_distance_mm_tag          2
+#define TofAlert_alert_tag                       3
+#define TofAlert_distance_3d_mm_tag              4
+#define TofAlert_stale_tag                       5
+#define TofAlert_depth_grid_tag                  6
 #define DetectionResult_timestamp_tag            1
 #define DetectionResult_timing_tag               2
 #define DetectionResult_detections_tag           3
+#define DetectionResult_imu_tag                  4
+#define DetectionResult_tof_tag                  5
 #define DeviceInfo_display_width_tag             1
 #define DeviceInfo_display_height_tag            2
 #define DeviceInfo_letterbox_width_tag           3
@@ -155,14 +192,36 @@ X(a, STATIC,   SINGULAR, INT32,    class_index,       6)
 #define Detection_CALLBACK NULL
 #define Detection_DEFAULT NULL
 
+#define ImuData_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, INT32,    x_mg,              1) \
+X(a, STATIC,   SINGULAR, INT32,    y_mg,              2) \
+X(a, STATIC,   SINGULAR, INT32,    z_mg,              3) \
+X(a, STATIC,   SINGULAR, BOOL,     wake,              4)
+#define ImuData_CALLBACK NULL
+#define ImuData_DEFAULT NULL
+
+#define TofAlert_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   hand_distance_mm,   1) \
+X(a, STATIC,   SINGULAR, UINT32,   hazard_distance_mm,   2) \
+X(a, STATIC,   SINGULAR, BOOL,     alert,             3) \
+X(a, STATIC,   SINGULAR, FLOAT,    distance_3d_mm,    4) \
+X(a, STATIC,   SINGULAR, BOOL,     stale,             5) \
+X(a, STATIC,   REPEATED, INT32,    depth_grid,        6)
+#define TofAlert_CALLBACK NULL
+#define TofAlert_DEFAULT NULL
+
 #define DetectionResult_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   timestamp,         1) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  timing,            2) \
-X(a, STATIC,   REPEATED, MESSAGE,  detections,        3)
+X(a, STATIC,   REPEATED, MESSAGE,  detections,        3) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  imu,               4) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  tof,               5)
 #define DetectionResult_CALLBACK NULL
 #define DetectionResult_DEFAULT NULL
 #define DetectionResult_timing_MSGTYPE Timing
 #define DetectionResult_detections_MSGTYPE Detection
+#define DetectionResult_imu_MSGTYPE ImuData
+#define DetectionResult_tof_MSGTYPE TofAlert
 
 #define DeviceInfo_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   display_width,     1) \
@@ -214,6 +273,8 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (command,get_device_info,command.get_device_i
 
 extern const pb_msgdesc_t Timing_msg;
 extern const pb_msgdesc_t Detection_msg;
+extern const pb_msgdesc_t ImuData_msg;
+extern const pb_msgdesc_t TofAlert_msg;
 extern const pb_msgdesc_t DetectionResult_msg;
 extern const pb_msgdesc_t DeviceInfo_msg;
 extern const pb_msgdesc_t Ack_msg;
@@ -225,6 +286,8 @@ extern const pb_msgdesc_t HostMessage_msg;
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define Timing_fields &Timing_msg
 #define Detection_fields &Detection_msg
+#define ImuData_fields &ImuData_msg
+#define TofAlert_fields &TofAlert_msg
 #define DetectionResult_fields &DetectionResult_msg
 #define DeviceInfo_fields &DeviceInfo_msg
 #define Ack_fields &Ack_msg
@@ -235,15 +298,17 @@ extern const pb_msgdesc_t HostMessage_msg;
 
 /* Maximum encoded size of messages (where known) */
 #define Ack_size                                 8
-#define DetectionResult_size                     412
+#define DetectionResult_size                     1177
 #define Detection_size                           36
 #define DeviceInfo_size                          437
-#define DeviceMessage_size                       440
+#define DeviceMessage_size                       1180
 #define GetDeviceInfo_size                       0
 #define HostMessage_size                         10
+#define ImuData_size                             35
 #define MESSAGES_PB_H_MAX_SIZE                   DeviceMessage_size
 #define SetDisplayEnabled_size                   2
 #define Timing_size                              24
+#define TofAlert_size                            725
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -22,6 +22,22 @@ message Detection {
   int32 class_index = 6;
 }
 
+message ImuData {
+  int32 x_mg = 1;
+  int32 y_mg = 2;
+  int32 z_mg = 3;
+  bool wake = 4;
+}
+
+message TofAlert {
+  uint32 hand_distance_mm = 1;
+  uint32 hazard_distance_mm = 2;
+  bool alert = 3;
+  float distance_3d_mm = 4;
+  bool stale = 5;
+  repeated int32 depth_grid = 6 [(nanopb).max_count = 64];
+}
+
 /* ============================================================================
  * Device payloads
  * ============================================================================ */
@@ -30,6 +46,8 @@ message DetectionResult {
   uint32 timestamp = 1;
   Timing timing = 2;
   repeated Detection detections = 3 [(nanopb).max_count = 10];
+  ImuData imu = 4;
+  TofAlert tof = 5;
 }
 
 message DeviceInfo {
