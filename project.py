@@ -44,7 +44,7 @@ MODELS = {
 
 DEFAULT_MODEL = "yolox_nano"
 
-CAMERA_FPS_CHOICES = (10, 15, 20, 25, 30)
+CAMERA_FPS_CHOICES = (0, 10, 15, 20, 25, 30)
 DEFAULT_CAMERA_FPS = 30
 
 
@@ -90,9 +90,7 @@ def main():
         help="Generate protobuf outputs (optionally for one .proto file)",
     )
 
-    build_parser = sub.add_parser(
-        "build", help="Build, sign, and convert to flashable HEX"
-    )
+    build_parser = sub.add_parser("build", help="Build firmware")
     build_parser.add_argument(
         "--name",
         "-n",
@@ -108,27 +106,21 @@ def main():
         help="Re-sign firmware even if unchanged (ignore sign cache)",
     )
     build_parser.add_argument(
-        "--snapshot",
-        action="store_true",
-        help="Use snapshot mode for NN camera pipe",
-    )
-    build_parser.add_argument(
-        "--performance",
+        "--overdrive",
         action="store_true",
         help="Run NPU at 1000 MHz instead of 800 MHz",
     )
     build_parser.add_argument(
         "--fps",
         type=int,
-        choices=CAMERA_FPS_CHOICES,
         default=DEFAULT_CAMERA_FPS,
         metavar="N",
-        help=f"Camera frame rate (default: {DEFAULT_CAMERA_FPS})",
+        help=f"Camera frame rate (choices: {CAMERA_FPS_CHOICES}, default: {DEFAULT_CAMERA_FPS}; --fps 0 enables snapshot mode: camera captures single frames on-demand instead of continuous streaming)",
     )
     build_parser.add_argument(
         "--debug",
         action="store_true",
-        help="Build in Debug mode (no sign/hex)",
+        help="Build in Debug mode",
     )
     build_parser.add_argument(
         "--appli",
@@ -142,11 +134,12 @@ def main():
         default=False,
         help="Build FSBL (default: both Appli and FSBL unless one is specified)",
     )
-
-    flash_parser = sub.add_parser("flash", help="Flash pre-built firmware to device")
-    flash_parser.add_argument(
-        "--force", "-f", action="store_true", help="Flash all images even if unchanged"
+    build_parser.add_argument(
+        "--flash",
+        action="store_true",
+        help="Flash firmware to device after building",
     )
+
     ui_parser = sub.add_parser("ui", help="Launch host serial visualizer")
     ui_parser.add_argument(
         "port",
@@ -179,6 +172,13 @@ def main():
     elif args.command == "proto":
         cmd_generate_proto(args.proto or None)
     elif args.command == "build":
+        if args.fps > 0 and args.fps not in CAMERA_FPS_CHOICES:
+            parser.error(
+                f"--fps must be one of {CAMERA_FPS_CHOICES} or 0 for snapshot mode"
+            )
+
+        snapshot_mode = args.fps <= 0
+        camera_fps = args.fps if args.fps > 0 else DEFAULT_CAMERA_FPS
         build_appli = args.appli or not args.fsbl
         build_fsbl = args.fsbl or not args.appli
         build_type = "Debug" if args.debug else BUILD_TYPE
@@ -190,14 +190,14 @@ def main():
             PROJECT_NAME_PREFIX,
             appli=build_appli,
             fsbl=build_fsbl,
-            sign=not args.debug,
+            sign=args.flash,
             force=args.force,
-            snapshot=args.snapshot,
-            performance=args.performance,
-            camera_fps=args.fps,
+            snapshot=snapshot_mode,
+            overdrive=args.overdrive,
+            camera_fps=camera_fps,
         )
-    elif args.command == "flash":
-        cmd_flash(PROJECT_ROOT, BUILD_TYPE, PROJECT_NAME_PREFIX, force=args.force)
+        if args.flash:
+            cmd_flash(PROJECT_ROOT, build_type, PROJECT_NAME_PREFIX, force=args.force)
     elif args.command == "ui":
         cmd_ui(PROJECT_ROOT, args.port, baud=args.baud, timeout=args.timeout)
 

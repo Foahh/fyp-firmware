@@ -261,7 +261,7 @@ void UI_DrawBuildOptions(void) {
   uint32_t tw;
   uint32_t x0;
 
-#ifdef PERFORMANCE_MODE
+#ifdef OVERDRIVE_MODE
   perf_label = "PERFORMANCE MODE";
 #else
   perf_label = "NOMINAL MODE";

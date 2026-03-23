@@ -56,7 +56,7 @@ void SystemIsolation_Config(void) {
 }
 
 void SMPS_Config(void) {
-#ifdef PERFORMANCE_MODE
+#ifdef OVERDRIVE_MODE
   BSP_SMPS_Init(SMPS_VOLTAGE_OVERDRIVE);
 #else
   BSP_SMPS_Init(SMPS_VOLTAGE_NOMINAL);

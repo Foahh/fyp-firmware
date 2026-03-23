@@ -95,7 +95,7 @@ def cmd_build(
     sign=True,
     force=False,
     snapshot=False,
-    performance=False,
+    overdrive=False,
     camera_fps=30,
 ):
     require_tool("cmake")
@@ -110,7 +110,7 @@ def cmd_build(
     )
 
     appli_cmake_args.append(
-        "-DPERFORMANCE_MODE=ON" if performance else "-DPERFORMANCE_MODE=OFF"
+        "-DOVERDRIVE_MODE=ON" if overdrive else "-DOVERDRIVE_MODE=OFF"
     )
 
     appli_cmake_args.append(f"-DCAMERA_FPS={camera_fps}")

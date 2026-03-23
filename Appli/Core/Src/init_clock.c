@@ -31,7 +31,7 @@ void SystemClock_Config(void) {
   /* PLL1: performance = 800 MHz, nominal = 600 MHz */
   RCC_OscInitStruct.PLL1.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL1.PLLSource = RCC_PLLSOURCE_HSI;
-#ifdef PERFORMANCE_MODE
+#ifdef OVERDRIVE_MODE
   /* PLL1 = 64 x 25 / 2 = 800MHz */
   RCC_OscInitStruct.PLL1.PLLM = 2;
   RCC_OscInitStruct.PLL1.PLLN = 25;
@@ -48,7 +48,7 @@ void SystemClock_Config(void) {
   RCC_OscInitStruct.PLL2.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL2.PLLM = 8;
   RCC_OscInitStruct.PLL2.PLLFractional = 0;
-#ifdef PERFORMANCE_MODE
+#ifdef OVERDRIVE_MODE
   /* PLL2 = 64 x 125 / 8 = 1000MHz */
   RCC_OscInitStruct.PLL2.PLLN = 125;
 #else
@@ -106,7 +106,7 @@ void SystemClock_Config(void) {
   RCC_ClkInitStruct.IC1Selection.ClockDivider = 1;
 
   /* AXI Clock (sysb_ck) = ic2_ck = 400 MHz in both modes */
-#ifdef PERFORMANCE_MODE
+#ifdef OVERDRIVE_MODE
   /* PLL1 output/ic2_divider = 800 / 2 = 400 MHz */
   RCC_ClkInitStruct.IC2Selection.ClockSelection = RCC_ICCLKSOURCE_PLL1;
 #else
@@ -120,7 +120,7 @@ void SystemClock_Config(void) {
   RCC_ClkInitStruct.IC6Selection.ClockDivider = 1;
 
   /* AXISRAM3/4/5/6 Clock (sysd_ck) = ic11_ck */
-#ifdef PERFORMANCE_MODE
+#ifdef OVERDRIVE_MODE
   /* PLL3 output/ic11_divider = 900 MHz */
   RCC_ClkInitStruct.IC11Selection.ClockSelection = RCC_ICCLKSOURCE_PLL3;
 #else
@@ -140,7 +140,7 @@ void SystemClock_Config(void) {
 
   APP_REQUIRE(HAL_RCC_ClockConfig(&RCC_ClkInitStruct) == HAL_OK);
 
-#ifdef PERFORMANCE_MODE
+#ifdef OVERDRIVE_MODE
   /* Performance mode: ensure VDDCORE at 0.89V (SCALE0) */
   APP_REQUIRE(HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE0) == HAL_OK);
 #else
