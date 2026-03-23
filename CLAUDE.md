@@ -4,7 +4,7 @@ This file provides guidance to agent when working with code in this repository.
 
 ## Project Overview
 
-Embedded AI vision firmware for the STM32N6570-DK (Cortex-M55, ARMv8.1-M). Captures video from an IMX335 camera, runs real-time person detection via YOLO-X Nano on the ATON NPU, and displays results on an LCD. Runs on ThreadX RTOS.
+Embedded AI vision firmware for the STM32N6570-DK (Cortex-M55, ARMv8.1-M). Captures video from an IMX335 camera, runs real-time object detection on the NPU, and displays results on an LCD. Runs on ThreadX RTOS.
 
 ## Build Commands
 
@@ -42,41 +42,40 @@ Two-stage boot: **FSBL** (First Stage Boot Loader) initializes external memory a
 
 ### Appli Structure
 
-- `Core/` — HAL init, startup assembly, interrupt handlers, `main.c` entry point
+- `Core/` — HAL init, startup assembly, interrupt handlers, RTOS init, `main.c` entry point
   - `main.c` — Entry point, HAL callbacks (`HAL_TIM_PeriodElapsedCallback`, `HAL_MspInit`, `BSP_PB_Callback`)
   - `init_clock.c` — `SystemClock_Config()`, `ClockSleep_Config()`
   - `init_peripherals.c` — GPIO, SMPS, IAC, XSPI, LED, Button, COM, NPU, Priority, SystemIsolation configs
   - `init_mpu.c` — MPU region configuration
-- `RTOS/` — ThreadX integration (`app_azure_rtos.c`, `app_threadx.c`)
-- `App/` — Application modules organized by subsystem:
-  - `Src/cam/` — Camera capture pipeline
-    - `cam_init.c` — `CAM_Init`, pipe config, ROI calculation, DeInit
-    - `cam_pipe.c` — Pipe start/stop/resume, frame callbacks, buffer management
-    - `cam.c` — ISP thread, LCD reload thread, thread lifecycle
-  - `Src/nn/` — Neural network
-    - `nn_thread.c` — NN inference thread (ThreadX, priority 6)
-    - `pp_thread.c` — YOLO-X NMS post-processing (confidence 0.6, IoU 0.5)
-  - `Src/display/` — Display and UI
-    - `lcd.c` — LTDC dual-layer display (Layer 0: camera, Layer 1: UI overlay)
-    - `ui.c` — UI thread entry, public API, buffer swap
-    - `ui_panel.c` — Diagnostics panel rendering
-    - `ui_overlay.c` — Detection bounding boxes, ROI rectangle
-    - `ui_depth.c` — ToF depth grid heatmap, proximity alert banner
-  - `Src/comm/` — Host communication (protobuf over UART)
-    - `comm_cmd.c` — Command dispatcher
-    - `comm_log.c` — Periodic device-to-host reporting
-    - `comm_rx.c` — UART RX with ring buffer
-    - `comm_tx.c` — TX encoding with double-buffered frames
-  - `Src/sensor/` — External sensors
-    - `tof.c` — VL53L5CX 8x8 depth ranging, hand/hazard proximity fusion
-    - `haptic.c` — Haptic motor GPIO control
-  - `Src/util/` — Utilities
-    - `bqueue.c` — SPSC buffer queue (semaphore-based)
-    - `cpuload.c` — CPU load measurement via DWT cycle counter
-  - `Inc/` — Headers mirror `Src/` subdirectory structure, plus:
-    - `config/` — Build-time configuration (`cam_config.h`, `lcd_config.h`, `nn_config.h`, `app_config.h`, `model_config.h`)
-    - `models/` — Per-model constant headers (`model_yolox_nano.h`)
-- `Appli/cmake/` — Per-library CMake include files (one per dependency)
+  - `app_azure_rtos.c`, `app_threadx.c` — ThreadX integration
+- `Camera/` — Camera capture pipeline
+  - `Src/cam.c` — ISP thread, LCD reload thread, thread lifecycle
+  - `Src/cam_init.c` — `CAM_Init`, pipe config, ROI calculation, DeInit
+  - `Src/cam_pipe.c` — Pipe start/stop/resume, frame callbacks, buffer management
+- `NN/` — Neural network
+  - `Src/nn_thread.c` — NN inference thread (ThreadX, priority 6)
+  - `Src/pp_thread.c` — YOLO-X NMS post-processing (confidence 0.6, IoU 0.5)
+- `Display/` — Display and UI
+  - `Src/lcd.c` — LTDC dual-layer display (Layer 0: camera, Layer 1: UI overlay)
+  - `Src/ui.c` — UI thread entry, public API, buffer swap
+  - `Src/ui_panel.c` — Diagnostics panel rendering
+  - `Src/ui_overlay.c` — Detection bounding boxes, ROI rectangle
+  - `Src/ui_depth.c` — ToF depth grid heatmap, proximity alert banner
+- `Serial/` — Host communication (protobuf over UART)
+  - `Src/comm_cmd.c` — Command dispatcher
+  - `Src/comm_log.c` — Periodic device-to-host reporting
+  - `Src/comm_rx.c` — UART RX with ring buffer
+  - `Src/comm_tx.c` — TX encoding with double-buffered frames
+- `Sensor/` — External sensors
+  - `Src/tof.c` — VL53L5CX 8x8 depth ranging, hand/hazard proximity fusion
+  - `Src/haptic.c` — Haptic motor GPIO control
+  - `Src/power_measurement_sync.c` — Power measurement synchronization
+- `Util/` — Utilities
+  - `Src/bqueue.c` — SPSC buffer queue (semaphore-based)
+  - `Src/cpuload.c` — CPU load measurement via DWT cycle counter
+- `Config/Inc/` — Build-time configuration (`cam_config.h`, `lcd_config.h`, `nn_config.h`, `app_config.h`, `model_config.h`)
+  - `models/` — Per-model constant headers (`model_yolox_nano.h`)
+- `CMake/` — Per-library CMake include files (one per dependency)
 
 ### Naming Conventions
 

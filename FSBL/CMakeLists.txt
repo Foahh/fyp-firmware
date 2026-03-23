@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.22)
 # STM32 MCU Configuration
 # =============================================================================
 set(STM32_MCU_FLAGS "-mcpu=cortex-m55 -mfpu=fpv5-d16 -mfloat-abi=hard -mcmse")
-set(STM32_LINKER_SCRIPT "STM32N657XX_AXISRAM2_fsbl.ld")
+set(STM32_LINKER_SCRIPT "Startup/STM32N657XX_AXISRAM2_fsbl.ld")
 set(STM32_LINKER_OPTION "")
 
 # =============================================================================

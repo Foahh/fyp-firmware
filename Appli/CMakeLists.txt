@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.22)
 # STM32 MCU Configuration
 # =============================================================================
 set(STM32_MCU_FLAGS "-mcpu=cortex-m55 -mfpu=fpv5-d16 -mfloat-abi=hard -mcmse")
-set(STM32_LINKER_SCRIPT "STM32N657XX_LRUN.ld")
+set(STM32_LINKER_SCRIPT "Startup/STM32N657XX_LRUN.ld")
 set(STM32_LINKER_OPTION "")
 
 # =============================================================================
@@ -55,59 +55,55 @@ set(STM32CUBE_ROOT "${EXTERNAL_ROOT}/STM32CubeN6")
 # =============================================================================
 # Core source files
 set(CORE_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/startup_stm32n657xx.s
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/tx_initialize_low_level.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/Startup/startup_stm32n657xx.s
+    ${CMAKE_CURRENT_SOURCE_DIR}/Startup/tx_initialize_low_level.S
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_error.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/init_clock.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/init_mpu.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/init_peripherals.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/power_measurement_sync.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_azure_rtos.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_threadx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_hal_timebase_tim.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/secure_nsc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/sysmem.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/syscalls.c)
 
-# RTOS source files
-set(RTOS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_azure_rtos.c
-                 ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_threadx.c)
-
 # App source files
 set(APP_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/cam/cam.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/cam/cam_init.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/cam/cam_pipe.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/nn/nn_thread.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/nn/pp_thread.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/display/lcd.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/display/ui.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/display/ui_panel.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/display/ui_overlay.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/display/ui_depth.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/comm/comm_cmd.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/comm/comm_log.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/comm/comm_rx.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/comm/comm_tx.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/sensor/tof.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/sensor/haptic.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/util/bqueue.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/util/cpuload.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/Camera/Src/cam.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Camera/Src/cam_init.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Camera/Src/cam_pipe.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/NN/Src/nn_thread.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/NN/Src/pp_thread.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Display/Src/lcd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Display/Src/ui.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Display/Src/ui_panel.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Display/Src/ui_overlay.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Display/Src/ui_depth.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Serial/Src/comm_cmd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Serial/Src/comm_log.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Serial/Src/comm_rx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Serial/Src/comm_tx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/tof.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/haptic.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/power_measurement_sync.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/bqueue.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/cpuload.c)
 
 # =============================================================================
 # Include Directories Configuration
 # =============================================================================
 set(INCLUDE_DIRECTORIES
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/cam
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/nn
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/display
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/comm
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/sensor
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/util
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/config
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Inc)
+    ${CMAKE_CURRENT_SOURCE_DIR}/Camera/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Serial/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/NN/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Display/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Util/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Config/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc)
 
 # =============================================================================
 # Model Selection
@@ -169,18 +165,18 @@ target_compile_definitions(stm32_interface INTERFACE ${COMPILE_DEFINITIONS})
 # =============================================================================
 # Include Library CMake Files
 # =============================================================================
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/stm32_drivers.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/threadx.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmw_camera.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/isp_library.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/bsp.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/lcd.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ai_postprocessing.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ai_npu.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/vl53l5cx.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/network.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/stm32_drivers.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/threadx.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/cmw_camera.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/isp_library.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/bsp.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/lcd.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/ai_postprocessing.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/ai_npu.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/vl53l5cx.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/network.cmake)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nanopb.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/nanopb.cmake)
 
 # =============================================================================
 # Main Executable
@@ -188,8 +184,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nanopb.cmake)
 add_executable(${PROJECT_NAME})
 
 # Application sources
-target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES} ${APP_SOURCES}
-                                       ${RTOS_SOURCES})
+target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES} ${APP_SOURCES})
 
 # Disable LTO for interrupt handlers (referenced only from vector table in assembly)
 set_source_files_properties(

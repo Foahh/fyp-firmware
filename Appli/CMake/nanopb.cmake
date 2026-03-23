@@ -6,10 +6,10 @@ target_sources(Nanopb PRIVATE
   ${NANOPB_ROOT}/pb_encode.c
   ${NANOPB_ROOT}/pb_decode.c
   ${NANOPB_ROOT}/pb_common.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/Proto/nanopb/messages.pb.c)
+  ${CMAKE_CURRENT_SOURCE_DIR}/Proto/messages.pb.c)
 
 target_include_directories(Nanopb PUBLIC
   ${NANOPB_ROOT}
-  ${CMAKE_CURRENT_SOURCE_DIR}/Proto/nanopb)
+  ${CMAKE_CURRENT_SOURCE_DIR}/Proto)
 
 target_link_libraries(Nanopb PRIVATE stm32_interface)
