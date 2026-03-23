@@ -1,4 +1,5 @@
 pyserial>=3.5
-protobuf>=7.34.0
-matplotlib
-numpy
+grpcio-tools>=1.78.0
+protobuf
+matplotlib>=3.10.8
+numpy>=2.4.3

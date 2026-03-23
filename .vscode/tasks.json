@@ -4,7 +4,7 @@
         {
             "label": "Build Appli",
             "type": "shell",
-            "command": "python project.py build --appli --debug",
+            "command": "python project.py build --appli --debug --fps 0 --overdrive",
             "options": {
                 "cwd": "${workspaceFolder}"
             },

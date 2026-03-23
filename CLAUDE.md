@@ -15,14 +15,14 @@ python project.py clean                # Remove build artifacts
 python project.py model                # Generate ATON NPU sources + HEX from TFLite model
 python project.py proto                # Generate protobuf outputs (nanopb C + Python modules)
 python project.py build                       # CMake configure + compile + sign + HEX (both FSBL and Appli)
+python project.py build --flash               # Build + sign + HEX, then flash (FSBL, network weights, Appli)
 python project.py build --debug               # Build both in Debug mode (no sign/HEX)
 python project.py build --debug --appli       # Build Appli only (Debug, no sign/HEX)
 python project.py build --debug --fsbl        # Build FSBL only (Debug, no sign/HEX)
-python project.py flash                       # Flash FSBL, network weights, and Appli via SWD
 python project.py format                      # clang-format all .c/.h/.cpp/.hpp in Appli/ and FSBL/
 ```
 
-`model` and `build` accept `--name / -n` to select a model (default: `yolox_nano`). `build` also accepts `--snapshot` (snapshot camera mode), `--performance` (NPU at 1000 MHz vs 800 MHz), `--fps N` (camera frame rate, default 30), `--force` (re-sign even if unchanged), `--debug` (Debug mode, no sign/HEX), `--appli` (build Appli only), and `--fsbl` (build FSBL only). Default without `--appli`/`--fsbl` builds both.
+`model` and `build` accept `--name / -n` to select a model (default: `yolox_nano`). `build` also accepts `--flash` (flash to device after building), `--fps N` (camera frame rate, default 30; `--fps 0` enables snapshot mode where the camera captures single frames on-demand instead of continuous streaming), `--overdrive` (NPU at 1000 MHz vs 800 MHz), `--force` (re-sign and re-flash even if unchanged), `--debug` (Debug mode, no sign/HEX), `--appli` (build Appli only), and `--fsbl` (build FSBL only). Default without `--appli`/`--fsbl` builds both.
 
 ## Formatting
 
@@ -73,7 +73,6 @@ Two-stage boot: **FSBL** (First Stage Boot Loader) initializes external memory a
 - `Util/` — Utilities
   - `Src/error.c`, `Inc/error.h` — Application-level fatal error handling (`APP_REQUIRE`, `APP_Panic`)
   - `Src/bqueue.c` — SPSC buffer queue (semaphore-based)
-  - `Src/cpuload.c` — CPU load measurement via DWT cycle counter
 - `Config/Inc/` — Build-time configuration (`cam_config.h`, `lcd_config.h`, `nn_config.h`, `app_config.h`, `model_config.h`)
   - `models/` — Per-model constant headers (`model_yolox_nano.h`)
 - `CMake/` — Per-library CMake include files (one per dependency)
@@ -106,3 +105,24 @@ Two-stage boot: **FSBL** (First Stage Boot Loader) initializes external memory a
 ### Networks
 
 Model config lives in `Networks/my_neural_art.json`. The `stedgeai` tool compiles TFLite models (from `models/`) into ATON NPU C sources placed in `Networks/` and a flashable HEX binary.
+
+### Cross-Thread Data Sharing Patterns
+
+Two lock-free patterns are used for single-writer / multi-reader data sharing. DWT cycle counter is enabled once in `app_threadx.c` via `Timebase_EnableDWT()` before any threads start.
+
+**Seqlock (for small copied structs)** — Used when readers must get a fully coherent snapshot. Writer increments a sequence counter (odd = in-progress, even = stable) with `__DMB()` barriers. Reader retries if it observes an odd or changed sequence. Used by: `nn_thread.c` (nn_timing_t, 12B), `cpu_load.c` (cpu_load_info_t, 8B).
+
+```
+Writer:                         Reader:
+buf[write_idx] = data;          do {
+seq++;          /* odd */          s1 = seq; __DMB();
+__DMB();                          idx = published_idx;
+published_idx = write_idx;        copy = buf[idx];
+write_idx ^= 1;                   __DMB(); s2 = seq;
+__DMB();                        } while ((s1 & 1) || s1 != s2);
+seq++;          /* even */
+```
+
+**DMB-fenced pointer/index swap (for pointer-returned structs)** — Used when readers get a pointer to the published buffer (no copy). Writer adds `__DMB()` after all data writes and before the index/pointer update. Reader adds `__DMB()` after loading the index/pointer and before accessing data. Used by: `pp_thread.c` (detection_info_t), `tof.c` (tof_depth_grid_t, tof_alert_t).
+
+When adding new cross-thread shared state, use one of these two patterns — never use bare `volatile` index swaps without memory barriers.

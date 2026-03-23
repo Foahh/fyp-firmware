@@ -42,9 +42,8 @@ python project.py ui /dev/ttyACM0      # Launch visualizer with explicit serial 
 
 `build` also accepts:
 
-- `--snapshot` (snapshot camera mode)
-- `--performance` (NPU at 1000 MHz vs 800 MHz)
-- `--fps N` (camera frame rate, default 30)
+- `--fps N` (camera frame rate, default 30; `--fps 0` enables snapshot mode)
+- `--overdrive` (NPU at 1000 MHz vs 800 MHz)
 - `--force` (re-sign even if unchanged)
 - `--debug` (Debug mode, no sign/HEX)
 - `--appli` (build Appli only)
