@@ -169,8 +169,8 @@ static void nn_thread_entry(ULONG arg) {
     CAM_NNPipe_RequestSnapshot(nn_input_buffers[nn_snap_write_idx]);
     capture_buffer = nn_input_buffers[captured_idx];
 #else
-    /* Get input buffer (blocking) */
-    capture_buffer = bqueue_get_ready(&nn_input_queue);
+    /* Get latest input buffer (LIFO), discarding stale frames */
+    capture_buffer = bqueue_get_ready_latest(&nn_input_queue, NULL);
     APP_REQUIRE(capture_buffer != NULL);
 #endif
 

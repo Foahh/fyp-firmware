@@ -74,6 +74,17 @@ void bqueue_put_free(bqueue_t *bq);
 uint8_t *bqueue_get_ready(bqueue_t *bq);
 
 /**
+ * @brief  Get the latest ready buffer, discarding older ones (consumer side)
+ *         Blocks until at least one buffer is ready, then drains any additional
+ *         ready buffers and returns the newest. Older buffers are returned to
+ *         the free pool.
+ * @param  bq: Pointer to buffer queue
+ * @param  skipped: If non-NULL, receives the number of frames discarded
+ * @retval Pointer to the most recent ready buffer (blocking call)
+ */
+uint8_t *bqueue_get_ready_latest(bqueue_t *bq, uint32_t *skipped);
+
+/**
  * @brief  Mark a buffer as ready (producer side, after filling)
  * @param  bq: Pointer to buffer queue
  * @note   ISR-safe: can be called from interrupt context

@@ -128,6 +128,48 @@ uint8_t *bqueue_get_ready(bqueue_t *bq) {
 }
 
 /**
+ * @brief  Get the latest ready buffer, discarding older ones (consumer side)
+ *         Blocks until at least one buffer is ready, then drains any additional
+ *         ready buffers and returns the newest. Older buffers are returned to
+ *         the free pool.
+ * @param  bq: Pointer to buffer queue
+ * @param  skipped: If non-NULL, receives the number of frames discarded
+ * @retval Pointer to the most recent ready buffer (blocking call)
+ */
+uint8_t *bqueue_get_ready_latest(bqueue_t *bq, uint32_t *skipped) {
+  UINT status;
+  uint32_t skip_count = 0;
+
+  /* Block until at least one buffer is ready */
+  uint8_t *latest = bqueue_get_ready(bq);
+
+  /* Drain any additional ready buffers, keeping only the newest */
+  while (1) {
+    status = tx_semaphore_get(&bq->ready_sem, TX_NO_WAIT);
+    if (status != TX_SUCCESS) {
+      break;
+    }
+
+    /* Return the older buffer to the free pool */
+    MEMORY_BARRIER();
+    tx_semaphore_put(&bq->free_sem);
+    skip_count++;
+
+    /* Advance to the next ready buffer */
+    latest = bq->buffers[bq->ready_idx];
+    MEMORY_BARRIER();
+    bq->ready_idx = (bq->ready_idx + 1) % bq->buffer_nb;
+    MEMORY_BARRIER();
+  }
+
+  if (skipped != NULL) {
+    *skipped = skip_count;
+  }
+
+  return latest;
+}
+
+/**
  * @brief  Mark a buffer as ready (producer side, after filling)
  * @param  bq: Pointer to buffer queue
  * @note   ISR-safe: can be called from interrupt context
