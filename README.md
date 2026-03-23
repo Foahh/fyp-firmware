@@ -1,6 +1,6 @@
-# FYP
+# FYP Firmware
 
-Targeted platform: *STM32N6570-DK*
+Embedded AI vision firmware for the STM32N6570-DK (Cortex-M55, ARMv8.1-M). Captures video from an IMX335 camera, runs real-time object detection on the NPU, and displays results on an LCD. Runs on ThreadX RTOS.
 
 ## Build
 
@@ -8,33 +8,49 @@ Targeted platform: *STM32N6570-DK*
 
 Install [STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html) and [STEdgeAI-Core](https://www.st.com/en/development-tools/stedgeai-core.html).
 
-Ensure the following tools are on your PATH:
+Ensure the following tools are available:
 
 - `cmake`, `ninja`
-- `arm-none-eabi-*`,
+- `arm-none-eabi-*`
 - `STM32_SigningTool_CLI`, `STM32_Programmer_CLI`
-- `stedgeai` (for network model generation)
+- `stedgeai` (for model compilation)
 
-The environment variable `STM32CLT_PATH` must also be set.
+Set these environment variables:
+
+- `STM32CLT_PATH`
+- `STEDGEAI_CORE_DIR`
 
 ### Commands
 
-All commands are run via `build.py` at the project root:
+All commands run through `project.py` at the repository root:
 
 ```bash
-python build.py clean      # Remove build artifacts
-python build.py model      # Generate network model sources and binaries
-python build.py build      # CMake configure + compile + sign + convert to HEX
-python build.py flash      # Flash FSBL, network model, and Appli to device via SWD
+python project.py clean                # Remove build artifacts
+python project.py model                # Generate ATON NPU sources + HEX from TFLite model
+python project.py proto                # Generate protobuf outputs (nanopb C + Python modules)
+python project.py build                # CMake configure + compile + sign + HEX (both FSBL and Appli)
+python project.py build --debug        # Build both in Debug mode (no sign/HEX)
+python project.py build --debug --appli # Build Appli only (Debug, no sign/HEX)
+python project.py build --debug --fsbl  # Build FSBL only (Debug, no sign/HEX)
+python project.py flash                # Flash FSBL, network weights, and Appli via SWD
+python project.py format               # clang-format all .c/.h/.cpp/.hpp in Appli/ and FSBL/
+python project.py ui                    # Launch visualizer (auto-detect serial port)
+python project.py ui /dev/ttyACM0      # Launch visualizer with explicit serial port
 ```
 
-`model` and `build` accept a `--model` / `-m` flag to select the model (default: `yolox_nano`).
+`model` and `build` accept `--name` / `-n` to select the model (default: `yolox_nano`).
 
-### Build Pipeline
+`build` also accepts:
 
-1. `model` — Runs `stedgeai` to compile the TFLite model into ATON NPU sources and a flashable network binary (HEX).
-2. `build` — Configures and compiles both FSBL and Appli via CMake/Ninja, then converts each ELF → binary → signed binary → HEX.
-3. `flash` — Programs FSBL, network weights, and Appli to external flash over SWD using `STM32_Programmer_CLI`.
+- `--snapshot` (snapshot camera mode)
+- `--performance` (NPU at 1000 MHz vs 800 MHz)
+- `--fps N` (camera frame rate, default 30)
+- `--force` (re-sign even if unchanged)
+- `--debug` (Debug mode, no sign/HEX)
+- `--appli` (build Appli only)
+- `--fsbl` (build FSBL only)
+
+Without `--appli`/`--fsbl`, both images are built.
 
 ### Flash Memory Map
 
@@ -43,3 +59,39 @@ python build.py flash      # Flash FSBL, network model, and Appli to device via 
 | FSBL | `0x70000000` |
 | Appli | `0x70100000` |
 | Network weights | `0x70380000` |
+
+## Receiver Visualizer
+
+Real-time host visualizer for `Appli/Serial` messages (`DeviceMessage` / `HostMessage` in `Appli/Proto/messages.proto`).
+
+### Features
+
+- Reads length-prefixed protobuf frames from UART (`<uint32_le length> + payload`)
+- Displays timing trends (inference, postprocess, NN period)
+- Shows ToF 8x8 depth heatmap and alert status
+- Lists detections with class labels and confidence
+- Sends host commands:
+  - `GetDeviceInfo`
+  - `SetDisplayEnabled` (toggle)
+
+### Setup
+
+From repository root:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Run
+
+```bash
+python project.py ui --baud 115200
+```
+
+Use `--help` for all options:
+
+```bash
+python project.py ui --help
+```

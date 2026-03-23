@@ -10,6 +10,7 @@ from scripts.flash import cmd_flash
 from scripts.format import cmd_format
 from scripts.generate_model import cmd_model
 from scripts.generate_proto import cmd_generate_proto
+from scripts.ui import cmd_ui
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 PROJECT_NAME_PREFIX = "Firmware_"
@@ -146,6 +147,26 @@ def main():
     flash_parser.add_argument(
         "--force", "-f", action="store_true", help="Flash all images even if unchanged"
     )
+    ui_parser = sub.add_parser("ui", help="Launch host serial visualizer")
+    ui_parser.add_argument(
+        "port",
+        nargs="?",
+        default=None,
+        help="Serial port (optional; auto-detected if omitted)",
+    )
+    ui_parser.add_argument(
+        "-b",
+        "--baud",
+        type=int,
+        default=115200,
+        help="Baud rate (default: 115200)",
+    )
+    ui_parser.add_argument(
+        "--timeout",
+        type=float,
+        default=2.0,
+        help="Serial read timeout in seconds (default: 2.0)",
+    )
 
     args = parser.parse_args()
 
@@ -177,6 +198,8 @@ def main():
         )
     elif args.command == "flash":
         cmd_flash(PROJECT_ROOT, BUILD_TYPE, PROJECT_NAME_PREFIX, force=args.force)
+    elif args.command == "ui":
+        cmd_ui(PROJECT_ROOT, args.port, baud=args.baud, timeout=args.timeout)
 
 
 if __name__ == "__main__":

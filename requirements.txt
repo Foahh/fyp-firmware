@@ -1,2 +1,4 @@
 pyserial>=3.5
 protobuf>=7.34.0
+matplotlib
+numpy

@@ -28,6 +28,8 @@
  * ============================================================================ */
 
 static bool display_enabled = true;
+static bool host_recognized = false;
+static uint32_t host_last_seen_tick = 0;
 
 /* ============================================================================
  * Handlers
@@ -72,9 +74,13 @@ void COM_Cmd_Dispatch(const HostMessage *msg) {
 
   switch (msg->which_command) {
   case HostMessage_set_display_enabled_tag:
+    host_recognized = true;
+    host_last_seen_tick = HAL_GetTick();
     handle_set_display_enabled(cmd_id, &msg->command.set_display_enabled);
     break;
   case HostMessage_get_device_info_tag:
+    host_recognized = true;
+    host_last_seen_tick = HAL_GetTick();
     handle_get_device_info(cmd_id);
     break;
   default:
@@ -82,3 +88,7 @@ void COM_Cmd_Dispatch(const HostMessage *msg) {
     break;
   }
 }
+
+bool COM_Cmd_IsHostRecognized(void) { return host_recognized; }
+
+uint32_t COM_Cmd_GetLastHostSeenTick(void) { return host_last_seen_tick; }
