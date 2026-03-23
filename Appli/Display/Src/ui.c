@@ -310,6 +310,8 @@ void UI_ThreadSuspend(void) {
 
 void UI_ThreadResume(void) {
   tx_thread_resume(&idle_ctx.thread);
+  UI_SetupLCDContext();
+  LCD_SetUIAlpha(255);
   tx_thread_resume(&ui_ctx.thread);
   g_ui_visible = 1;
 }
