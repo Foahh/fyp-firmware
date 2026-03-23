@@ -60,10 +60,10 @@
 
 /* FOV calibration: ToF FOV mapped to NN normalised [0,1] coordinates.
  * These are approximate and should be refined with physical calibration. */
-#define TOF_NN_X0 0.1f
-#define TOF_NN_Y0 0.1f
-#define TOF_NN_X1 0.9f
-#define TOF_NN_Y1 0.9f
+#define TOF_NN_X0 0.0f
+#define TOF_NN_Y0 0.0f
+#define TOF_NN_X1 0.0f
+#define TOF_NN_Y1 0.0f
 
 /* ============================================================================
  * Thread resources

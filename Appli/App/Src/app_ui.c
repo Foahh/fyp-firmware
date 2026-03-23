@@ -499,7 +499,7 @@ static void UI_DrawBuildOptions(void) {
   UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)line, LEFT_MODE);
 
   y += UI_FONT_HEIGHT + UI_LINE_SPACING;
-  snprintf(line, sizeof(line), "CAMERA_FPS %d FPS", CAMERA_FPS);
+  snprintf(line, sizeof(line), "CAMERA %dFPS", CAMERA_FPS);
   tw = (uint32_t)strlen(line) * UI_FONT_WIDTH;
   x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
   UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)line, LEFT_MODE);
