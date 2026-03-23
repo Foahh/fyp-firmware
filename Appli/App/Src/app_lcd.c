@@ -163,18 +163,18 @@ void LCD_ReloadCameraLayer(uint8_t *frame_buffer) {
 
 /**
  * @brief  Set UI layer buffer address for drawing (without reloading display)
- *         Use this before drawing to the back buffer
+ *         Only updates the HAL struct so BSP draw functions target the correct
+ *         buffer.  Does NOT touch the LTDC shadow register — that is deferred
+ *         to LCD_ReloadUILayer() to avoid a race where an early shadow-register
+ *         write causes VBlank reload to display a partially-drawn back buffer.
  * @param  frame_buffer: Pointer to the buffer to draw to
  */
 void LCD_SetUILayerAddress(uint8_t *frame_buffer) {
-  HAL_StatusTypeDef status;
-
   APP_REQUIRE(lcd_initialized);
   APP_REQUIRE(frame_buffer != NULL);
 
-  status = HAL_LTDC_SetAddress_NoReload(&hlcd_ltdc, (uint32_t)frame_buffer,
-                                        LCD_LAYER_1_UI);
-  APP_REQUIRE(status == HAL_OK);
+  hlcd_ltdc.LayerCfg[LCD_LAYER_1_UI].FBStartAdress =
+      (uint32_t)frame_buffer;
 }
 
 /**
