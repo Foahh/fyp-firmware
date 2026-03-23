@@ -9,6 +9,7 @@ from scripts.clean import cmd_clean
 from scripts.flash import cmd_flash
 from scripts.format import cmd_format
 from scripts.generate_model import cmd_model
+from scripts.generate_proto import cmd_generate_proto
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 PROJECT_NAME_PREFIX = "Firmware_"
@@ -65,23 +66,36 @@ def main():
     sub.add_parser("clean", help="Remove build artifacts")
     sub.add_parser("format", help="Format all source files with clang-format")
 
-    generate_parser = sub.add_parser(
-        "generate", help="Generate network model sources and binaries"
+    model_parser = sub.add_parser(
+        "model", help="Generate network model sources and binaries"
     )
-    generate_parser.add_argument(
-        "--model",
-        "-m",
+    model_parser.add_argument(
+        "--name",
+        "-n",
+        dest="model",
         choices=list(MODELS),
         default=DEFAULT_MODEL,
         help=f"Model to use (default: {DEFAULT_MODEL})",
+    )
+
+    proto_parser = sub.add_parser(
+        "proto", help="Generate protobuf outputs (nanopb C + Python modules)"
+    )
+    proto_parser.add_argument(
+        "--proto",
+        nargs="?",
+        const="",
+        metavar="PROTO",
+        help="Generate protobuf outputs (optionally for one .proto file)",
     )
 
     build_parser = sub.add_parser(
         "build", help="Build, sign, and convert to flashable HEX"
     )
     build_parser.add_argument(
-        "--model",
-        "-m",
+        "--name",
+        "-n",
+        dest="model",
         choices=list(MODELS),
         default=DEFAULT_MODEL,
         help=f"Model to use (default: {DEFAULT_MODEL})",
@@ -115,8 +129,9 @@ def main():
         "build-appli-debug", help="Build Appli only (Debug, no sign/hex)"
     )
     build_appli_parser.add_argument(
-        "--model",
-        "-m",
+        "--name",
+        "-n",
+        dest="model",
         choices=list(MODELS),
         default=DEFAULT_MODEL,
         help=f"Model to use (default: {DEFAULT_MODEL})",
@@ -153,8 +168,10 @@ def main():
         cmd_clean(PROJECT_ROOT)
     elif args.command == "format":
         cmd_format(PROJECT_ROOT)
-    elif args.command == "generate":
+    elif args.command == "model":
         cmd_model(PROJECT_ROOT, resolve_model(args), NETWORK_BIN_ADDRESS)
+    elif args.command == "proto":
+        cmd_generate_proto(args.proto or None)
     elif args.command == "build":
         cmd_build(
             PROJECT_ROOT,

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Regenerate nanopb C files and Python protobuf modules from .proto sources."""
 
-import argparse
 import subprocess
 import sys
 from pathlib import Path
@@ -10,7 +9,23 @@ ROOT = Path(__file__).resolve().parent.parent
 PROTO_DIR = ROOT / "Appli" / "Proto"
 OUT_DIR = PROTO_DIR / "nanopb"
 NANOPB_PROTO = ROOT / "External" / "nanopb" / "generator" / "proto"
-NANOPB_PLUGIN = ROOT / "External" / "nanopb" / "generator" / "protoc-gen-nanopb.bat"
+
+
+def resolve_nanopb_plugin():
+    generator_dir = ROOT / "External" / "nanopb" / "generator"
+    if sys.platform.startswith("win"):
+        plugin = generator_dir / "protoc-gen-nanopb.bat"
+    else:
+        plugin = generator_dir / "protoc-gen-nanopb"
+
+    if not plugin.exists():
+        print(f"ERROR: nanopb plugin not found at {plugin}", file=sys.stderr)
+        sys.exit(1)
+
+    return plugin
+
+
+NANOPB_PLUGIN = resolve_nanopb_plugin()
 
 PROTO_FILES = list(PROTO_DIR.glob("*.proto"))
 
@@ -18,20 +33,6 @@ PROTO_FILES = list(PROTO_DIR.glob("*.proto"))
 def run(cmd):
     print(f"  {' '.join(str(c) for c in cmd)}")
     subprocess.check_call(cmd)
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Generate nanopb C files and Python protobuf modules."
-    )
-    parser.add_argument(
-        "--proto",
-        help=(
-            "Generate only one proto file. Accepts a filename (e.g. messages.proto) "
-            "or a path."
-        ),
-    )
-    return parser.parse_args()
 
 
 def resolve_proto_files(proto_arg):
@@ -65,9 +66,8 @@ def resolve_proto_files(proto_arg):
     return [candidate]
 
 
-def main():
-    args = parse_args()
-    proto_files = resolve_proto_files(args.proto)
+def cmd_generate_proto(proto=None):
+    proto_files = resolve_proto_files(proto)
     if not proto_files:
         print("No .proto files found in", PROTO_DIR)
         sys.exit(1)
@@ -116,4 +116,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    cmd_generate_proto()
