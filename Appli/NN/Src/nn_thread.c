@@ -23,6 +23,7 @@
 #include "nn_config.h"
 #include "power_measurement_sync.h"
 #include "stm32n6xx_hal.h"
+#include "timebase.h"
 #include "utils.h"
 #include <string.h>
 
@@ -33,7 +34,7 @@
  * Forward Declarations
  * ============================================================================ */
 
-static void NN_RunInference(stai_network *network);
+static uint32_t NN_RunInferenceCycles(stai_network *network);
 static void nn_thread_entry(ULONG arg);
 
 /* ============================================================================
@@ -88,8 +89,11 @@ static uint8_t nn_output_buffers[2][NN_OUT_BUFFER_SIZE] ALIGN_32;
 /* Output sizes array */
 static const uint32_t nn_out_sizes[NN_OUT_NB] = {NN_OUT0_SIZE, NN_OUT1_SIZE, NN_OUT2_SIZE};
 
-/* Timing statistics (volatile for cross-thread access) */
-static volatile nn_timing_t nn_timing;
+/* Timing statistics published via double-buffered snapshots with seqlock. */
+static nn_timing_t nn_timing_buffers[2];
+static volatile uint32_t nn_timing_seq = 0;
+static volatile uint8_t nn_timing_published_idx = 0;
+static uint8_t nn_timing_write_idx = 1;
 
 #ifndef CAMERA_NN_SNAPSHOT_MODE
 /* Frame drop counter (accumulated from bqueue skips in NN thread) */
@@ -107,8 +111,11 @@ static stai_network_info nn_info;
  * @brief  Run ATON inference with WFE support
  *         Handles wait-for-event (WFE) during inference for power efficiency
  */
-static void NN_RunInference(stai_network *network) {
+static uint32_t NN_RunInferenceCycles(stai_network *network) {
   stai_return_code ret;
+  uint32_t start_cycles;
+
+  start_cycles = DWT->CYCCNT;
 
   PWR_SyncBegin();
   do {
@@ -117,10 +124,10 @@ static void NN_RunInference(stai_network *network) {
       LL_ATON_OSAL_WFE();
     }
   } while (ret == STAI_RUNNING_WFE || ret == STAI_RUNNING_NO_WFE);
+  APP_REQUIRE(ret == STAI_DONE);
   PWR_SyncEnd();
 
-  ret = mdl_new_inference(network);
-  APP_REQUIRE(ret == STAI_SUCCESS);
+  return DWT->CYCCNT - start_cycles;
 }
 
 /* ============================================================================
@@ -136,23 +143,20 @@ static void nn_thread_entry(ULONG arg) {
   UNUSED(arg);
 
   stai_return_code stai_ret;
-  uint32_t nn_period[2];
+  uint32_t last_inference_end_cycles;
 
-  /* Initialize timing */
-  nn_period[1] = HAL_GetTick();
+  last_inference_end_cycles = DWT->CYCCNT;
 
   /* Main inference loop */
   while (1) {
     uint8_t *capture_buffer;
     uint8_t *output_buffer;
     stai_ptr out_ptrs[NN_OUT_NB];
-    uint32_t ts;
+    uint32_t inference_cycles;
+    uint32_t inference_end_cycles;
+    uint32_t period_cycles;
+    nn_timing_t timing_sample;
     int i;
-
-    /* Update period tracking */
-    nn_period[0] = nn_period[1];
-    nn_period[1] = HAL_GetTick();
-    nn_timing.nn_period_ms = nn_period[1] - nn_period[0];
 
 #ifdef CAMERA_NN_SNAPSHOT_MODE
     /* Wait for snapshot frame */
@@ -196,10 +200,33 @@ static void nn_thread_entry(ULONG arg) {
     stai_ret = mdl_set_outputs(nn_ctx_network, out_ptrs, NN_OUT_NB);
     APP_REQUIRE(stai_ret == STAI_SUCCESS);
 
-    /* Run inference */
-    ts = HAL_GetTick();
-    NN_RunInference(nn_ctx_network);
-    nn_timing.inference_ms = HAL_GetTick() - ts;
+    /* Measure only async NPU run window (submit -> completion). */
+    inference_cycles = NN_RunInferenceCycles(nn_ctx_network);
+    timing_sample.inference_ms = Timebase_CyclesToMs(inference_cycles);
+
+    inference_end_cycles = DWT->CYCCNT;
+    period_cycles = inference_end_cycles - last_inference_end_cycles;
+    timing_sample.nn_period_ms = Timebase_CyclesToMs(period_cycles);
+    last_inference_end_cycles = inference_end_cycles;
+
+#ifndef CAMERA_NN_SNAPSHOT_MODE
+    timing_sample.frame_drops = nn_frame_drop_count;
+#else
+    timing_sample.frame_drops = 0;
+#endif
+
+    /* Publish coherent timing snapshot using seqlock. */
+    nn_timing_buffers[nn_timing_write_idx] = timing_sample;
+    nn_timing_seq++;
+    __DMB();
+    nn_timing_published_idx = nn_timing_write_idx;
+    nn_timing_write_idx ^= 1U;
+    __DMB();
+    nn_timing_seq++;
+
+    /* Prepare next inference outside the measured run window. */
+    stai_ret = mdl_new_inference(nn_ctx_network);
+    APP_REQUIRE(stai_ret == STAI_SUCCESS);
 
 #ifndef CAMERA_NN_SNAPSHOT_MODE
     /* Release input buffer back to free pool */
@@ -251,13 +278,18 @@ bqueue_t *NN_GetOutputQueue(void) {
  */
 void NN_GetTiming(nn_timing_t *timing) {
   if (timing != NULL) {
-    timing->nn_period_ms = nn_timing.nn_period_ms;
-    timing->inference_ms = nn_timing.inference_ms;
-#ifndef CAMERA_NN_SNAPSHOT_MODE
-    timing->frame_drops = nn_frame_drop_count;
-#else
-    timing->frame_drops = 0;
-#endif
+    uint32_t seq_start;
+    uint32_t seq_end;
+    uint8_t idx;
+
+    do {
+      seq_start = nn_timing_seq;
+      __DMB();
+      idx = nn_timing_published_idx;
+      *timing = nn_timing_buffers[idx];
+      __DMB();
+      seq_end = nn_timing_seq;
+    } while (((seq_start & 1U) != 0U) || (seq_start != seq_end));
   }
 }
 
@@ -346,6 +378,12 @@ void NN_ThreadStart(void) {
   /* Clear output buffers */
   memset(nn_output_buffers, 0, sizeof(nn_output_buffers));
   SCB_CleanInvalidateDCache_by_Addr((void *)nn_output_buffers, sizeof(nn_output_buffers));
+
+  /* Initialize timing snapshot buffers */
+  memset(nn_timing_buffers, 0, sizeof(nn_timing_buffers));
+  nn_timing_seq = 0;
+  nn_timing_published_idx = 0;
+  nn_timing_write_idx = 1;
 
   /* Create NN thread */
   status = tx_thread_create(&nn_ctx.thread, "nn_inference",
