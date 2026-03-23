@@ -42,9 +42,9 @@ extern "C" {
 
 #endif /* PWR_MEASUREMENT_SYNC_ENABLE */
 
-void power_measurement_sync_init(void);
-void power_measurement_sync_begin(void);
-void power_measurement_sync_end(void);
+void PWR_SyncInit(void);
+void PWR_SyncBegin(void);
+void PWR_SyncEnd(void);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file    app_pp.c
+ * @file    pp_thread.c
  * @author  Long Liangmao
  * @brief   Postprocessing thread and detection state management implementation
  ******************************************************************************
@@ -111,7 +111,7 @@ static void pp_thread_entry(ULONG arg) {
     uint8_t *output_buffer;
 
     /* Wait for NN output */
-    output_buffer = bqueue_get_ready(output_queue);
+    output_buffer = BQUE_GetReady(output_queue);
     APP_REQUIRE(output_buffer != NULL);
 
     /* Calculate output buffer pointers */
@@ -150,7 +150,7 @@ static void pp_thread_entry(ULONG arg) {
     write_buffer_idx = write_buffer_idx ^ 1;
 
     /* Release output buffer */
-    bqueue_put_free(output_queue);
+    BQUE_PutFree(output_queue);
 
     /* Signal consumers (comm thread, overlay thread) */
     PP_SignalUpdate();

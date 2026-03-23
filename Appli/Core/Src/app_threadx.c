@@ -105,7 +105,7 @@ static void startup_thread_entry(ULONG arg) {
   CAM_NNPipe_Start(NN_GetSnapshotBuffer(), CMW_MODE_SNAPSHOT);
 #else
   nn_input_queue = NN_GetInputQueue();
-  first_nn_buffer = bqueue_get_free(nn_input_queue, 0);
+  first_nn_buffer = BQUE_GetFree(nn_input_queue, 0);
   APP_REQUIRE(first_nn_buffer != NULL);
   CAM_NNPipe_Start(first_nn_buffer, CMW_MODE_CONTINUOUS);
 #endif

@@ -4,7 +4,7 @@
         {
             "label": "Build Appli",
             "type": "shell",
-            "command": "python project.py build-appli-debug",
+            "command": "python project.py build --appli --debug",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -28,7 +28,7 @@
         {
             "label": "Build FSBL",
             "type": "shell",
-            "command": "python project.py build-fsbl-debug",
+            "command": "python project.py build --fsbl --debug",
             "options": {
                 "cwd": "${workspaceFolder}"
             },

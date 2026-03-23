@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file    app_nn.c
+ * @file    nn_thread.c
  * @author  Long Liangmao
  * @brief   Neural network thread and ATON runtime implementation
  ******************************************************************************
@@ -110,14 +110,14 @@ static stai_network_info nn_info;
 static void NN_RunInference(stai_network *network) {
   stai_return_code ret;
 
-  power_measurement_sync_begin();
+  PWR_SyncBegin();
   do {
     ret = mdl_run(network, STAI_MODE_ASYNC);
     if (ret == STAI_RUNNING_WFE) {
       LL_ATON_OSAL_WFE();
     }
   } while (ret == STAI_RUNNING_WFE || ret == STAI_RUNNING_NO_WFE);
-  power_measurement_sync_end();
+  PWR_SyncEnd();
 
   ret = mdl_new_inference(network);
   APP_REQUIRE(ret == STAI_SUCCESS);
@@ -169,13 +169,13 @@ static void nn_thread_entry(ULONG arg) {
 #else
     /* Get latest input buffer (LIFO), discarding stale frames */
     uint32_t skipped = 0;
-    capture_buffer = bqueue_get_ready_latest(&nn_input_queue, &skipped);
+    capture_buffer = BQUE_GetReadyLatest(&nn_input_queue, &skipped);
     nn_frame_drop_count += skipped;
     APP_REQUIRE(capture_buffer != NULL);
 #endif
 
     /* Get output buffer (blocking) */
-    output_buffer = bqueue_get_free(&nn_output_queue, 1);
+    output_buffer = BQUE_GetFree(&nn_output_queue, 1);
     APP_REQUIRE(output_buffer != NULL);
 
     /* Calculate output buffer pointers */
@@ -203,11 +203,11 @@ static void nn_thread_entry(ULONG arg) {
 
 #ifndef CAMERA_NN_SNAPSHOT_MODE
     /* Release input buffer back to free pool */
-    bqueue_put_free(&nn_input_queue);
+    BQUE_PutFree(&nn_input_queue);
 #endif
 
     /* Mark output buffer as ready for postprocess */
-    bqueue_put_ready(&nn_output_queue);
+    BQUE_PutReady(&nn_output_queue);
   }
 }
 
@@ -332,7 +332,7 @@ void NN_ThreadStart(void) {
 #else
   /* Initialize input buffer queue - using 3 buffers to handle 30 FPS pipeline latency */
   uint8_t *in_bufs[3] = {nn_input_buffers[0], nn_input_buffers[1], nn_input_buffers[2]};
-  ret = bqueue_init(&nn_input_queue, 3, in_bufs);
+  ret = BQUE_Init(&nn_input_queue, 3, in_bufs);
   APP_REQUIRE(ret == 0);
   memset(nn_input_buffers, 0, sizeof(nn_input_buffers));
   SCB_CleanInvalidateDCache_by_Addr((void *)nn_input_buffers, sizeof(nn_input_buffers));
@@ -340,7 +340,7 @@ void NN_ThreadStart(void) {
 
   /* Initialize output buffer queue */
   uint8_t *out_bufs[2] = {nn_output_buffers[0], nn_output_buffers[1]};
-  ret = bqueue_init(&nn_output_queue, 2, out_bufs);
+  ret = BQUE_Init(&nn_output_queue, 2, out_bufs);
   APP_REQUIRE(ret == 0);
 
   /* Clear output buffers */

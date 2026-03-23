@@ -20,7 +20,7 @@
 
 #if PWR_MEASUREMENT_SYNC_ENABLE
 
-void power_measurement_sync_init(void) {
+void PWR_SyncInit(void) {
   PWR_SYNC_GPIO_RCC_ENABLE();
 
   GPIO_InitTypeDef gpio = {0};
@@ -32,21 +32,21 @@ void power_measurement_sync_init(void) {
   HAL_GPIO_WritePin(PWR_SYNC_GPIO_PORT, PWR_SYNC_GPIO_PIN, GPIO_PIN_RESET);
 }
 
-void power_measurement_sync_begin(void) {
+void PWR_SyncBegin(void) {
   HAL_GPIO_WritePin(PWR_SYNC_GPIO_PORT, PWR_SYNC_GPIO_PIN, GPIO_PIN_SET);
 }
 
-void power_measurement_sync_end(void) {
+void PWR_SyncEnd(void) {
   HAL_GPIO_WritePin(PWR_SYNC_GPIO_PORT, PWR_SYNC_GPIO_PIN, GPIO_PIN_RESET);
 }
 
 #else /* !PWR_MEASUREMENT_SYNC_ENABLE */
 
-void power_measurement_sync_init(void) {
+void PWR_SyncInit(void) {
 }
-void power_measurement_sync_begin(void) {
+void PWR_SyncBegin(void) {
 }
-void power_measurement_sync_end(void) {
+void PWR_SyncEnd(void) {
 }
 
 #endif /* PWR_MEASUREMENT_SYNC_ENABLE */

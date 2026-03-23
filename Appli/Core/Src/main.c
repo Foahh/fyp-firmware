@@ -93,7 +93,7 @@ int main(void) {
 
   Priority_Config();
 
-  power_measurement_sync_init();
+  PWR_SyncInit();
 
   ThreadX_Init();
 

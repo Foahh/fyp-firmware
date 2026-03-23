@@ -22,8 +22,8 @@ void NPU_Config(void);
 void Priority_Config(void);
 void GPIO_Config(void);
 
-void npu_cache_enable_clocks_and_reset(void);
-void npu_cache_disable_clocks_and_reset(void);
+void NPU_CacheEnableClocksAndReset(void);
+void NPU_CacheDisableClocksAndReset(void);
 
 #ifdef DEBUG
 void PeripheralResetAll_Config(void);

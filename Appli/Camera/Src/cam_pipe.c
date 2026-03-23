@@ -162,7 +162,7 @@ static void cam_nn_pipe_frame_event(void) {
     return;
   }
 
-  next_buffer = bqueue_get_free(nn_input_queue, 0);
+  next_buffer = BQUE_GetFree(nn_input_queue, 0);
   if (next_buffer != NULL) {
     DCMIPP_HandleTypeDef *hdcmipp = CMW_CAMERA_GetDCMIPPHandle();
     if (hdcmipp != NULL) {
@@ -170,7 +170,7 @@ static void cam_nn_pipe_frame_event(void) {
                                        DCMIPP_MEMORY_ADDRESS_0,
                                        (uint32_t)next_buffer);
     }
-    bqueue_put_ready(nn_input_queue);
+    BQUE_PutReady(nn_input_queue);
   }
 #endif
 }

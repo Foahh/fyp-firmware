@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file    app_bqueue.h
+ * @file    bqueue.h
  * @author  Long Liangmao
  * @brief   ThreadX-based buffer queue for pipeline communication
  *          Port of https://github.com/STMicroelectronics/x-cube-n6-ai-people-detection-tracking bqueue_t pattern to ThreadX RTOS
@@ -16,8 +16,8 @@
  *
  ******************************************************************************
  */
-#ifndef BQUEUE_H
-#define BQUEUE_H
+#ifndef BQUE_H
+#define BQUE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,7 +28,7 @@ extern "C" {
 #include <stdint.h>
 
 /* Maximum number of buffers in a queue */
-#define BQUEUE_MAX_BUFFERS 4
+#define BQUE_MAX_BUFFERS 4
 
 /**
  * @brief  Buffer queue structure for single producer, single consumer (SPSC) pattern
@@ -38,7 +38,7 @@ typedef struct {
   TX_SEMAPHORE free_sem;                /**< Counts available free buffers */
   TX_SEMAPHORE ready_sem;               /**< Counts buffers ready for consumption */
   uint8_t buffer_nb;                    /**< Number of buffers in the queue */
-  uint8_t *buffers[BQUEUE_MAX_BUFFERS]; /**< Array of buffer pointers */
+  uint8_t *buffers[BQUE_MAX_BUFFERS]; /**< Array of buffer pointers */
   volatile uint8_t free_idx;            /**< Next free buffer index (producer-only) */
   volatile uint8_t ready_idx;           /**< Next ready buffer index (consumer-only) */
 } bqueue_t;
@@ -46,11 +46,11 @@ typedef struct {
 /**
  * @brief  Initialize a buffer queue
  * @param  bq: Pointer to buffer queue structure
- * @param  buffer_nb: Number of buffers (1 to BQUEUE_MAX_BUFFERS)
+ * @param  buffer_nb: Number of buffers (1 to BQUE_MAX_BUFFERS)
  * @param  buffers: Array of buffer pointers
  * @retval 0 on success, -1 on error
  */
-int bqueue_init(bqueue_t *bq, uint8_t buffer_nb, uint8_t *buffers[]);
+int BQUE_Init(bqueue_t *bq, uint8_t buffer_nb, uint8_t *buffers[]);
 
 /**
  * @brief  Get a free buffer from the queue (producer side)
@@ -58,20 +58,20 @@ int bqueue_init(bqueue_t *bq, uint8_t buffer_nb, uint8_t *buffers[]);
  * @param  is_blocking: 1 to wait forever, 0 to return immediately
  * @retval Pointer to free buffer, or NULL if none available (non-blocking)
  */
-uint8_t *bqueue_get_free(bqueue_t *bq, bool is_blocking);
+uint8_t *BQUE_GetFree(bqueue_t *bq, bool is_blocking);
 
 /**
  * @brief  Release a buffer back to free pool (consumer side, after processing)
  * @param  bq: Pointer to buffer queue
  */
-void bqueue_put_free(bqueue_t *bq);
+void BQUE_PutFree(bqueue_t *bq);
 
 /**
  * @brief  Get a ready buffer from the queue (consumer side)
  * @param  bq: Pointer to buffer queue
  * @retval Pointer to ready buffer (blocking call)
  */
-uint8_t *bqueue_get_ready(bqueue_t *bq);
+uint8_t *BQUE_GetReady(bqueue_t *bq);
 
 /**
  * @brief  Get the latest ready buffer, discarding older ones (consumer side)
@@ -82,17 +82,17 @@ uint8_t *bqueue_get_ready(bqueue_t *bq);
  * @param  skipped: If non-NULL, receives the number of frames discarded
  * @retval Pointer to the most recent ready buffer (blocking call)
  */
-uint8_t *bqueue_get_ready_latest(bqueue_t *bq, uint32_t *skipped);
+uint8_t *BQUE_GetReadyLatest(bqueue_t *bq, uint32_t *skipped);
 
 /**
  * @brief  Mark a buffer as ready (producer side, after filling)
  * @param  bq: Pointer to buffer queue
  * @note   ISR-safe: can be called from interrupt context
  */
-void bqueue_put_ready(bqueue_t *bq);
+void BQUE_PutReady(bqueue_t *bq);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BQUEUE_H */
+#endif /* BQUE_H */
