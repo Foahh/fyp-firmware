@@ -7,6 +7,7 @@
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "Build Appli",
             "runEntry": "main",
+            "serverReset": "Connect under reset",
             "imagesAndSymbols": [
                 {
                     "imageFileName": "${workspaceFolder}/Appli/build/Debug/Firmware_Appli.elf"
@@ -21,6 +22,7 @@
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "Build FSBL",
             "runEntry": "main",
+            "serverReset": "Connect under reset",
             "imagesAndSymbols": [
                 {
                     "imageFileName": "${workspaceFolder}/FSBL/build/Debug/Firmware_FSBL.elf"
