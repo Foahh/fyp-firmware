@@ -16,8 +16,6 @@
  */
 
 #include "main.h"
-#include "stm32n6570_discovery.h"
-
 #include "app_threadx.h"
 #include "cam.h"
 #include "display.h"
@@ -27,6 +25,8 @@
 #include "init_peripherals.h"
 #include "npu_cache.h"
 #include "power_measurement_sync.h"
+#include "stm32n6570_discovery.h"
+#include "stm32n6570_discovery_bus.h"
 #include "ui.h"
 
 /* Private variables ---------------------------------------------------------*/
@@ -60,13 +60,13 @@ int main(void) {
   PeripheralResetAll_Config();
 #endif
 
+  SMPS_Config();
+
   SystemClock_Config();
 
   GPIO_Config();
 
   SystemIsolation_Config();
-
-  SMPS_Config();
 
   IAC_Config();
 
@@ -88,6 +88,8 @@ int main(void) {
   ClockSleep_Config();
 
   LCD_Init();
+
+  BSP_I2C1_Init();
 
   CAM_Init();
 

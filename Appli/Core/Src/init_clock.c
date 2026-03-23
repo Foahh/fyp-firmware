@@ -25,6 +25,17 @@ void SystemClock_Config(void) {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_PeriphCLKInitTypeDef RCC_PeriphCLKInitStruct = {0};
 
+#ifdef OVERDRIVE_MODE
+  __HAL_RCC_PWR_CLK_ENABLE();
+  APP_REQUIRE(HAL_PWREx_ConfigSupply(PWR_EXTERNAL_SOURCE_SUPPLY) == HAL_OK);
+
+  /* Performance mode: ensure VDDCORE at 0.89V (SCALE0) before high clocks. */
+  APP_REQUIRE(HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE0) == HAL_OK);
+#else
+  /* Nominal mode: lower VDDCORE to 0.81V before nominal clock programming. */
+  APP_REQUIRE(HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) == HAL_OK);
+#endif
+
   // Oscillator config already done in bootrom
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_NONE;
 
@@ -139,14 +150,6 @@ void SystemClock_Config(void) {
   RCC_ClkInitStruct.APB5CLKDivider = RCC_APB5_DIV1;
 
   APP_REQUIRE(HAL_RCC_ClockConfig(&RCC_ClkInitStruct) == HAL_OK);
-
-#ifdef OVERDRIVE_MODE
-  /* Performance mode: ensure VDDCORE at 0.89V (SCALE0) */
-  APP_REQUIRE(HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE0) == HAL_OK);
-#else
-  /* Nominal mode: lower VDDCORE to 0.81V (FSBL sets SCALE0 for boot) */
-  APP_REQUIRE(HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) == HAL_OK);
-#endif
 }
 
 void ClockSleep_Config(void) {
