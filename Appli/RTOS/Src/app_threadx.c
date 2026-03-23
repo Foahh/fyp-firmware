@@ -23,10 +23,8 @@
 #include "app_comm_rx.h"
 #include "app_comm_tx.h"
 #include "app_error.h"
-#include "app_imu.h"
 #include "app_nn.h"
 #include "app_pp.h"
-#include "app_power.h"
 #include "app_tof.h"
 #include "app_ui.h"
 #include "cmw_camera.h"
@@ -66,10 +64,6 @@ UINT ThreadX_Start(VOID *memory_ptr) {
   UI_Thread_Start();
 
   TOF_Thread_Start();
-
-  IMU_Thread_Start();
-
-  POWER_Thread_Start();
 
   ret = tx_thread_create(&startup_thread, "startup",
                          startup_thread_entry, 0,

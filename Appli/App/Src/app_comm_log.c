@@ -19,7 +19,6 @@
 #include "app_comm_log.h"
 #include "app_comm_tx.h"
 #include "app_error.h"
-#include "app_imu.h"
 #include "app_pp.h"
 #include "app_tof.h"
 #include "messages.pb.h"
@@ -70,15 +69,6 @@ static void comm_send_detection_result(const detection_info_t *info) {
     df->detections[i].height = d->height;
     df->detections[i].conf = d->conf;
     df->detections[i].class_index = d->class_index;
-  }
-
-  df->has_imu = true;
-  const imu_data_t *imu = IMU_GetData();
-  if (imu->timestamp_ms != 0) {
-    df->imu.x_mg = imu->x_mg;
-    df->imu.y_mg = imu->y_mg;
-    df->imu.z_mg = imu->z_mg;
-    df->imu.wake = imu->wake;
   }
 
   const tof_alert_t *alert = TOF_GetAlert();

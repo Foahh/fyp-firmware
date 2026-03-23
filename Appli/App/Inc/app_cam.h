@@ -148,16 +148,6 @@ uint32_t CAM_GetFrameDropCount(void);
 void CAM_DeInit(void);
 
 /**
- * @brief  Enter standby: stop all pipes, suspend threads, power off sensor
- */
-void CAM_Standby(void);
-
-/**
- * @brief  Wake from standby: re-init sensor, restart pipes, resume threads
- */
-void CAM_WakeUp(void);
-
-/**
  * @brief  Suspend ISP and LCD reload threads for power measurement
  */
 void CAM_ThreadsSuspend(void);

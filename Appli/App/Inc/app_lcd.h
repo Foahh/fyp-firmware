@@ -86,16 +86,6 @@ void LCD_SetUILayerVisible(uint8_t enable);
 void LCD_SetCameraLayerVisible(uint8_t enable);
 
 /**
- * @brief  Turn off the LCD display (backlight)
- */
-void LCD_DisplayOff(void);
-
-/**
- * @brief  Turn on the LCD display (backlight)
- */
-void LCD_DisplayOn(void);
-
-/**
  * @brief  Handle LTDC reload (call after frame buffer updates)
  * @param  reload_type: BSP_LCD_RELOAD_IMMEDIATE or BSP_LCD_RELOAD_VERTICAL_BLANKING
  */
