@@ -23,7 +23,34 @@
 extern "C" {
 #endif
 
+#include "app_lcd_config.h"
 #include <stdint.h>
+
+/* UI display double-buffer storage */
+extern uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4];
+extern volatile int ui_display_idx;
+
+#define Buffer_GetUIDisplayIndex()     (ui_display_idx)
+#define Buffer_GetNextUIDisplayIndex() ((ui_display_idx) ^ 1)
+
+#define Buffer_GetUIBuffer(idx)                              \
+  ({                                                         \
+    int _idx = (idx);                                        \
+    ((unsigned)_idx >= 2) ? NULL : ui_display_buffers[_idx]; \
+  })
+
+#define Buffer_GetUIFrontBuffer() (ui_display_buffers[ui_display_idx])
+#define Buffer_GetUIBackBuffer()  (ui_display_buffers[ui_display_idx ^ 1])
+
+#define Buffer_SetUIDisplayIndex(idx)          \
+  ({                                           \
+    int _idx = (idx);                          \
+    int _ret = ((unsigned)_idx >= 2) ? -1 : 0; \
+    if (_ret == 0) {                           \
+      ui_display_idx = _idx;                   \
+    }                                          \
+    _ret;                                      \
+  })
 
 /**
  * @brief  Initialize the UI
@@ -52,6 +79,16 @@ void UI_Update(void);
  * @brief  Toggle ToF alert overlay (depth grid, proximity section, alert banner)
  */
 void UI_ToggleTOFOverlay(void);
+
+/**
+ * @brief  Suspend UI and idle measurement threads for power measurement
+ */
+void UI_ThreadSuspend(void);
+
+/**
+ * @brief  Resume UI and idle measurement threads
+ */
+void UI_ThreadResume(void);
 
 #ifdef __cplusplus
 }

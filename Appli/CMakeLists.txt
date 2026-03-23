@@ -73,7 +73,6 @@ set(RTOS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_azure_rtos.c
 # App source files
 set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_bqueue.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_buffers.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cam.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm_cmd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm_log.c

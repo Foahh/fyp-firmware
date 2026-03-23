@@ -186,6 +186,14 @@ TX_EVENT_FLAGS_GROUP *PP_GetUpdateEventFlags(void) {
   return &update_event_flags;
 }
 
+void PP_ThreadSuspend(void) {
+  tx_thread_suspend(&pp_ctx.thread);
+}
+
+void PP_ThreadResume(void) {
+  tx_thread_resume(&pp_ctx.thread);
+}
+
 /**
  * @brief  Initialize postprocessing module (thread, sync primitives)
  * @param  memory_ptr: ThreadX memory pool (unused, static allocation)

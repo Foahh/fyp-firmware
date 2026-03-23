@@ -70,6 +70,16 @@ detection_info_t *PP_GetInfo(void);
  */
 TX_EVENT_FLAGS_GROUP *PP_GetUpdateEventFlags(void);
 
+/**
+ * @brief  Suspend postprocessing thread for power measurement
+ */
+void PP_ThreadSuspend(void);
+
+/**
+ * @brief  Resume postprocessing thread
+ */
+void PP_ThreadResume(void);
+
 #ifdef __cplusplus
 }
 #endif

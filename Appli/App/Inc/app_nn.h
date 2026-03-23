@@ -108,6 +108,16 @@ uint32_t NN_ConsumeHostImageId(void);
  */
 void NN_Thread_Start(VOID *memory_ptr);
 
+/**
+ * @brief  Suspend NN inference thread for power measurement
+ */
+void NN_ThreadSuspend(void);
+
+/**
+ * @brief  Resume NN inference thread
+ */
+void NN_ThreadResume(void);
+
 #ifdef __cplusplus
 }
 #endif

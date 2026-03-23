@@ -20,10 +20,15 @@
 #include "app_bqueue.h"
 #include "app_cam.h"
 #include "app_comm_tx.h"
+#include "app_lcd.h"
 #include "app_nn.h"
 #include "app_nn_config.h"
+#include "app_pp.h"
+#include "app_tof.h"
+#include "app_ui.h"
 #include "cmw_camera.h"
 #include "stm32n6570_discovery_lcd.h"
+#include "stm32n6xx_hal.h"
 #include <string.h>
 
 /* ============================================================================
@@ -44,12 +49,24 @@ static uint32_t img_accum_size; /* Expected total_size for current transfer */
 static void handle_set_display_enabled(uint32_t cmd_id,
                                        const SetDisplayEnabled *cmd) {
   if (cmd->enabled && !display_enabled) {
-    BSP_LCD_DisplayOn(0);
-    HAL_GPIO_WritePin(LCD_DISP_BL_GPIO_PORT, LCD_DISP_BL_PIN, GPIO_PIN_SET);
+    /* Re-enable clock sleep before init */
+    __HAL_RCC_LTDC_CLK_SLEEP_ENABLE();
+    __HAL_RCC_DMA2D_CLK_SLEEP_ENABLE();
+
+    LCD_Init();
+    UI_ThreadResume();
     display_enabled = true;
   } else if (!cmd->enabled && display_enabled) {
-    HAL_GPIO_WritePin(LCD_DISP_BL_GPIO_PORT, LCD_DISP_BL_PIN, GPIO_PIN_RESET);
-    BSP_LCD_DisplayOff(0);
+    /* Suspend UI thread first (stops DMA2D usage) */
+    UI_ThreadSuspend();
+
+    /* Full LTDC deinit (disables LTDC clock, resets hardware) */
+    LCD_DeInit();
+
+    /* Disable clock sleep so LTDC/DMA2D draw no power during WFI */
+    __HAL_RCC_DMA2D_CLK_SLEEP_DISABLE();
+    __HAL_RCC_LTDC_CLK_SLEEP_DISABLE();
+
     display_enabled = false;
   }
   COM_Send_Ack(cmd_id, true);
@@ -58,6 +75,18 @@ static void handle_set_display_enabled(uint32_t cmd_id,
 static void handle_set_camera_enabled(uint32_t cmd_id,
                                       const SetCameraEnabled *cmd) {
   if (cmd->enabled && !camera_enabled) {
+    /* Re-enable clock sleep before init */
+    __HAL_RCC_DCMIPP_CLK_SLEEP_ENABLE();
+    __HAL_RCC_CSI_CLK_SLEEP_ENABLE();
+
+    /* Reinitialize camera (sensor, DCMIPP pipes) */
+    CAM_Init();
+
+    /* Resume threads (ISP, lcd_reload, ToF) */
+    CAM_ThreadsResume();
+    TOF_Resume();
+
+    /* Start capture */
     CAM_DisplayPipe_Start(CMW_MODE_CONTINUOUS);
 
 #ifdef CAMERA_NN_SNAPSHOT_MODE
@@ -71,8 +100,20 @@ static void handle_set_camera_enabled(uint32_t cmd_id,
 #endif
     camera_enabled = true;
   } else if (!cmd->enabled && camera_enabled) {
+    /* Stop capture first */
     CAM_NNPipe_Stop();
-    CMW_CAMERA_Suspend(DCMIPP_PIPE1);
+
+    /* Suspend threads that depend on camera input */
+    TOF_Stop();
+    CAM_ThreadsSuspend();
+
+    /* Full camera deinit (DCMIPP, CSI, sensor power down) */
+    CAM_DeInit();
+
+    /* Disable clock sleep so peripherals draw no power during WFI */
+    __HAL_RCC_DCMIPP_CLK_SLEEP_DISABLE();
+    __HAL_RCC_CSI_CLK_SLEEP_DISABLE();
+
     camera_enabled = false;
   }
   COM_Send_Ack(cmd_id, true);

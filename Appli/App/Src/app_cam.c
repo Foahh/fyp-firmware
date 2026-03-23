@@ -19,7 +19,6 @@
 
 #include "app_cam.h"
 #include "app_bqueue.h"
-#include "app_buffers.h"
 #include "app_cam_config.h"
 #include "app_error.h"
 #include "app_lcd.h"
@@ -62,6 +61,11 @@ static void lcd_reload_thread_entry(ULONG arg);
 /* ============================================================================
  * Global State Variables
  * ============================================================================ */
+
+/* Camera display double buffers */
+uint8_t camera_display_buffers[2][DISPLAY_LETTERBOX_WIDTH * DISPLAY_LETTERBOX_HEIGHT * DISPLAY_BPP] ALIGN_32 IN_PSRAM;
+volatile int camera_display_idx = 1;
+volatile int camera_capture_idx = 0;
 
 /* ISP thread resources */
 static struct {
@@ -301,6 +305,30 @@ nn_crop_info_display_t *CAM_GetNNCropROI_Display(void) {
  */
 uint32_t CAM_GetFrameDropCount(void) {
   return nn_frame_drop_count;
+}
+
+/**
+ * @brief  Full camera deinit (DCMIPP, CSI, sensor power down)
+ */
+void CAM_DeInit(void) {
+  nn_pipe_running = 0;
+  CMW_CAMERA_DeInit();
+}
+
+/**
+ * @brief  Suspend ISP and LCD reload threads
+ */
+void CAM_ThreadsSuspend(void) {
+  tx_thread_suspend(&lcd_reload_ctx.thread);
+  tx_thread_suspend(&isp_ctx.thread);
+}
+
+/**
+ * @brief  Resume ISP and LCD reload threads
+ */
+void CAM_ThreadsResume(void) {
+  tx_thread_resume(&isp_ctx.thread);
+  tx_thread_resume(&lcd_reload_ctx.thread);
 }
 
 /**

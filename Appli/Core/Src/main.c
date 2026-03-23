@@ -19,7 +19,6 @@
 #include "stm32n6570_discovery.h"
 
 #include "app_bqueue.h"
-#include "app_buffers.h"
 #include "app_cam.h"
 #include "app_error.h"
 #include "app_lcd.h"
@@ -101,8 +100,6 @@ int main(void) {
   Button_Config();
 
   ClockSleep_Config();
-
-  Buffer_Init();
 
   LCD_Init();
 

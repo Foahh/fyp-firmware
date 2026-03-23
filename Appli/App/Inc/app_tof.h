@@ -129,6 +129,16 @@ void TOF_SetAlertThreshold(uint32_t threshold_mm);
  */
 const hazard_detection_t *TOF_GetHazardDetections(void);
 
+/**
+ * @brief  Stop ToF ranging, power off sensor, and suspend thread
+ */
+void TOF_Stop(void);
+
+/**
+ * @brief  Resume ToF thread (re-powers sensor, restarts ranging)
+ */
+void TOF_Resume(void);
+
 #ifdef __cplusplus
 }
 #endif

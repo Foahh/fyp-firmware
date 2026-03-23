@@ -368,3 +368,17 @@ const hazard_detection_t *TOF_GetHazardDetections(void) {
   /* Always returns empty — no model trained yet */
   return &stub_detections;
 }
+
+void TOF_Stop(void) {
+  tx_thread_suspend(&tof_thread);
+  vl53l5cx_stop_ranging(&tof_obj.Dev);
+  HAL_GPIO_WritePin(TOF_PWR_EN_PORT, TOF_PWR_EN_PIN, GPIO_PIN_RESET);
+  BSP_LED_Off(LED_RED);
+}
+
+void TOF_Resume(void) {
+  HAL_GPIO_WritePin(TOF_PWR_EN_PORT, TOF_PWR_EN_PIN, GPIO_PIN_SET);
+  tx_thread_sleep(10);
+  vl53l5cx_start_ranging(&tof_obj.Dev);
+  tx_thread_resume(&tof_thread);
+}

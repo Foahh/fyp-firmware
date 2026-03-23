@@ -17,12 +17,11 @@
  */
 
 #include "app_ui.h"
-#include "app_buffers.h"
 #include "app_cam.h"
+#include "app_cam_config.h"
 #include "app_cpuload.h"
 #include "app_error.h"
 #include "app_lcd.h"
-#include "app_cam_config.h"
 #include "app_lcd_config.h"
 #include "app_pp.h"
 #include "app_tof.h"
@@ -31,6 +30,7 @@
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"
 #include "tx_user.h" /* For TX_TIMER_TICKS_PER_SECOND */
+#include "utils.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -67,13 +67,13 @@ static void UI_DrawModelNameBottomRight(void);
 #define UI_FONT_WIDTH    11 /* Cache Font16.Width to avoid struct access */
 
 /* Colors (ARGB8888 format) */
-#define UI_COLOR_BG     0xC0000000 /* Semi-transparent black */
-#define UI_COLOR_TEXT   0xFF00FF00 /* Bright green (terminal style) */
-#define UI_COLOR_LABEL  0xFF808080 /* Gray for labels */
+#define UI_COLOR_BG       0xC0000000 /* Semi-transparent black */
+#define UI_COLOR_TEXT     0xFF00FF00 /* Bright green (terminal style) */
+#define UI_COLOR_LABEL    0xFF808080 /* Gray for labels */
 #define UI_COLOR_METADATA 0xFFD8D8D8 /* Light gray for build/model overlays */
-#define UI_COLOR_VALUE  0xFFFFFFFF /* White for values */
-#define UI_COLOR_BAR_BG 0xFF202020 /* Dark gray bar background */
-#define UI_COLOR_BAR_FG 0xFF00CC00 /* Green bar fill */
+#define UI_COLOR_VALUE    0xFFFFFFFF /* White for values */
+#define UI_COLOR_BAR_BG   0xFF202020 /* Dark gray bar background */
+#define UI_COLOR_BAR_FG   0xFF00CC00 /* Green bar fill */
 
 /* Buffer sizes */
 #define UI_TEXT_BUFFER_SIZE    64
@@ -125,7 +125,7 @@ static const uint32_t detection_colors[NUMBER_COLORS] = {
 #define UI_LINE_HEIGHT (UI_FONT_HEIGHT + UI_LINE_SPACING)
 
 /* Y for diagnostic panel text row index (0 = first line below top margin) */
-#define UI_PANEL_LINE_Y(row)                                                 \
+#define UI_PANEL_LINE_Y(row) \
   ((uint16_t)(UI_TEXT_MARGIN_Y + (uint16_t)(row) * (uint16_t)UI_LINE_HEIGHT))
 
 static const uint16_t g_line_y[] = {
@@ -155,6 +155,10 @@ static const uint16_t g_line_y[] = {
 /* ============================================================================
  * Global State Variables
  * ============================================================================ */
+
+/* UI display double buffers */
+uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4] ALIGN_32 IN_PSRAM;
+volatile int ui_display_idx = 0;
 
 /* CPU load tracking */
 static cpuload_info_t g_cpu_load;
@@ -908,4 +912,16 @@ uint8_t UI_IsVisible(void) {
 
 void UI_ToggleTOFOverlay(void) {
   g_tof_overlay_visible ^= 1;
+}
+
+void UI_ThreadSuspend(void) {
+  g_ui_visible = 0;
+  tx_thread_suspend(&ui_ctx.thread);
+  tx_thread_suspend(&idle_ctx.thread);
+}
+
+void UI_ThreadResume(void) {
+  tx_thread_resume(&idle_ctx.thread);
+  tx_thread_resume(&ui_ctx.thread);
+  g_ui_visible = 1;
 }

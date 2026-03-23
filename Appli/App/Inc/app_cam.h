@@ -23,8 +23,45 @@
 extern "C" {
 #endif
 
+#include "app_lcd_config.h"
 #include "tx_api.h"
 #include <stdint.h>
+
+/* Camera display double-buffer storage */
+extern uint8_t camera_display_buffers[2][DISPLAY_LETTERBOX_WIDTH * DISPLAY_LETTERBOX_HEIGHT * DISPLAY_BPP];
+extern volatile int camera_display_idx;
+extern volatile int camera_capture_idx;
+
+#define Buffer_GetCameraDisplayIndex()     (camera_display_idx)
+#define Buffer_GetCameraCaptureIndex()     (camera_capture_idx)
+#define Buffer_GetNextCameraDisplayIndex() ((camera_display_idx) ^ 1)
+#define Buffer_GetNextCameraCaptureIndex() ((camera_capture_idx) ^ 1)
+
+#define Buffer_GetCameraDisplayBuffer(idx)                       \
+  ({                                                             \
+    int _idx = (idx);                                            \
+    ((unsigned)_idx >= 2) ? NULL : camera_display_buffers[_idx]; \
+  })
+
+#define Buffer_SetCameraDisplayIndex(idx)      \
+  ({                                           \
+    int _idx = (idx);                          \
+    int _ret = ((unsigned)_idx >= 2) ? -1 : 0; \
+    if (_ret == 0) {                           \
+      camera_display_idx = _idx;               \
+    }                                          \
+    _ret;                                      \
+  })
+
+#define Buffer_SetCameraCaptureIndex(idx)      \
+  ({                                           \
+    int _idx = (idx);                          \
+    int _ret = ((unsigned)_idx >= 2) ? -1 : 0; \
+    if (_ret == 0) {                           \
+      camera_capture_idx = _idx;               \
+    }                                          \
+    _ret;                                      \
+  })
 
 /**
  * @brief  Initialize the camera module (HAL/BSP only)\
@@ -89,6 +126,21 @@ nn_crop_info_display_t *CAM_GetNNCropROI_Display(void);
  * @retval Number of frames dropped since boot
  */
 uint32_t CAM_GetFrameDropCount(void);
+
+/**
+ * @brief  Full camera deinit (DCMIPP, CSI, sensor power down)
+ */
+void CAM_DeInit(void);
+
+/**
+ * @brief  Suspend ISP and LCD reload threads for power measurement
+ */
+void CAM_ThreadsSuspend(void);
+
+/**
+ * @brief  Resume ISP and LCD reload threads
+ */
+void CAM_ThreadsResume(void);
 
 #ifdef CAMERA_NN_SNAPSHOT_MODE
 /**

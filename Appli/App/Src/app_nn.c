@@ -292,6 +292,14 @@ uint32_t NN_ConsumeHostImageId(void) {
   return id;
 }
 
+void NN_ThreadSuspend(void) {
+  tx_thread_suspend(&nn_ctx.thread);
+}
+
+void NN_ThreadResume(void) {
+  tx_thread_resume(&nn_ctx.thread);
+}
+
 /**
  * @brief  Initialize NN thread and resources
  * @param  memory_ptr: ThreadX memory pool (unused, static allocation)

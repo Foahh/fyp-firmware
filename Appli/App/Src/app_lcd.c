@@ -19,10 +19,13 @@
  */
 
 #include "app_lcd.h"
-#include "app_buffers.h"
+#include "app_cam.h"
 #include "app_error.h"
+#include "app_ui.h"
 #include "stm32_lcd.h"
 #include "stm32n6570_discovery_lcd.h"
+#include "stm32n6xx_hal.h"
+#include <string.h>
 
 /* ============================================================================
  * Forward Declarations
@@ -92,6 +95,12 @@ void LCD_Init(void) {
   if (lcd_initialized) {
     return;
   }
+
+  /* Clear display buffers and invalidate cache */
+  memset(camera_display_buffers, 0, sizeof(camera_display_buffers));
+  SCB_CleanInvalidateDCache_by_Addr((void *)camera_display_buffers, sizeof(camera_display_buffers));
+  memset(ui_display_buffers, 0, sizeof(ui_display_buffers));
+  SCB_CleanInvalidateDCache_by_Addr((void *)ui_display_buffers, sizeof(ui_display_buffers));
 
   APP_REQUIRE(BSP_LCD_InitEx(0, LCD_ORIENTATION_LANDSCAPE,
                              LCD_PIXEL_FORMAT_RGB565,
