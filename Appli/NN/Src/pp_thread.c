@@ -24,6 +24,7 @@
 #include "nn_config.h"
 #include "pp.h"
 #include "stm32n6xx_hal.h"
+#include "timebase.h"
 #include "utils.h"
 #include <stdbool.h>
 #include <string.h>
@@ -97,7 +98,8 @@ static void pp_thread_entry(ULONG arg) {
   int out_count = NN_GetOutputCount();
   od_pp_out_t pp_output;
   uint8_t *pp_input[NN_OUT_NB];
-  uint32_t pp_ts[2];
+  uint32_t pp_start_cycles;
+  uint32_t pp_end_cycles;
   nn_timing_t nn_timing;
   int ret;
 
@@ -123,10 +125,10 @@ static void pp_thread_entry(ULONG arg) {
     pp_output.pOutBuff = NULL;
 
     /* Run postprocessing */
-    pp_ts[0] = HAL_GetTick();
+    pp_start_cycles = DWT->CYCCNT;
     ret = app_postprocess_run((void **)pp_input, out_count, &pp_output, &pp_params);
     APP_REQUIRE(ret == 0);
-    pp_ts[1] = HAL_GetTick();
+    pp_end_cycles = DWT->CYCCNT;
 
     /* Get NN timing */
     NN_GetTiming(&nn_timing);
@@ -139,12 +141,14 @@ static void pp_thread_entry(ULONG arg) {
     }
     write_buf->nn_period_ms = nn_timing.nn_period_ms;
     write_buf->inference_ms = nn_timing.inference_ms;
-    write_buf->postprocess_ms = pp_ts[1] - pp_ts[0];
+    write_buf->postprocess_ms = Timebase_CyclesToMs(pp_end_cycles - pp_start_cycles);
     write_buf->frame_drops = nn_timing.frame_drops;
     write_buf->timestamp_ms = HAL_GetTick();
 
-    /* Atomically swap read pointer */
+    /* Publish: ensure all writes to write_buf are visible before index swap. */
+    __DMB();
     detection_info_read_ptr = write_buf;
+    __DMB();
 
     /* Switch to other buffer for next write */
     write_buffer_idx = write_buffer_idx ^ 1;
@@ -175,7 +179,9 @@ void PP_SignalUpdate(void) {
  * @note   Uses double buffering for lock-free access
  */
 detection_info_t *PP_GetInfo(void) {
-  return (detection_info_t *)detection_info_read_ptr;
+  detection_info_t *ptr = (detection_info_t *)detection_info_read_ptr;
+  __DMB();
+  return ptr;
 }
 
 /**
