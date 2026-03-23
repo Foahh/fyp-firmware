@@ -58,6 +58,9 @@ set(CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/startup_stm32n657xx.s
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/tx_initialize_low_level.S
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_error.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/init_clock.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/init_mpu.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/init_peripherals.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/power_measurement_sync.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
@@ -72,25 +75,38 @@ set(RTOS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Src/app_azure_rtos.c
 
 # App source files
 set(APP_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_bqueue.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cam.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm_cmd.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm_log.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm_rx.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm_tx.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cpuload.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_haptic.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_lcd.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_nn.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_pp.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_tof.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_ui.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/cam/cam.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/cam/cam_init.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/cam/cam_pipe.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/nn/nn_thread.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/nn/pp_thread.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/display/lcd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/display/ui.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/display/ui_panel.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/display/ui_overlay.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/display/ui_depth.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/comm/comm_cmd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/comm/comm_log.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/comm/comm_rx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/comm/comm_tx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/sensor/tof.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/sensor/haptic.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/util/bqueue.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/util/cpuload.c)
 
 # =============================================================================
 # Include Directories Configuration
 # =============================================================================
 set(INCLUDE_DIRECTORIES
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/cam
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/nn
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/display
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/comm
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/sensor
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/util
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc/config
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/RTOS/Inc)
 
 # =============================================================================

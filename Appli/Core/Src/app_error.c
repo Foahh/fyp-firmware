@@ -16,9 +16,10 @@
  ******************************************************************************
  */
 
-#include "app_error.h"
 #include "stm32n6570_discovery.h"
 #include "tx_api.h"
+
+#include "app_error.h"
 
 /**
  * @brief  This function is executed in case of error occurrence.

@@ -17,12 +17,12 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32n6xx_it.h"
-#include "main.h"
-
+#include "stm32n6570_discovery.h"
 #include "stm32n6xx_hal.h"
 
 #include "cmw_camera.h"
-#include "stm32n6570_discovery.h"
+
+#include "main.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/

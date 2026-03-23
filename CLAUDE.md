@@ -8,22 +8,19 @@ Embedded AI vision firmware for the STM32N6570-DK (Cortex-M55, ARMv8.1-M). Captu
 
 ## Build Commands
 
-All commands go through `build.py` at the project root. Requires `STM32CubeCLT` installed and `STM32CLT_PATH` set, plus `cmake`, `ninja`, `arm-none-eabi-*`, `STM32_SigningTool_CLI`, `STM32_Programmer_CLI`, and `stedgeai` on PATH.
+All commands go through `project.py` at the project root. Requires `STM32CubeCLT` installed and `STM32CLT_PATH` set, plus `cmake`, `ninja`, `arm-none-eabi-*`, `STM32_SigningTool_CLI`, `STM32_Programmer_CLI`, and `stedgeai` on PATH.
 
 ```bash
-python build.py clean          # Remove build artifacts
-python build.py model          # Generate ATON NPU sources + HEX from TFLite model
-python build.py build          # CMake configure + compile + sign + HEX (both FSBL and Appli)
-python build.py flash          # Flash FSBL, network weights, and Appli via SWD
+python project.py clean          # Remove build artifacts
+python project.py model          # Generate ATON NPU sources + HEX from TFLite model
+python project.py build          # CMake configure + compile + sign + HEX (both FSBL and Appli)
+python project.py flash          # Flash FSBL, network weights, and Appli via SWD
+python project.py format         # clang-format all .c/.h/.cpp/.hpp in Appli/ and FSBL/
 ```
 
-`model` and `build` accept `--model / -m` to select a model (default: `yolox_nano`). Note: `build.py` uses `gen` as the subcommand name internally, but README documents it as `model`.
+`model` and `build` accept `--model / -m` to select a model (default: `yolox_nano`). Note: `project.py` uses `gen` as the subcommand name internally, but README documents it as `model`.
 
 ## Formatting
-
-```bash
-bash format.sh                 # clang-format all .c/.h/.cpp/.hpp in Appli/ and FSBL/
-```
 
 Uses `.clang-format` config: LLVM base, 2-space indent, no column limit, braces always inserted, short functions/ifs/loops never on single line.
 

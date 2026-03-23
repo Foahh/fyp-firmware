@@ -50,7 +50,7 @@ static void GPIO_Config(void);
  * ============================================================================ */
 int main(void) {
   __enable_irq();
-  
+
   HAL_Init();
 
   SystemClock_Config();

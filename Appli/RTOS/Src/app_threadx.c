@@ -18,17 +18,17 @@
 
 #include "app_threadx.h"
 
-#include "app_cam.h"
-#include "app_comm_log.h"
-#include "app_comm_rx.h"
-#include "app_comm_tx.h"
 #include "app_error.h"
-#include "app_nn.h"
-#include "app_pp.h"
-#include "app_tof.h"
-#include "app_ui.h"
+#include "cam.h"
 #include "cmw_camera.h"
+#include "comm_log.h"
+#include "comm_rx.h"
+#include "comm_tx.h"
 #include "main.h"
+#include "nn.h"
+#include "pp.h"
+#include "tof.h"
+#include "ui.h"
 #include "utils.h"
 
 /* Startup thread for runtime operations that require ThreadX resources */
@@ -47,23 +47,24 @@ static void startup_thread_entry(ULONG arg);
  * @retval int
  */
 UINT ThreadX_Start(VOID *memory_ptr) {
+  UNUSED(memory_ptr);
   UINT ret = TX_SUCCESS;
 
-  CAM_ISP_Thread_Start(memory_ptr);
+  CAM_ThreadStart();
 
-  NN_Thread_Start(memory_ptr);
+  NN_ThreadStart();
 
-  PP_Thread_Start(memory_ptr);
+  PP_ThreadStart();
 
-  COM_TX_Thread_Start();
+  COM_TX_ThreadStart();
 
-  COM_Log_Thread_Start();
+  COM_Log_ThreadStart();
 
-  COM_RX_Thread_Start();
+  COM_RX_ThreadStart();
 
-  UI_Thread_Start();
+  UI_ThreadStart();
 
-  TOF_Thread_Start();
+  TOF_ThreadStart();
 
   ret = tx_thread_create(&startup_thread, "startup",
                          startup_thread_entry, 0,
