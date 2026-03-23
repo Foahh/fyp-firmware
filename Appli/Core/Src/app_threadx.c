@@ -37,6 +37,7 @@ static TX_THREAD startup_thread;
 static ULONG startup_thread_stack[STARTUP_THREAD_STACK_SIZE / sizeof(ULONG)];
 
 static void startup_thread_entry(ULONG arg);
+static void threadx_stack_error_notify_handler(TX_THREAD *thread_ptr);
 
 /**
  * @brief  Application ThreadX Initialization.
@@ -49,6 +50,9 @@ static void startup_thread_entry(ULONG arg);
 UINT ThreadX_Start(VOID *memory_ptr) {
   UNUSED(memory_ptr);
   UINT ret = TX_SUCCESS;
+
+  ret = tx_thread_stack_error_notify(threadx_stack_error_notify_handler);
+  APP_REQUIRE(ret == TX_SUCCESS);
 
   CAM_ThreadStart();
 
@@ -112,4 +116,15 @@ static void startup_thread_entry(ULONG arg) {
 
   /* Startup thread has completed its task, so it can exit */
   tx_thread_delete(&startup_thread);
+}
+
+static void threadx_stack_error_notify_handler(TX_THREAD *thread_ptr) {
+  UNUSED(thread_ptr);
+#ifndef NDEBUG
+  if ((thread_ptr != TX_NULL) && (thread_ptr->tx_thread_name != TX_NULL)) {
+    APP_Panic((const char *)thread_ptr->tx_thread_name, 0U);
+  }
+#endif
+
+  APP_Panic(__FILE__, (uint32_t)__LINE__);
 }
