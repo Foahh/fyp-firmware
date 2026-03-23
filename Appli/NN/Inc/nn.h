@@ -31,7 +31,7 @@ extern "C" {
  * @brief  NN timing statistics
  */
 typedef struct {
-  uint32_t nn_period_ms; /**< Period between inference starts */
+  uint32_t nn_period_ms; /**< End-to-end period between inference completions */
   uint32_t inference_ms; /**< Inference duration */
   uint32_t frame_drops;  /**< Cumulative count of dropped/skipped frames */
 } nn_timing_t;
