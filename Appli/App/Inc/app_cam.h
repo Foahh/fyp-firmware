@@ -90,6 +90,21 @@ void CAM_NNPipe_Start(uint8_t *nn_pipe_dst, uint32_t cam_mode);
 void CAM_NNPipe_Stop(void);
 
 /**
+ * @brief  Resume the neural network pipe capture
+ */
+void CAM_NNPipe_Resume(void);
+
+/**
+ * @brief  Suspend the display pipe capture
+ */
+void CAM_DisplayPipe_Suspend(void);
+
+/**
+ * @brief  Resume the display pipe capture
+ */
+void CAM_DisplayPipe_Resume(void);
+
+/**
  * @brief  Update ISP parameters (call periodically for auto exposure/white
  * balance)
  * @retval None
@@ -131,6 +146,16 @@ uint32_t CAM_GetFrameDropCount(void);
  * @brief  Full camera deinit (DCMIPP, CSI, sensor power down)
  */
 void CAM_DeInit(void);
+
+/**
+ * @brief  Enter standby: stop all pipes, suspend threads, power off sensor
+ */
+void CAM_Standby(void);
+
+/**
+ * @brief  Wake from standby: re-init sensor, restart pipes, resume threads
+ */
+void CAM_WakeUp(void);
 
 /**
  * @brief  Suspend ISP and LCD reload threads for power measurement

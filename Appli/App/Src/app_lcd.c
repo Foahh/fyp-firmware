@@ -145,6 +145,20 @@ void LCD_DeInit(void) {
   }
 }
 
+void LCD_DisplayOff(void) {
+  if (lcd_initialized) {
+    BSP_LCD_DisplayOff(0);
+    HAL_GPIO_WritePin(LCD_DISP_BL_GPIO_PORT, LCD_DISP_BL_PIN, GPIO_PIN_RESET);
+  }
+}
+
+void LCD_DisplayOn(void) {
+  if (lcd_initialized) {
+    BSP_LCD_DisplayOn(0);
+    HAL_GPIO_WritePin(LCD_DISP_BL_GPIO_PORT, LCD_DISP_BL_PIN, GPIO_PIN_SET);
+  }
+}
+
 /**
  * @brief  Reload Layer 0 with buffer address (buffering)
  *         Called from frame event callback

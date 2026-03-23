@@ -27,6 +27,7 @@
 #include "app_error.h"
 #include "app_haptic.h"
 #include "app_imu.h"
+#include "app_lcd.h"
 #include "app_nn.h"
 #include "app_pp.h"
 #include "app_tof.h"
@@ -37,7 +38,8 @@
 #define POWER_THREAD_PRIORITY   10 /* Lower priority than all pipeline threads */
 
 /** Power poll interval (ms) — checks IMU snapshot for wake/inactivity */
-#define POWER_POLL_MS 100
+#define POWER_POLL_MS         100
+#define POWER_STANDBY_POLL_MS 500
 
 static TX_THREAD power_thread;
 static UCHAR power_thread_stack[POWER_THREAD_STACK_SIZE];
@@ -45,20 +47,22 @@ static UCHAR power_thread_stack[POWER_THREAD_STACK_SIZE];
 static volatile power_state_t power_state = POWER_STATE_ACTIVE;
 
 static void power_enter_standby(void) {
-  /* Stop pipeline in reverse priority order to avoid feeding stopped consumers */
+  /* Stop pipeline and power off camera sensor + DCMIPP */
   TOF_Stop();
   PP_ThreadSuspend();
   NN_ThreadSuspend();
-  CAM_NNPipe_Stop();
-  CAM_ThreadsSuspend();
+  CAM_Standby();
+  LCD_DisplayOff();
   HAPTIC_Off();
+  IMU_EnterLowPower();
 
   power_state = POWER_STATE_STANDBY;
 }
 
 static void power_enter_active(void) {
-  /* Resume in forward order: camera → NN → PP → ToF */
-  CAM_ThreadsResume();
+  IMU_ExitLowPower();
+  LCD_DisplayOn();
+  CAM_WakeUp();
   NN_ThreadResume();
   PP_ThreadResume();
   TOF_Resume();
@@ -74,8 +78,17 @@ static void power_thread_entry(ULONG arg) {
   while (1) {
     uint32_t now = HAL_GetTick();
     const imu_data_t *imu = IMU_GetData();
-    uint8_t wake = (imu->timestamp_ms != 0) ? imu->wake : 0;
+    uint32_t poll_ms = (power_state == POWER_STATE_STANDBY)
+                           ? POWER_STANDBY_POLL_MS
+                           : POWER_POLL_MS;
 
+    if (imu->timestamp_ms == 0) {
+      last_wake_ms = now;
+      tx_thread_sleep((poll_ms * TX_TIMER_TICKS_PER_SECOND + 999) / 1000);
+      continue;
+    }
+
+    uint8_t wake = imu->wake;
     if (wake) {
       last_wake_ms = now;
     }
@@ -94,7 +107,7 @@ static void power_thread_entry(ULONG arg) {
       break;
     }
 
-    tx_thread_sleep((POWER_POLL_MS * TX_TIMER_TICKS_PER_SECOND + 999) / 1000);
+    tx_thread_sleep((poll_ms * TX_TIMER_TICKS_PER_SECOND + 999) / 1000);
   }
 }
 

@@ -83,6 +83,16 @@ void IMU_Stop(void);
  */
 void IMU_Resume(void);
 
+/**
+ * @brief  Enter low-power mode: drop ODR to 12.5 Hz for standby wake detection.
+ */
+void IMU_EnterLowPower(void);
+
+/**
+ * @brief  Exit low-power mode: restore ODR to normal rate.
+ */
+void IMU_ExitLowPower(void);
+
 #ifdef __cplusplus
 }
 #endif

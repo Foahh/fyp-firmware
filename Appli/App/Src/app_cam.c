@@ -277,6 +277,28 @@ void CAM_NNPipe_Stop(void) {
   CMW_CAMERA_Suspend(DCMIPP_PIPE2);
 }
 
+/**
+ * @brief  Resume the neural network pipe capture
+ */
+void CAM_NNPipe_Resume(void) {
+  CMW_CAMERA_Resume(DCMIPP_PIPE2);
+  nn_pipe_running = 1;
+}
+
+/**
+ * @brief  Suspend the display pipe capture
+ */
+void CAM_DisplayPipe_Suspend(void) {
+  CMW_CAMERA_Suspend(DCMIPP_PIPE1);
+}
+
+/**
+ * @brief  Resume the display pipe capture
+ */
+void CAM_DisplayPipe_Resume(void) {
+  CMW_CAMERA_Resume(DCMIPP_PIPE1);
+}
+
 #ifdef CAMERA_NN_SNAPSHOT_MODE
 /**
  * @brief  Request a single snapshot from the NN pipe
@@ -313,6 +335,37 @@ uint32_t CAM_GetFrameDropCount(void) {
 void CAM_DeInit(void) {
   nn_pipe_running = 0;
   CMW_CAMERA_DeInit();
+}
+
+/**
+ * @brief  Enter standby: stop all pipes, suspend threads, power off sensor
+ */
+void CAM_Standby(void) {
+  CAM_NNPipe_Stop();
+  CAM_DisplayPipe_Suspend();
+  CAM_ThreadsSuspend();
+  CAM_DeInit();
+}
+
+/**
+ * @brief  Wake from standby: re-init sensor, restart pipes, resume threads
+ */
+void CAM_WakeUp(void) {
+  CAM_Init();
+  CAM_DisplayPipe_Start(CMW_MODE_CONTINUOUS);
+
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+  CAM_NNPipe_Start(NN_GetSnapshotBuffer(), CMW_MODE_SNAPSHOT);
+#else
+  {
+    bqueue_t *q = NN_GetInputQueue();
+    uint8_t *buf = bqueue_get_free(q, 0);
+    APP_REQUIRE(buf != NULL);
+    CAM_NNPipe_Start(buf, CMW_MODE_CONTINUOUS);
+  }
+#endif
+
+  CAM_ThreadsResume();
 }
 
 /**

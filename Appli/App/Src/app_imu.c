@@ -202,3 +202,11 @@ void IMU_Resume(void) {
   imu_hw_init();
   tx_thread_resume(&imu_thread);
 }
+
+void IMU_EnterLowPower(void) {
+  ISM330DLC_ACC_SetOutputDataRate(&imu_obj, 12.5f);
+}
+
+void IMU_ExitLowPower(void) {
+  ISM330DLC_ACC_SetOutputDataRate(&imu_obj, IMU_ACC_ODR_HZ);
+}
