@@ -152,14 +152,14 @@ void Priority_Config(void) {
   }
 }
 
-void NPU_CacheEnableClocksAndReset(void) {
+void npu_cache_enable_clocks_and_reset(void) {
   __HAL_RCC_CACHEAXIRAM_MEM_CLK_ENABLE();
   __HAL_RCC_CACHEAXI_CLK_ENABLE();
   __HAL_RCC_CACHEAXI_FORCE_RESET();
   __HAL_RCC_CACHEAXI_RELEASE_RESET();
 }
 
-void NPU_CacheDisableClocksAndReset(void) {
+void npu_cache_disable_clocks_and_reset(void) {
   __HAL_RCC_CACHEAXIRAM_MEM_CLK_DISABLE();
   __HAL_RCC_CACHEAXI_CLK_DISABLE();
   __HAL_RCC_CACHEAXI_FORCE_RESET();
