@@ -70,8 +70,6 @@ static void comm_send_detection_result(const detection_info_t *info) {
     df->detections[i].class_index = d->class_index;
   }
 
-  df->host_image_id = info->host_image_id;
-
   COM_TX_Send(&msg);
 }
 

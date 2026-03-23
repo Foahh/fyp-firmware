@@ -30,7 +30,6 @@ message DetectionResult {
   uint32 timestamp = 1;
   Timing timing = 2;
   repeated Detection detections = 3 [(nanopb).max_count = 10];
-  uint32 host_image_id = 4;
 }
 
 message DeviceInfo {
@@ -61,18 +60,7 @@ message SetDisplayEnabled {
   bool enabled = 1;
 }
 
-message SetCameraEnabled {
-  bool enabled = 1;
-}
-
 message GetDeviceInfo {}
-
-message ImageChunk {
-  uint32 offset = 1;
-  uint32 total_size = 2;
-  bytes data = 3 [(nanopb).max_size = 1024];
-  uint32 image_id = 4;
-}
 
 /* ============================================================================
  * Top-level wrappers
@@ -90,8 +78,6 @@ message HostMessage {
   uint32 command_id = 1;
   oneof command {
     SetDisplayEnabled set_display_enabled = 2;
-    SetCameraEnabled set_camera_enabled = 3;
-    GetDeviceInfo get_device_info = 4;
-    ImageChunk image_chunk = 5;
+    GetDeviceInfo get_device_info = 3;
   }
 }

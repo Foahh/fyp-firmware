@@ -95,9 +95,6 @@ static volatile nn_timing_t nn_timing;
 /* Network info (initialized in NN_Thread_Start, used by postprocess) */
 static stai_network_info nn_info;
 
-/* Host image ID (volatile for cross-thread access) */
-static volatile uint32_t nn_host_image_id;
-
 /* ============================================================================
  * Internal Helper Functions
  * ============================================================================ */
@@ -280,16 +277,6 @@ const uint32_t *NN_GetOutputSizes(void) {
  */
 stai_network_info *NN_GetNetworkInfo(void) {
   return &nn_info;
-}
-
-void NN_SetHostImageId(uint32_t image_id) {
-  nn_host_image_id = image_id;
-}
-
-uint32_t NN_ConsumeHostImageId(void) {
-  uint32_t id = nn_host_image_id;
-  nn_host_image_id = 0;
-  return id;
 }
 
 void NN_ThreadSuspend(void) {

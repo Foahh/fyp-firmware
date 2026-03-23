@@ -141,7 +141,6 @@ static void pp_thread_entry(ULONG arg) {
     write_buf->inference_ms = nn_timing.inference_ms;
     write_buf->postprocess_ms = pp_ts[1] - pp_ts[0];
     write_buf->slow_frames = nn_timing.slow_frames;
-    write_buf->host_image_id = NN_ConsumeHostImageId();
     write_buf->timestamp_ms = HAL_GetTick();
 
     /* Atomically swap read pointer */
