@@ -11,14 +11,18 @@ Embedded AI vision firmware for the STM32N6570-DK (Cortex-M55, ARMv8.1-M). Captu
 All commands go through `project.py` at the project root. Requires `STM32CubeCLT` installed and `STM32CLT_PATH` set, plus `cmake`, `ninja`, `arm-none-eabi-*`, `STM32_SigningTool_CLI`, `STM32_Programmer_CLI`, and `stedgeai` on PATH.
 
 ```bash
-python project.py clean          # Remove build artifacts
-python project.py model          # Generate ATON NPU sources + HEX from TFLite model
-python project.py build          # CMake configure + compile + sign + HEX (both FSBL and Appli)
-python project.py flash          # Flash FSBL, network weights, and Appli via SWD
-python project.py format         # clang-format all .c/.h/.cpp/.hpp in Appli/ and FSBL/
+python project.py clean                # Remove build artifacts
+python project.py model                # Generate ATON NPU sources + HEX from TFLite model
+python project.py proto                # Generate protobuf outputs (nanopb C + Python modules)
+python project.py build                       # CMake configure + compile + sign + HEX (both FSBL and Appli)
+python project.py build --debug               # Build both in Debug mode (no sign/HEX)
+python project.py build --debug --appli       # Build Appli only (Debug, no sign/HEX)
+python project.py build --debug --fsbl        # Build FSBL only (Debug, no sign/HEX)
+python project.py flash                       # Flash FSBL, network weights, and Appli via SWD
+python project.py format                      # clang-format all .c/.h/.cpp/.hpp in Appli/ and FSBL/
 ```
 
-`model` and `build` accept `--model / -m` to select a model (default: `yolox_nano`). Note: `project.py` uses `gen` as the subcommand name internally, but README documents it as `model`.
+`model` and `build` accept `--name / -n` to select a model (default: `yolox_nano`). `build` also accepts `--snapshot` (snapshot camera mode), `--performance` (NPU at 1000 MHz vs 800 MHz), `--fps N` (camera frame rate, default 30), `--force` (re-sign even if unchanged), `--debug` (Debug mode, no sign/HEX), `--appli` (build Appli only), and `--fsbl` (build FSBL only). Default without `--appli`/`--fsbl` builds both.
 
 ## Formatting
 
@@ -39,16 +43,47 @@ Two-stage boot: **FSBL** (First Stage Boot Loader) initializes external memory a
 ### Appli Structure
 
 - `Core/` — HAL init, startup assembly, interrupt handlers, `main.c` entry point
+  - `main.c` — Entry point, HAL callbacks (`HAL_TIM_PeriodElapsedCallback`, `HAL_MspInit`, `BSP_PB_Callback`)
+  - `init_clock.c` — `SystemClock_Config()`, `ClockSleep_Config()`
+  - `init_peripherals.c` — GPIO, SMPS, IAC, XSPI, LED, Button, COM, NPU, Priority, SystemIsolation configs
+  - `init_mpu.c` — MPU region configuration
 - `RTOS/` — ThreadX integration (`app_azure_rtos.c`, `app_threadx.c`)
-- `App/` — Application modules:
-  - `app_cam.c` — Camera capture pipeline
-  - `app_nn.c` — Neural network inference thread (ThreadX, priority 6)
-  - `app_pp.c` — YOLO-X NMS post-processing (confidence 0.6, IoU 0.5)
-  - `app_lcd.c` — LCD display rendering
-  - `app_ui.c` — UI logic
-  - `app_bqueue.c` — Buffer queue management
-  - `app_cpuload.c` — CPU load monitoring
-- `cmake/` — Per-library CMake include files (10 files for each dependency)
+- `App/` — Application modules organized by subsystem:
+  - `Src/cam/` — Camera capture pipeline
+    - `cam_init.c` — `CAM_Init`, pipe config, ROI calculation, DeInit
+    - `cam_pipe.c` — Pipe start/stop/resume, frame callbacks, buffer management
+    - `cam.c` — ISP thread, LCD reload thread, thread lifecycle
+  - `Src/nn/` — Neural network
+    - `nn_thread.c` — NN inference thread (ThreadX, priority 6)
+    - `pp_thread.c` — YOLO-X NMS post-processing (confidence 0.6, IoU 0.5)
+  - `Src/display/` — Display and UI
+    - `lcd.c` — LTDC dual-layer display (Layer 0: camera, Layer 1: UI overlay)
+    - `ui.c` — UI thread entry, public API, buffer swap
+    - `ui_panel.c` — Diagnostics panel rendering
+    - `ui_overlay.c` — Detection bounding boxes, ROI rectangle
+    - `ui_depth.c` — ToF depth grid heatmap, proximity alert banner
+  - `Src/comm/` — Host communication (protobuf over UART)
+    - `comm_cmd.c` — Command dispatcher
+    - `comm_log.c` — Periodic device-to-host reporting
+    - `comm_rx.c` — UART RX with ring buffer
+    - `comm_tx.c` — TX encoding with double-buffered frames
+  - `Src/sensor/` — External sensors
+    - `tof.c` — VL53L5CX 8x8 depth ranging, hand/hazard proximity fusion
+    - `haptic.c` — Haptic motor GPIO control
+  - `Src/util/` — Utilities
+    - `bqueue.c` — SPSC buffer queue (semaphore-based)
+    - `cpuload.c` — CPU load measurement via DWT cycle counter
+  - `Inc/` — Headers mirror `Src/` subdirectory structure, plus:
+    - `config/` — Build-time configuration (`cam_config.h`, `lcd_config.h`, `nn_config.h`, `app_config.h`, `model_config.h`)
+    - `models/` — Per-model constant headers (`model_yolox_nano.h`)
+- `Appli/cmake/` — Per-library CMake include files (one per dependency)
+
+### Naming Conventions
+
+- Public functions: `Module_VerbNoun()` (e.g., `CAM_ThreadStart()`, `UI_ThreadSuspend()`, `PP_GetInfo()`)
+- Thread start functions take no parameters (no unused `VOID *memory_ptr`)
+- Headers: no `app_` prefix (except `app_lcd.h` to avoid collision with ST's `lcd.h`), named after module (e.g., `cam.h`, `nn.h`, `pp.h`)
+- Internal headers: `*_internal.h` (e.g., `ui_internal.h`, `cam_internal.h`) for cross-file shared state within a subsystem
 
 ### Key Libraries (in `Libraries/`)
 

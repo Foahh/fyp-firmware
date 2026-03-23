@@ -124,38 +124,23 @@ def main():
         metavar="N",
         help=f"Camera frame rate (default: {DEFAULT_CAMERA_FPS})",
     )
-
-    build_appli_parser = sub.add_parser(
-        "build-appli-debug", help="Build Appli only (Debug, no sign/hex)"
-    )
-    build_appli_parser.add_argument(
-        "--name",
-        "-n",
-        dest="model",
-        choices=list(MODELS),
-        default=DEFAULT_MODEL,
-        help=f"Model to use (default: {DEFAULT_MODEL})",
-    )
-    build_appli_parser.add_argument(
-        "--snapshot",
+    build_parser.add_argument(
+        "--debug",
         action="store_true",
-        help="Use snapshot mode for NN camera pipe",
+        help="Build in Debug mode (no sign/hex)",
     )
-    build_appli_parser.add_argument(
-        "--performance",
+    build_parser.add_argument(
+        "--appli",
         action="store_true",
-        help="Run NPU at 1000 MHz instead of 800 MHz",
+        default=False,
+        help="Build Appli (default: both Appli and FSBL unless one is specified)",
     )
-    build_appli_parser.add_argument(
-        "--fps",
-        type=int,
-        choices=CAMERA_FPS_CHOICES,
-        default=DEFAULT_CAMERA_FPS,
-        metavar="N",
-        help=f"Camera frame rate (default: {DEFAULT_CAMERA_FPS})",
+    build_parser.add_argument(
+        "--fsbl",
+        action="store_true",
+        default=False,
+        help="Build FSBL (default: both Appli and FSBL unless one is specified)",
     )
-
-    sub.add_parser("build-fsbl-debug", help="Build FSBL only (Debug, no sign/hex)")
 
     flash_parser = sub.add_parser("flash", help="Flash pre-built firmware to device")
     flash_parser.add_argument(
@@ -173,39 +158,22 @@ def main():
     elif args.command == "proto":
         cmd_generate_proto(args.proto or None)
     elif args.command == "build":
+        build_appli = args.appli or not args.fsbl
+        build_fsbl = args.fsbl or not args.appli
+        build_type = "Debug" if args.debug else BUILD_TYPE
         cmd_build(
             PROJECT_ROOT,
             PROJECTS,
             resolve_model(args),
-            BUILD_TYPE,
+            build_type,
             PROJECT_NAME_PREFIX,
+            appli=build_appli,
+            fsbl=build_fsbl,
+            sign=not args.debug,
             force=args.force,
             snapshot=args.snapshot,
             performance=args.performance,
             camera_fps=args.fps,
-        )
-    elif args.command == "build-appli-debug":
-        cmd_build(
-            PROJECT_ROOT,
-            PROJECTS,
-            resolve_model(args),
-            "Debug",
-            PROJECT_NAME_PREFIX,
-            fsbl=False,
-            sign=False,
-            snapshot=args.snapshot,
-            performance=args.performance,
-            camera_fps=args.fps,
-        )
-    elif args.command == "build-fsbl-debug":
-        cmd_build(
-            PROJECT_ROOT,
-            PROJECTS,
-            resolve_model(args),
-            "Debug",
-            PROJECT_NAME_PREFIX,
-            appli=False,
-            sign=False,
         )
     elif args.command == "flash":
         cmd_flash(PROJECT_ROOT, BUILD_TYPE, PROJECT_NAME_PREFIX, force=args.force)
