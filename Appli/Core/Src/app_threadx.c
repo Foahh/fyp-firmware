@@ -27,6 +27,7 @@
 #include "main.h"
 #include "nn.h"
 #include "pp.h"
+#include "timebase.h"
 #include "tof.h"
 #include "ui.h"
 #include "utils.h"
@@ -53,6 +54,9 @@ UINT ThreadX_Start(VOID *memory_ptr) {
 
   ret = tx_thread_stack_error_notify(threadx_stack_error_notify_handler);
   APP_REQUIRE(ret == TX_SUCCESS);
+
+  /* Enable DWT cycle counter once for all threads that need it */
+  Timebase_EnableDWT();
 
   CAM_ThreadStart();
 
