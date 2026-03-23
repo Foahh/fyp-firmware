@@ -13,3 +13,6 @@
 [submodule "External/nanopb"]
 	path = External/nanopb
 	url = https://github.com/nanopb/nanopb.git
+[submodule "External/stm32-ism330dlc"]
+	path = External/stm32-ism330dlc
+	url = https://github.com/STMicroelectronics/stm32-ism330dlc.git

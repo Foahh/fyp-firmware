@@ -46,11 +46,10 @@ Two-stage boot: **FSBL** (First Stage Boot Loader) initializes external memory a
 - `App/` — Application modules:
   - `app_cam.c` — Camera capture pipeline
   - `app_nn.c` — Neural network inference thread (ThreadX, priority 6)
-  - `app_postprocess.c` — YOLO-X NMS post-processing (confidence 0.6, IoU 0.5)
+  - `app_pp.c` — YOLO-X NMS post-processing (confidence 0.6, IoU 0.5)
   - `app_lcd.c` — LCD display rendering
   - `app_ui.c` — UI logic
   - `app_bqueue.c` — Buffer queue management
-  - `app_buffers.c` — Memory buffer allocation
   - `app_cpuload.c` — CPU load monitoring
 - `cmake/` — Per-library CMake include files (10 files for each dependency)
 

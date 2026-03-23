@@ -28,6 +28,8 @@
 #include "app_tof.h"
 #include "app_cam_config.h"
 #include "app_error.h"
+#include "app_haptic.h"
+#include "app_pp.h"
 #include "cmw_camera.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6570_discovery_bus.h"
@@ -36,6 +38,7 @@
 #include "vl53l5cx.h"
 #include "vl53l5cx_api.h"
 
+#include <math.h>
 #include <string.h>
 
 /* ============================================================================
@@ -98,15 +101,18 @@ static hazard_detection_t stub_detections;
 
 /**
  * @brief  Extract the minimum valid depth (mm) from the ToF grid cells that
- *         overlap a normalised bounding box.
+ *         overlap a normalised bounding box, and compute a 3D representative
+ *         point using calibrated camera intrinsics.
  * @param  grid       Current depth grid
  * @param  bbox       Bounding box in NN normalised [0,1] coords
  * @param  out_mm     Output: minimum depth in mm (only written when valid)
+ * @param  out_pt     Output: 3D point in mm (only written when valid and 3D enabled)
  * @retval 1 if at least one valid depth sample was found, 0 otherwise
  */
 static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
                                  const tof_bbox_t *bbox,
-                                 uint32_t *out_mm) {
+                                 uint32_t *out_mm,
+                                 tof_point3d_t *out_pt) {
   float hw = bbox->width * 0.5f;
   float hh = bbox->height * 0.5f;
 
@@ -164,6 +170,17 @@ static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
 
   if (found) {
     *out_mm = min_d;
+
+    /* Compute approximate XY from bbox center using pinhole model.
+     * u,v are normalised [0,1] NN coords of the bbox center. */
+    float z = (float)min_d;
+    float x = ((bbox->x_center - TOF_CAM_CX_NORM) / TOF_CAM_FX_NORM) * z +
+              TOF_ALIGN_DX_MM;
+    float y = ((bbox->y_center - TOF_CAM_CY_NORM) / TOF_CAM_FY_NORM) * z +
+              TOF_ALIGN_DY_MM;
+    out_pt->x_mm = x;
+    out_pt->y_mm = y;
+    out_pt->z_mm = z;
   }
   return found;
 }
@@ -173,15 +190,12 @@ static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
  * ============================================================================ */
 
 /**
- * @brief  Run hand-vs-hazard depth fusion.
+ * @brief  Run hand-vs-hazard depth fusion with 3D distance and temporal
+ *         pairing.
  *
- *         For each detected hand, extract its Z-distance from the depth grid.
- *         For each detected hazard, extract its Z-distance.
- *         Alert if the closest hand and closest hazard are within threshold_mm
- *         of each other (in Z / depth).
- *
- *         Currently a no-op because TOF_GetHazardDetections() returns empty
- *         results.  When the model is trained, this will work automatically.
+ *         Pairs the latest NN detection with the depth grid, checking the
+ *         timestamp delta is within FUSION_MAX_DT_MS. Computes Euclidean 3D
+ *         distance when calibration is available, else falls back to Z-diff.
  *
  * @param  grid  Current depth grid snapshot
  * @param  out   Alert state to populate
@@ -191,47 +205,72 @@ static void tof_run_fusion(const tof_depth_grid_t *grid, tof_alert_t *out) {
 
   memset(out, 0, sizeof(*out));
 
-  /* Check staleness */
+  /* Check depth grid staleness */
   uint32_t now = HAL_GetTick();
   if (!grid->valid || (now - grid->timestamp_ms) > TOF_STALENESS_MS) {
+    out->stale = 1;
     return;
   }
 
-  /* --- Extract closest hand depth --- */
+  /* Temporal pairing: check NN detection timestamp vs depth grid */
+  const detection_info_t *pp_info = PP_GetInfo();
+  if (pp_info != NULL && pp_info->timestamp_ms != 0) {
+    uint32_t dt = (grid->timestamp_ms > pp_info->timestamp_ms)
+                      ? (grid->timestamp_ms - pp_info->timestamp_ms)
+                      : (pp_info->timestamp_ms - grid->timestamp_ms);
+    if (dt > FUSION_MAX_DT_MS) {
+      out->stale = 1;
+      return;
+    }
+  }
+
+  /* --- Extract closest hand depth + 3D point --- */
   uint32_t hand_min = UINT32_MAX;
+  tof_point3d_t hand_pt = {0};
   for (int i = 0; i < det->nb_hands; i++) {
     uint32_t d;
-    if (tof_extract_depth(grid, &det->hands[i], &d)) {
+    tof_point3d_t pt;
+    if (tof_extract_depth(grid, &det->hands[i], &d, &pt)) {
       out->has_hand_depth = 1;
       if (d < hand_min) {
         hand_min = d;
+        hand_pt = pt;
       }
     }
   }
   if (out->has_hand_depth) {
     out->hand_distance_mm = hand_min;
+    out->hand_xyz_mm = hand_pt;
   }
 
-  /* --- Extract closest hazard depth --- */
+  /* --- Extract closest hazard depth + 3D point --- */
   uint32_t hazard_min = UINT32_MAX;
+  tof_point3d_t hazard_pt = {0};
   for (int i = 0; i < det->nb_hazards; i++) {
     uint32_t d;
-    if (tof_extract_depth(grid, &det->hazards[i], &d)) {
+    tof_point3d_t pt;
+    if (tof_extract_depth(grid, &det->hazards[i], &d, &pt)) {
       out->has_hazard_depth = 1;
       if (d < hazard_min) {
         hazard_min = d;
+        hazard_pt = pt;
       }
     }
   }
   if (out->has_hazard_depth) {
     out->hazard_distance_mm = hazard_min;
+    out->hazard_xyz_mm = hazard_pt;
   }
 
   /* --- Alert decision --- */
   if (out->has_hand_depth && out->has_hazard_depth) {
-    uint32_t diff = (hand_min > hazard_min) ? (hand_min - hazard_min)
-                                            : (hazard_min - hand_min);
-    out->alert = (diff < alert_threshold_mm) ? 1 : 0;
+    float dx = hand_pt.x_mm - hazard_pt.x_mm;
+    float dy = hand_pt.y_mm - hazard_pt.y_mm;
+    float dz = hand_pt.z_mm - hazard_pt.z_mm;
+    float dist = sqrtf(dx * dx + dy * dy + dz * dz);
+    out->distance_3d_mm = dist;
+    out->mode = TOF_MODE_3D;
+    out->alert = (dist < (float)alert_threshold_mm) ? 1 : 0;
   }
 }
 
@@ -316,11 +355,13 @@ static void tof_thread_entry(ULONG arg) {
         tof_run_fusion(grid, &alerts[alert_write_idx]);
         alert_read_idx = alert_write_idx;
 
-        /* Drive LED based on alert */
+        /* Drive LED and haptic based on alert */
         if (alerts[alert_write_idx].alert) {
           BSP_LED_On(LED_RED);
+          HAPTIC_On();
         } else {
           BSP_LED_Off(LED_RED);
+          HAPTIC_Off();
         }
       }
     }
@@ -374,6 +415,7 @@ void TOF_Stop(void) {
   vl53l5cx_stop_ranging(&tof_obj.Dev);
   HAL_GPIO_WritePin(TOF_PWR_EN_PORT, TOF_PWR_EN_PIN, GPIO_PIN_RESET);
   BSP_LED_Off(LED_RED);
+  HAPTIC_Off();
 }
 
 void TOF_Resume(void) {

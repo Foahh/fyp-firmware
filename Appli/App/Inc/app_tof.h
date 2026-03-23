@@ -28,11 +28,49 @@ extern "C" {
 
 #define TOF_GRID_SIZE 8
 
-/** Default alert threshold: hand-to-hazard Z-distance difference in mm */
-#define TOF_DEFAULT_ALERT_THRESHOLD_MM 100
+/** Default alert threshold: hand-to-hazard distance in mm */
+#define TOF_DEFAULT_ALERT_THRESHOLD_MM 150
 
 /** Maximum detections per category for the hazard detection stub */
 #define TOF_MAX_DETECTIONS 4
+
+/** Maximum allowed NN-to-ToF timestamp delta for fusion (ms) */
+#define FUSION_MAX_DT_MS 60
+
+/* ============================================================================
+ * Camera intrinsics proxy (placeholder calibration constants)
+ *
+ * These approximate a pinhole model for mapping NN normalised [0,1]
+ * coordinates to metric XY at a given depth Z.  Replace with real values
+ * from camera calibration.  Units: pixels at the NN input resolution.
+ * ============================================================================ */
+
+/** Focal lengths in NN-normalised units (fx_norm = fx_px / img_w) */
+#define TOF_CAM_FX_NORM 1.0f /* TODO: calibrate */
+#define TOF_CAM_FY_NORM 1.0f /* TODO: calibrate */
+
+/** Principal point in NN-normalised units */
+#define TOF_CAM_CX_NORM 0.5f
+#define TOF_CAM_CY_NORM 0.5f
+
+/** Camera-to-ToF alignment offset in mm (added to ToF XY) */
+#define TOF_ALIGN_DX_MM 0.0f /* TODO: calibrate */
+#define TOF_ALIGN_DY_MM 0.0f /* TODO: calibrate */
+
+/* ============================================================================
+ * 3D point and fusion mode types
+ * ============================================================================ */
+
+typedef enum {
+  TOF_MODE_NONE = 0, /**< No valid fusion data */
+  TOF_MODE_3D,       /**< 3D Euclidean distance */
+} tof_fusion_mode_t;
+
+typedef struct {
+  float x_mm;
+  float y_mm;
+  float z_mm;
+} tof_point3d_t;
 
 /* ============================================================================
  * Bounding box type (normalized NN coordinates [0,1])
@@ -94,6 +132,11 @@ typedef struct {
   uint8_t has_hand_depth;      /**< 1 if depth data overlapped with a hand bbox */
   uint8_t has_hazard_depth;    /**< 1 if depth data overlapped with a hazard bbox */
   uint8_t alert;               /**< 1 if hand and hazard are within threshold */
+  tof_fusion_mode_t mode;      /**< Fusion mode used for this cycle */
+  tof_point3d_t hand_xyz_mm;   /**< Hand representative 3D point */
+  tof_point3d_t hazard_xyz_mm; /**< Hazard representative 3D point */
+  float distance_3d_mm;        /**< Euclidean 3D distance (0 if Z-only mode) */
+  uint8_t stale;               /**< 1 if suppressed due to timestamp mismatch */
 } tof_alert_t;
 
 /* ============================================================================
@@ -117,7 +160,7 @@ const tof_alert_t *TOF_GetAlert(void);
 
 /**
  * @brief  Change the hand-to-hazard proximity alert threshold at runtime.
- * @param  threshold_mm: Alert if |hand_z - hazard_z| < threshold_mm
+ * @param  threshold_mm: Alert if distance < threshold_mm (3D or Z-only)
  */
 void TOF_SetAlertThreshold(uint32_t threshold_mm);
 

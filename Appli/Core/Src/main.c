@@ -21,6 +21,7 @@
 #include "app_bqueue.h"
 #include "app_cam.h"
 #include "app_error.h"
+#include "app_haptic.h"
 #include "app_lcd.h"
 #include "app_nn.h"
 #include "app_pp.h"
@@ -96,6 +97,8 @@ int main(void) {
   XSPI_Config();
 
   LED_Config();
+
+  HAPTIC_Init();
 
   Button_Config();
 

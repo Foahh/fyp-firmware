@@ -79,8 +79,11 @@ set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm_rx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_comm_tx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_cpuload.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_haptic.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_imu.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_lcd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_nn.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_power.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_pp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_tof.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_ui.c)
@@ -161,6 +164,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/lcd.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ai_postprocessing.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ai_npu.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/vl53l5cx.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ism330dlc.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/network.cmake)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nanopb.cmake)
@@ -190,8 +194,10 @@ target_link_libraries(
           AI_Postprocessing
           AI_NPU
           VL53L5CX
+          ISM330DLC
           Network
           Nanopb
+          m
           ${TOOLCHAIN_LINK_LIBRARIES})
 
 # Link options
