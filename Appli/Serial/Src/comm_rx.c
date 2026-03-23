@@ -77,7 +77,7 @@ static void rx_read_blocking(uint8_t *dst, uint32_t count) {
  * HAL UART RX callback (ISR context)
  * ============================================================================ */
 
-__attribute__((used)) void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
   if (huart->Instance == hcom_uart[COM1].Instance) {
     /* Push byte into ring buffer */
     rx_ring[rx_ring_head & RX_RING_MASK] = rx_byte;

@@ -25,7 +25,7 @@
  * @brief  This function is executed in case of error occurrence.
  * @retval None
  */
-__attribute__((used)) void Error_Handler(void) {
+void Error_Handler(void) {
   BSP_LED_Init(LED_GREEN);
   BSP_LED_Init(LED_RED);
 
@@ -47,7 +47,7 @@ __attribute__((used)) void Error_Handler(void) {
 }
 
 #ifdef DEBUG
-__attribute__((used)) void _tx_thread_stack_error_handler(TX_THREAD *thread) {
+void _tx_thread_stack_error_handler(TX_THREAD *thread) {
   g_error_file = (volatile uint8_t *)thread->tx_thread_name;
   g_error_line = 0;
   Error_Handler();
@@ -62,7 +62,7 @@ __attribute__((used)) void _tx_thread_stack_error_handler(TX_THREAD *thread) {
  * @param  line: assert_param error line source number
  * @retval None
  */
-__attribute__((used)) void assert_failed(uint8_t *file, uint32_t line) {
+void assert_failed(uint8_t *file, uint32_t line) {
   g_error_file = file;
   g_error_line = line;
   Error_Handler();

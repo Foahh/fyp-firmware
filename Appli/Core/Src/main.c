@@ -107,20 +107,20 @@ int main(void) {
  * @param  htim : TIM handle
  * @retval None
  */
-__attribute__((used)) void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   if (htim->Instance == TIM2) {
     HAL_IncTick();
   }
 }
 
-__attribute__((used)) void HAL_MspInit(void) {
+void HAL_MspInit(void) {
   HAL_PWREx_EnableVddIO2();
   HAL_PWREx_EnableVddIO3();
   HAL_PWREx_EnableVddIO4();
   HAL_PWREx_EnableVddIO5();
 }
 
-__attribute__((used)) void BSP_PB_Callback(Button_TypeDef Button) {
+void BSP_PB_Callback(Button_TypeDef Button) {
   if (Button == BUTTON_USER1) {
     UI_ToggleTOFOverlay();
   }
