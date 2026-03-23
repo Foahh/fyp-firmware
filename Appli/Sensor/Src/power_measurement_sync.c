@@ -18,8 +18,6 @@
 
 #include "power_measurement_sync.h"
 
-#if PWR_MEASUREMENT_SYNC_ENABLE
-
 void PWR_SyncInit(void) {
   PWR_SYNC_GPIO_RCC_ENABLE();
 
@@ -39,14 +37,3 @@ void PWR_SyncBegin(void) {
 void PWR_SyncEnd(void) {
   HAL_GPIO_WritePin(PWR_SYNC_GPIO_PORT, PWR_SYNC_GPIO_PIN, GPIO_PIN_RESET);
 }
-
-#else /* !PWR_MEASUREMENT_SYNC_ENABLE */
-
-void PWR_SyncInit(void) {
-}
-void PWR_SyncBegin(void) {
-}
-void PWR_SyncEnd(void) {
-}
-
-#endif /* PWR_MEASUREMENT_SYNC_ENABLE */

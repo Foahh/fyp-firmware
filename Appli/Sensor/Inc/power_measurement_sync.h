@@ -23,11 +23,6 @@
 extern "C" {
 #endif
 
-#ifndef PWR_MEASUREMENT_SYNC_ENABLE
-#define PWR_MEASUREMENT_SYNC_ENABLE 1
-#endif
-
-#if PWR_MEASUREMENT_SYNC_ENABLE
 #include "stm32n6xx_hal.h"
 
 #ifndef PWR_SYNC_GPIO_PORT
@@ -39,8 +34,6 @@ extern "C" {
 #ifndef PWR_SYNC_GPIO_RCC_ENABLE
 #define PWR_SYNC_GPIO_RCC_ENABLE() __HAL_RCC_GPIOD_CLK_ENABLE()
 #endif
-
-#endif /* PWR_MEASUREMENT_SYNC_ENABLE */
 
 void PWR_SyncInit(void);
 void PWR_SyncBegin(void);
