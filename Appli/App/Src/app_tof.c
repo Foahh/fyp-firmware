@@ -26,7 +26,9 @@
  */
 
 #include "app_tof.h"
+#include "app_cam_config.h"
 #include "app_error.h"
+#include "cmw_camera.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6570_discovery_bus.h"
 #include "stm32n6xx_hal.h"
@@ -293,6 +295,13 @@ static void tof_thread_entry(ULONG arg) {
         for (int zone = 0; zone < TOF_GRID_SIZE * TOF_GRID_SIZE; zone++) {
           int row = zone / TOF_GRID_SIZE;
           int col = zone % TOF_GRID_SIZE;
+          /* Match camera orientation (CAMERA_FLIP / CMW_MIRRORFLIP_*). */
+          if (CAMERA_FLIP & CMW_MIRRORFLIP_MIRROR) {
+            col = TOF_GRID_SIZE - 1 - col;
+          }
+          if (CAMERA_FLIP & CMW_MIRRORFLIP_FLIP) {
+            row = TOF_GRID_SIZE - 1 - row;
+          }
           grid->distance_mm[row][col] = results.distance_mm[zone];
           grid->status[row][col] = results.target_status[zone];
         }

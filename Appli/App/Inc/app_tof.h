@@ -29,7 +29,7 @@ extern "C" {
 #define TOF_GRID_SIZE 8
 
 /** Default alert threshold: hand-to-hazard Z-distance difference in mm */
-#define TOF_DEFAULT_ALERT_THRESHOLD_MM 200
+#define TOF_DEFAULT_ALERT_THRESHOLD_MM 100
 
 /** Maximum detections per category for the hazard detection stub */
 #define TOF_MAX_DETECTIONS 4
@@ -71,7 +71,12 @@ typedef struct {
  * ============================================================================ */
 
 /**
- * @brief  8x8 depth grid snapshot from ToF sensor
+ * @brief  8x8 depth grid snapshot from ToF sensor.
+ *
+ *         Row/column indexing matches the camera / NN image after the same
+ *         mirror/flip as CAMERA_FLIP in app_cam_config.h (e.g. horizontal
+ *         mirror when CAMERA_FLIP is CMW_MIRRORFLIP_MIRROR), so depth lines up
+ *         with bounding boxes and overlays.
  */
 typedef struct {
   int16_t distance_mm[TOF_GRID_SIZE][TOF_GRID_SIZE];
