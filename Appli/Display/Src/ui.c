@@ -19,7 +19,7 @@
 #include "ui_internal.h"
 
 #include "error.h"
-#include "app_lcd.h"
+#include "display.h"
 #include "cam.h"
 #include "cam_config.h"
 #include "cpuload.h"

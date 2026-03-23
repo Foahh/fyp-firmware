@@ -56,7 +56,7 @@ Two-stage boot: **FSBL** (First Stage Boot Loader) initializes external memory a
   - `Src/nn_thread.c` — NN inference thread (ThreadX, priority 6)
   - `Src/pp_thread.c` — YOLO-X NMS post-processing (confidence 0.6, IoU 0.5)
 - `Display/` — Display and UI
-  - `Src/lcd.c` — LTDC dual-layer display (Layer 0: camera, Layer 1: UI overlay)
+ - `Src/display.c` — LTDC dual-layer display (Layer 0: camera, Layer 1: UI overlay)
   - `Src/ui.c` — UI thread entry, public API, buffer swap
   - `Src/ui_panel.c` — Diagnostics panel rendering
   - `Src/ui_overlay.c` — Detection bounding boxes, ROI rectangle
@@ -82,7 +82,7 @@ Two-stage boot: **FSBL** (First Stage Boot Loader) initializes external memory a
 
 - Public functions: `Module_VerbNoun()` (e.g., `CAM_ThreadStart()`, `UI_ThreadSuspend()`, `PP_GetInfo()`)
 - Thread start functions take no parameters (no unused `VOID *memory_ptr`)
-- Headers: no `app_` prefix (except `app_lcd.h` to avoid collision with ST's `lcd.h`), named after module (e.g., `cam.h`, `nn.h`, `pp.h`)
+- Headers: no `app_` prefix, named after module (e.g., `cam.h`, `display.h`, `nn.h`, `pp.h`)
 - Internal headers: `*_internal.h` (e.g., `ui_internal.h`, `cam_internal.h`) for cross-file shared state within a subsystem
 
 ### Key Libraries (in `Libraries/`)

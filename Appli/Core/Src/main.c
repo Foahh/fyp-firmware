@@ -18,7 +18,7 @@
 #include "main.h"
 #include "stm32n6570_discovery.h"
 
-#include "app_lcd.h"
+#include "display.h"
 #include "app_threadx.h"
 #include "cam.h"
 #include "haptic.h"

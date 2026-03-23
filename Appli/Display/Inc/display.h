@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file    app_lcd.h
+ * @file    display.h
  * @author  Long Liangmao
  * @brief   LCD/LTDC dual-layer display pipeline for STM32N6570-DK
  *          Layer 0: Live DCMI/camera preview
@@ -18,8 +18,8 @@
  ******************************************************************************
  */
 
-#ifndef APP_LCD_H
-#define APP_LCD_H
+#ifndef DISPLAY_H
+#define DISPLAY_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -95,4 +95,4 @@ void LCD_Reload(uint32_t reload_type);
 }
 #endif
 
-#endif /* LCD_H */
+#endif /* DISPLAY_H */

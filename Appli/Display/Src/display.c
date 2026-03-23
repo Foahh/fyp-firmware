@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file    app_lcd.c
+ * @file    display.c
  * @author  Long Liangmao
  * @brief   LTDC display pipeline implementation for STM32N6570-DK
  *          Layer 0: DCMIPP preview (RGB565)
@@ -19,7 +19,7 @@
  */
 
 #include "error.h"
-#include "app_lcd.h"
+#include "display.h"
 #include "cam.h"
 #include "stm32_lcd.h"
 #include "stm32n6570_discovery_lcd.h"

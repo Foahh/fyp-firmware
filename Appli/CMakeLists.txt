@@ -77,7 +77,7 @@ set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera/Src/cam_pipe.c
     ${CMAKE_CURRENT_SOURCE_DIR}/NN/Src/nn_thread.c
     ${CMAKE_CURRENT_SOURCE_DIR}/NN/Src/pp_thread.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Display/Src/lcd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Display/Src/display.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Display/Src/ui.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Display/Src/ui_panel.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Display/Src/ui_overlay.c
