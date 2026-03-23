@@ -57,7 +57,7 @@ set(STM32CUBE_ROOT "${EXTERNAL_ROOT}/STM32CubeN6")
 set(CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Startup/startup_stm32n657xx.s
     ${CMAKE_CURRENT_SOURCE_DIR}/Startup/tx_initialize_low_level.S
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_error.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/error.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/init_clock.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/init_mpu.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/init_peripherals.c

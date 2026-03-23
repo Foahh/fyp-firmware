@@ -17,7 +17,7 @@
  */
 
 #include "comm_tx.h"
-#include "app_error.h"
+#include "error.h"
 #include "lcd_config.h"
 #include "model_config.h"
 #include "nn_config.h"

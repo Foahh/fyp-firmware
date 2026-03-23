@@ -17,7 +17,7 @@
 
 #include "stm32n6xx_hal.h"
 
-#include "app_error.h"
+#include "error.h"
 #include "init_clock.h"
 
 void SystemClock_Config(void) {

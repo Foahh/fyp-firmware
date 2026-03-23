@@ -17,7 +17,7 @@
  */
 
 #include "comm_log.h"
-#include "app_error.h"
+#include "error.h"
 #include "comm_tx.h"
 #include "messages.pb.h"
 #include "pp.h"

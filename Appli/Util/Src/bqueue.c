@@ -17,7 +17,7 @@
  */
 
 #include "bqueue.h"
-#include "app_error.h"
+#include "error.h"
 #include "stm32n6xx_hal.h"
 #include "utils.h"
 

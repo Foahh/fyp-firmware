@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file    app_error.h
+ * @file    error.h
  * @author  Long Liangmao
  * @brief   Application-level fatal error handling helpers
  ******************************************************************************
@@ -16,8 +16,8 @@
  ******************************************************************************
  */
 
-#ifndef APP_ERROR_H
-#define APP_ERROR_H
+#ifndef ERROR_H
+#define ERROR_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,4 +69,4 @@ static inline void APP_Panic(const char *file, uint32_t line) {
 }
 #endif
 
-#endif /* APP_ERROR_H */
+#endif /* ERROR_H */

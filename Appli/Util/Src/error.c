@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file    app_error.c
+ * @file    error.c
  * @author  Long Liangmao
  * @brief   Application-level fatal error handling implementation
  ******************************************************************************
@@ -19,7 +19,7 @@
 #include "stm32n6570_discovery.h"
 #include "tx_api.h"
 
-#include "app_error.h"
+#include "error.h"
 
 /**
  * @brief  This function is executed in case of error occurrence.

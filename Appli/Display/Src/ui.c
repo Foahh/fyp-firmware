@@ -18,7 +18,7 @@
 
 #include "ui_internal.h"
 
-#include "app_error.h"
+#include "error.h"
 #include "app_lcd.h"
 #include "cam.h"
 #include "cam_config.h"

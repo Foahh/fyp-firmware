@@ -71,6 +71,7 @@ Two-stage boot: **FSBL** (First Stage Boot Loader) initializes external memory a
   - `Src/haptic.c` — Haptic motor GPIO control
   - `Src/power_measurement_sync.c` — Power measurement synchronization
 - `Util/` — Utilities
+  - `Src/error.c`, `Inc/error.h` — Application-level fatal error handling (`APP_REQUIRE`, `APP_Panic`)
   - `Src/bqueue.c` — SPSC buffer queue (semaphore-based)
   - `Src/cpuload.c` — CPU load measurement via DWT cycle counter
 - `Config/Inc/` — Build-time configuration (`cam_config.h`, `lcd_config.h`, `nn_config.h`, `app_config.h`, `model_config.h`)

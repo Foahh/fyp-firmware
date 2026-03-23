@@ -16,7 +16,7 @@
  ******************************************************************************
  */
 
-#include "app_error.h"
+#include "error.h"
 #include "bqueue.h"
 #include "cam.h"
 #include "model_config.h"

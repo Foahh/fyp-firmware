@@ -18,7 +18,7 @@
 
 #include "app_azure_rtos.h"
 
-#include "app_error.h"
+#include "error.h"
 #include "main.h"
 
 #if (USE_STATIC_ALLOCATION == 1)

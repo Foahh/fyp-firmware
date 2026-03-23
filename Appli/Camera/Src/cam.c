@@ -16,7 +16,7 @@
  ******************************************************************************
  */
 
-#include "app_error.h"
+#include "error.h"
 #include "app_lcd.h"
 #include "cam_internal.h"
 #include "utils.h"

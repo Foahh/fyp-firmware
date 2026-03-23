@@ -24,7 +24,7 @@
 #include "stm32n6xx_hal_ramcfg.h"
 #include "stm32n6xx_hal_rif.h"
 
-#include "app_error.h"
+#include "error.h"
 #include "init_peripherals.h"
 #include "npu_cache.h"
 

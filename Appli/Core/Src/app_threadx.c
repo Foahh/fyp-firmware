@@ -18,7 +18,7 @@
 
 #include "app_threadx.h"
 
-#include "app_error.h"
+#include "error.h"
 #include "cam.h"
 #include "cmw_camera.h"
 #include "comm_log.h"

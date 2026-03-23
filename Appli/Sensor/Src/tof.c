@@ -26,7 +26,7 @@
  */
 
 #include "tof.h"
-#include "app_error.h"
+#include "error.h"
 #include "cam_config.h"
 #include "cmw_camera.h"
 #include "haptic.h"

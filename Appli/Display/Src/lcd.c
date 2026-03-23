@@ -18,7 +18,7 @@
  ******************************************************************************
  */
 
-#include "app_error.h"
+#include "error.h"
 #include "app_lcd.h"
 #include "cam.h"
 #include "stm32_lcd.h"

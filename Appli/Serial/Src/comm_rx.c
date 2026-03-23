@@ -17,7 +17,7 @@
  */
 
 #include "comm_rx.h"
-#include "app_error.h"
+#include "error.h"
 #include "comm_cmd.h"
 #include "messages.pb.h"
 #include "pb_decode.h"
