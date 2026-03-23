@@ -68,16 +68,28 @@ void CAM_ThreadStart(void) {
 /**
  * @brief  Suspend ISP and LCD reload threads
  */
-void CAM_ThreadsSuspend(void) {
-  tx_thread_suspend(&lcd_reload_ctx.thread);
+void CAM_IspThreadSuspend(void) {
   tx_thread_suspend(&isp_ctx.thread);
 }
 
 /**
  * @brief  Resume ISP and LCD reload threads
  */
-void CAM_ThreadsResume(void) {
+void CAM_IspThreadResume(void) {
   tx_thread_resume(&isp_ctx.thread);
+}
+
+/**
+ * @brief  Suspend only LCD reload thread while leaving ISP running
+ */
+void CAM_LCDReloadThreadSuspend(void) {
+  tx_thread_suspend(&lcd_reload_ctx.thread);
+}
+
+/**
+ * @brief  Resume only LCD reload thread
+ */
+void CAM_LCDReloadThreadResume(void) {
   tx_thread_resume(&lcd_reload_ctx.thread);
 }
 

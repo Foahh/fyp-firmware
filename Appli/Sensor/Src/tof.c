@@ -45,7 +45,7 @@
  * Configuration
  * ============================================================================ */
 
-#define TOF_THREAD_STACK_SIZE 4096U
+#define TOF_THREAD_STACK_SIZE 2048U
 #define TOF_THREAD_PRIORITY   8
 
 /* Sensor I2C address */
@@ -318,7 +318,7 @@ static void tof_thread_entry(ULONG arg) {
   APP_REQUIRE(status == VL53L5CX_OK);
 
   /* Main ranging loop */
-  VL53L5CX_ResultsData results;
+  static VL53L5CX_ResultsData results;
 
   while (1) {
     uint8_t data_ready = 0;
@@ -347,12 +347,16 @@ static void tof_thread_entry(ULONG arg) {
         grid->timestamp_ms = HAL_GetTick();
         grid->valid = 1;
 
-        /* Swap read buffer */
+        /* Publish depth grid: ensure all writes visible before index swap. */
+        __DMB();
         depth_read_idx = write_idx;
 
         /* Run fusion and update alert */
         uint8_t alert_write_idx = alert_read_idx ^ 1;
         tof_run_fusion(grid, &alerts[alert_write_idx]);
+
+        /* Publish alert: ensure all writes visible before index swap. */
+        __DMB();
         alert_read_idx = alert_write_idx;
 
         /* Drive LED and haptic based on alert */
@@ -384,11 +388,15 @@ void TOF_ThreadStart(void) {
 }
 
 const tof_depth_grid_t *TOF_GetDepthGrid(void) {
-  return &depth_grids[depth_read_idx];
+  uint8_t idx = depth_read_idx;
+  __DMB();
+  return &depth_grids[idx];
 }
 
 const tof_alert_t *TOF_GetAlert(void) {
-  return &alerts[alert_read_idx];
+  uint8_t idx = alert_read_idx;
+  __DMB();
+  return &alerts[idx];
 }
 
 void TOF_SetAlertThreshold(uint32_t threshold_mm) {

@@ -144,12 +144,22 @@ void CAM_DeInit(void);
 /**
  * @brief  Suspend ISP and LCD reload threads for power measurement
  */
-void CAM_ThreadsSuspend(void);
+void CAM_IspThreadSuspend(void);
 
 /**
  * @brief  Resume ISP and LCD reload threads
  */
-void CAM_ThreadsResume(void);
+void CAM_IspThreadResume(void);
+
+/**
+ * @brief  Suspend only the LCD reload thread (keep ISP thread running)
+ */
+void CAM_LCDReloadThreadSuspend(void);
+
+/**
+ * @brief  Resume only the LCD reload thread
+ */
+void CAM_LCDReloadThreadResume(void);
 
 #ifdef CAMERA_NN_SNAPSHOT_MODE
 /**
