@@ -44,25 +44,24 @@
 const uint16_t g_line_y[] = {
     UI_PANEL_LINE_Y(0),  /* Title */
     UI_PANEL_LINE_Y(1),  /* Separator */
-    UI_PANEL_LINE_Y(2),  /* Runtime label */
-    UI_PANEL_LINE_Y(3),  /* Runtime value */
-    UI_PANEL_LINE_Y(4),  /* CPU label */
-    UI_PANEL_LINE_Y(5),  /* CPU value */
-    UI_PANEL_LINE_Y(6),  /* CPU bar */
-    UI_PANEL_LINE_Y(7),  /* Objects label */
-    UI_PANEL_LINE_Y(8),  /* Objects value */
-    UI_PANEL_LINE_Y(9),  /* Inference label */
-    UI_PANEL_LINE_Y(10), /* Inference value */
-    UI_PANEL_LINE_Y(11), /* Postprocess label */
-    UI_PANEL_LINE_Y(12), /* Postprocess value */
-    UI_PANEL_LINE_Y(13), /* Overhead label */
-    UI_PANEL_LINE_Y(14), /* Overhead value */
-    UI_PANEL_LINE_Y(15), /* FPS label */
-    UI_PANEL_LINE_Y(16), /* FPS value */
-    UI_PANEL_LINE_Y(17), /* Drops label */
-    UI_PANEL_LINE_Y(18), /* Drops value */
-    UI_PANEL_LINE_Y(19), /* Proximity label */
-    UI_PANEL_LINE_Y(20), /* Proximity value */
+    UI_PANEL_LINE_Y(2),  /* CPU label */
+    UI_PANEL_LINE_Y(3),  /* CPU usage bar */
+    UI_PANEL_LINE_Y(4),  /* Runtime label */
+    UI_PANEL_LINE_Y(5),  /* Runtime value */
+    UI_PANEL_LINE_Y(6),  /* Objects label */
+    UI_PANEL_LINE_Y(7),  /* Objects value */
+    UI_PANEL_LINE_Y(8),  /* Inference label */
+    UI_PANEL_LINE_Y(9),  /* Inference value */
+    UI_PANEL_LINE_Y(10), /* Postprocess label */
+    UI_PANEL_LINE_Y(11), /* Postprocess value */
+    UI_PANEL_LINE_Y(12), /* Overhead label */
+    UI_PANEL_LINE_Y(13), /* Overhead value */
+    UI_PANEL_LINE_Y(14), /* FPS label */
+    UI_PANEL_LINE_Y(15), /* FPS value */
+    UI_PANEL_LINE_Y(16), /* Drops label */
+    UI_PANEL_LINE_Y(17), /* Drops value */
+    UI_PANEL_LINE_Y(18), /* Proximity label */
+    UI_PANEL_LINE_Y(19), /* Proximity value */
 };
 
 /* ============================================================================
@@ -73,8 +72,8 @@ const uint16_t g_line_y[] = {
 uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4] ALIGN_32 IN_PSRAM;
 volatile int ui_display_idx = 0;
 
-/* CPU load tracking */
-static cpuload_info_t g_cpu_load;
+/* CPU load tracking (non-static: read by ui_panel for display) */
+cpuload_info_t g_cpu_load;
 
 /* UI state */
 static uint8_t g_ui_visible = 1;
@@ -147,7 +146,6 @@ static void idle_measure_thread_entry(ULONG arg) {
 static void ui_thread_entry(ULONG arg) {
   UNUSED(arg);
 
-  float cpu_load_pct;
   uint8_t *ui_buffer;
   const detection_info_t *det_info = NULL;
   const nn_crop_info_display_t *roi_info = NULL;
@@ -164,7 +162,6 @@ static void ui_thread_entry(ULONG arg) {
 
     /* Update CPU load measurement */
     CPULoad_Update(&g_cpu_load);
-    cpu_load_pct = CPULoad_GetSmoothed(&g_cpu_load);
 
     /* Get latest detection info */
     det_info = PP_GetInfo();
@@ -200,7 +197,6 @@ static void ui_thread_entry(ULONG arg) {
     UI_DrawBuildOptions();
     UI_DrawModelNameBottomRight();
     UI_DrawRuntimeSection();
-    UI_DrawCPULoadSection(cpu_load_pct);
 
     /* Draw detection info in diagnostic panel if available */
     if (det_info != NULL) {
@@ -218,6 +214,8 @@ static void ui_thread_entry(ULONG arg) {
         UI_DrawProximityAlertBanner();
       }
     }
+
+    UI_DrawCpuLoadSection();
 
     /* Draw depth grid (toggled by user button) */
     if (g_tof_overlay_visible) {

@@ -19,6 +19,7 @@
 #include "ui_internal.h"
 
 #include "cam_config.h"
+#include "cpuload.h"
 #include "lcd_config.h"
 #include "model_config.h"
 #include "stm32_lcd.h"
@@ -31,49 +32,6 @@
 /* ============================================================================
  * Internal Helper Functions
  * ============================================================================ */
-
-/**
- * @brief  Clamp percentage value to valid range [0.0, 100.0]
- */
-static float UI_ClampPercentage(float percentage) {
-  if (percentage < 0.0f) {
-    return 0.0f;
-  }
-  if (percentage > 100.0f) {
-    return 100.0f;
-  }
-  return percentage;
-}
-
-/**
- * @brief  Draw a horizontal progress bar
- */
-static void UI_DrawProgressBar(uint32_t x, uint32_t y,
-                               uint32_t width, uint32_t height,
-                               float percentage) {
-  uint32_t fill_width;
-
-  percentage = UI_ClampPercentage(percentage);
-  fill_width = (uint32_t)((width - 2) * percentage * 0.01f);
-
-  /* Draw background */
-  UTIL_LCD_FillRect(x, y, width, height, UI_COLOR_BAR_BG);
-
-  /* Draw fill */
-  if (fill_width > 0) {
-    UTIL_LCD_FillRect(x + 1, y + 1, fill_width, height - 2, UI_COLOR_BAR_FG);
-  }
-
-  /* Draw border */
-  UTIL_LCD_DrawRect(x, y, width, height, UI_COLOR_TEXT);
-}
-
-/**
- * @brief  Format CPU load percentage as string
- */
-static void UI_FormatCPULoad(char *buf, size_t buf_size, float cpu_load) {
-  snprintf(buf, buf_size, "%.1f%%", cpu_load);
-}
 
 /**
  * @brief  Format runtime as MM:SS string
@@ -119,39 +77,15 @@ void UI_DrawRuntimeSection(void) {
 
   /* Label */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[2],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[4],
                            (uint8_t *)"Runtime", LEFT_MODE);
 
   /* Value */
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   tick = HAL_GetTick();
   UI_FormatRuntime(text_buf, sizeof(text_buf), tick);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[3],
-                           (uint8_t *)text_buf, LEFT_MODE);
-}
-
-/**
- * @brief  Draw CPU load section (label, value, and progress bar)
- */
-void UI_DrawCPULoadSection(float cpu_load_pct) {
-  char text_buf[UI_TEXT_BUFFER_SIZE];
-  uint32_t bar_width;
-
-  /* Label */
-  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[4],
-                           (uint8_t *)"CPU Load", LEFT_MODE);
-
-  /* Value */
-  UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
-  UI_FormatCPULoad(text_buf, sizeof(text_buf), cpu_load_pct);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[5],
                            (uint8_t *)text_buf, LEFT_MODE);
-
-  /* Progress bar */
-  bar_width = UI_PANEL_WIDTH - 2 * UI_TEXT_MARGIN_X;
-  UI_DrawProgressBar(UI_TEXT_MARGIN_X, g_line_y[6], bar_width,
-                     UI_PROGRESS_BAR_HEIGHT, cpu_load_pct);
 }
 
 /**
@@ -162,59 +96,100 @@ void UI_DrawDetectionInfoSection(const detection_info_t *info) {
 
   /* Objects count */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[7],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[6],
                            (uint8_t *)"Objects", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   snprintf(text_buf, sizeof(text_buf), "%d", (int)info->nb_detect);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[8],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[7],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* Inference time */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[9],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[8],
                            (uint8_t *)"Inference", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)info->inference_ms);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[10],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[9],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* Postprocess time */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[11],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[10],
                            (uint8_t *)"Postprocess", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)info->postprocess_ms);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[12],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[11],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* Overhead time */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[13],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[12],
                            (uint8_t *)"Overhead", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   uint32_t overhead_ms = info->nn_period_ms > info->inference_ms ? info->nn_period_ms - info->inference_ms : 0;
   snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)overhead_ms);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[14],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[13],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* FPS */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[15],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[14],
                            (uint8_t *)"Inf. FPS", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   float fps = info->nn_period_ms > 0 ? 1000.0f / info->nn_period_ms : 0.0f;
   snprintf(text_buf, sizeof(text_buf), "%.1f", fps);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[16],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[15],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* Frame drops */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[17],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[16],
                            (uint8_t *)"Drops", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   snprintf(text_buf, sizeof(text_buf), "%lu", (unsigned long)info->frame_drops);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[18],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[17],
                            (uint8_t *)text_buf, LEFT_MODE);
+}
+
+/**
+ * @brief  Draw CPU load info section in diagnostic panel
+ *         Uses old cpuload module (smoothed EMA percentage).
+ */
+void UI_DrawCpuLoadSection(void) {
+  static float smoothed_ratio = 0.0f;
+  static uint8_t smoothing_initialized = 0U;
+  const float smoothing_alpha = 0.20f;
+  float usage_ratio;
+  uint32_t bar_x = UI_TEXT_MARGIN_X;
+  uint32_t bar_y = g_line_y[3];
+  uint32_t bar_w = UI_PANEL_WIDTH - (2U * UI_TEXT_MARGIN_X);
+  uint32_t fill_w = 0U;
+
+  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[2], (uint8_t *)"CPU Load", LEFT_MODE);
+
+  /* Read from old cpuload module (0-100 percentage) and convert to 0-1 ratio */
+  extern cpuload_info_t g_cpu_load;
+  usage_ratio = CPULoad_GetSmoothed(&g_cpu_load) / 100.0f;
+  if (usage_ratio < 0.0f) {
+    usage_ratio = 0.0f;
+  } else if (usage_ratio > 1.0f) {
+    usage_ratio = 1.0f;
+  }
+
+  if (!smoothing_initialized) {
+    smoothed_ratio = usage_ratio;
+    smoothing_initialized = 1U;
+  } else {
+    smoothed_ratio = smoothed_ratio + (smoothing_alpha * (usage_ratio - smoothed_ratio));
+  }
+
+  fill_w = (uint32_t)(smoothed_ratio * (float)bar_w);
+
+  UTIL_LCD_FillRect(bar_x, bar_y, bar_w, UI_PROGRESS_BAR_HEIGHT, UI_COLOR_BAR_BG);
+  if (fill_w > 0U) {
+    UTIL_LCD_FillRect(bar_x, bar_y, fill_w, UI_PROGRESS_BAR_HEIGHT, UI_COLOR_BAR_FG);
+  }
 }
 
 /**
@@ -224,12 +199,12 @@ void UI_DrawProximitySection(const tof_alert_t *alert) {
   char text_buf[UI_TEXT_BUFFER_SIZE];
 
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[19],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[18],
                            (uint8_t *)"Hand/Hazard", LEFT_MODE);
 
   if (!alert->has_hand_depth && !alert->has_hazard_depth) {
     UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-    UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[20],
+    UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[19],
                              (uint8_t *)"--/--", LEFT_MODE);
   } else {
     uint32_t color = alert->alert ? 0xFFFF0000 : 0xFF00FF00;
@@ -246,7 +221,7 @@ void UI_DrawProximitySection(const tof_alert_t *alert) {
                alert->hazard_distance_mm / 1000.0f);
     }
     snprintf(text_buf, sizeof(text_buf), "%s/%s", hand_str, haz_str);
-    UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[20],
+    UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[19],
                              (uint8_t *)text_buf, LEFT_MODE);
   }
 }
