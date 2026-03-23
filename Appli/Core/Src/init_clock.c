@@ -28,11 +28,18 @@ void SystemClock_Config(void) {
   // Oscillator config already done in bootrom
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_NONE;
 
-  /* PLL1 = 64 x 25 / 2 = 800MHz */
+  /* PLL1: performance = 800 MHz, nominal = 600 MHz */
   RCC_OscInitStruct.PLL1.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL1.PLLSource = RCC_PLLSOURCE_HSI;
+#ifdef PERFORMANCE_MODE
+  /* PLL1 = 64 x 25 / 2 = 800MHz */
   RCC_OscInitStruct.PLL1.PLLM = 2;
   RCC_OscInitStruct.PLL1.PLLN = 25;
+#else
+  /* PLL1 = 64 x 75 / 8 = 600MHz */
+  RCC_OscInitStruct.PLL1.PLLM = 8;
+  RCC_OscInitStruct.PLL1.PLLN = 75;
+#endif
   RCC_OscInitStruct.PLL1.PLLFractional = 0;
   RCC_OscInitStruct.PLL1.PLLP1 = 1;
   RCC_OscInitStruct.PLL1.PLLP2 = 1;
@@ -92,14 +99,20 @@ void SystemClock_Config(void) {
                                  RCC_CLOCKTYPE_PCLK2 | RCC_CLOCKTYPE_PCLK4 |
                                  RCC_CLOCKTYPE_PCLK5);
 
-  /* CPU CLock (sysa_ck) = ic1_ck = PLL1 output/ic1_divider = 800 MHz */
+  /* CPU Clock (sysa_ck) = ic1_ck = PLL1 output/ic1_divider */
   RCC_ClkInitStruct.CPUCLKSource = RCC_CPUCLKSOURCE_IC1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_IC2_IC6_IC11;
   RCC_ClkInitStruct.IC1Selection.ClockSelection = RCC_ICCLKSOURCE_PLL1;
   RCC_ClkInitStruct.IC1Selection.ClockDivider = 1;
 
-  /* AXI Clock (sysb_ck) = ic2_ck = PLL1 output/ic2_divider = 400 MHz */
+  /* AXI Clock (sysb_ck) = ic2_ck = 400 MHz in both modes */
+#ifdef PERFORMANCE_MODE
+  /* PLL1 output/ic2_divider = 800 / 2 = 400 MHz */
   RCC_ClkInitStruct.IC2Selection.ClockSelection = RCC_ICCLKSOURCE_PLL1;
+#else
+  /* PLL2 output/ic2_divider = 800 / 2 = 400 MHz */
+  RCC_ClkInitStruct.IC2Selection.ClockSelection = RCC_ICCLKSOURCE_PLL2;
+#endif
   RCC_ClkInitStruct.IC2Selection.ClockDivider = 2;
 
   /* NPU Clock (sysc_ck) = ic6_ck = PLL2 output/ic6_divider */
@@ -111,8 +124,8 @@ void SystemClock_Config(void) {
   /* PLL3 output/ic11_divider = 900 MHz */
   RCC_ClkInitStruct.IC11Selection.ClockSelection = RCC_ICCLKSOURCE_PLL3;
 #else
-  /* PLL1 output/ic11_divider = 800 MHz */
-  RCC_ClkInitStruct.IC11Selection.ClockSelection = RCC_ICCLKSOURCE_PLL1;
+  /* PLL2 output/ic11_divider = 800 MHz */
+  RCC_ClkInitStruct.IC11Selection.ClockSelection = RCC_ICCLKSOURCE_PLL2;
 #endif
   RCC_ClkInitStruct.IC11Selection.ClockDivider = 1;
 

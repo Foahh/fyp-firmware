@@ -8,7 +8,7 @@ Embedded AI vision firmware for the STM32N6570-DK (Cortex-M55, ARMv8.1-M). Captu
 
 ## Build Commands
 
-All commands go through `project.py` at the project root. Requires `STM32CubeCLT` installed and `STM32CLT_PATH` set, plus `cmake`, `ninja`, `arm-none-eabi-*`, `STM32_SigningTool_CLI`, `STM32_Programmer_CLI`, and `stedgeai` on PATH.
+All commands go through `project.py` at the project root. Requires `STM32CubeCLT` installed and `STEDGEAI_CORE_DIR`, `STM32CLT_PATH` set, plus `cmake`, `ninja`, `arm-none-eabi-*`, `STM32_SigningTool_CLI`, `STM32_Programmer_CLI`.
 
 ```bash
 python project.py clean                # Remove build artifacts

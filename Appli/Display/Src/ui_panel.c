@@ -256,39 +256,31 @@ void UI_DrawProximitySection(const tof_alert_t *alert) {
  */
 void UI_DrawBuildOptions(void) {
   char line[48];
-  const char *snap_label;
   const char *perf_label;
   uint32_t y;
   uint32_t tw;
   uint32_t x0;
 
-#ifdef CAMERA_NN_SNAPSHOT_MODE
-  snap_label = "SNAPSHOT";
-#else
-  snap_label = "CONTINUOUS";
-#endif
 #ifdef PERFORMANCE_MODE
-  perf_label = "PERFORMANCE";
+  perf_label = "PERFORMANCE MODE";
 #else
-  perf_label = "NOMINAL";
+  perf_label = "NOMINAL MODE";
 #endif
 
   UTIL_LCD_SetTextColor(UI_COLOR_METADATA);
 
   y = UI_TEXT_MARGIN_Y;
-  snprintf(line, sizeof(line), "%s", snap_label);
-  tw = (uint32_t)strlen(line) * UI_FONT_WIDTH;
-  x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
-  UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)line, LEFT_MODE);
-
-  y += UI_FONT_HEIGHT + UI_LINE_SPACING;
   snprintf(line, sizeof(line), "%s", perf_label);
   tw = (uint32_t)strlen(line) * UI_FONT_WIDTH;
   x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
   UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)line, LEFT_MODE);
 
   y += UI_FONT_HEIGHT + UI_LINE_SPACING;
+#ifdef CAMERA_NN_SNAPSHOT_MODE
+  snprintf(line, sizeof(line), "CAMERA SNAPSHOT");
+#else
   snprintf(line, sizeof(line), "CAMERA %dFPS", CAMERA_FPS);
+#endif
   tw = (uint32_t)strlen(line) * UI_FONT_WIDTH;
   x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
   UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)line, LEFT_MODE);
