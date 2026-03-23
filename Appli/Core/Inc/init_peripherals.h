@@ -8,6 +8,8 @@
 #ifndef INIT_PERIPHERALS_H
 #define INIT_PERIPHERALS_H
 
+#include "stm32n6570_discovery_conf.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

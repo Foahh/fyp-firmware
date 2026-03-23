@@ -39,6 +39,9 @@ volatile uint32_t g_error_line = 0;
  * @retval int
  */
 int main(void) {
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+
   __enable_irq();
 
   /* Power on ICACHE & DCACHE */

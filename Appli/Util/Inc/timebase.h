@@ -7,7 +7,6 @@ extern "C" {
 
 #include <stdint.h>
 
-void Timebase_EnableDWT(void);
 uint32_t Timebase_CyclesToMs(uint32_t cycles);
 
 #ifdef __cplusplus
