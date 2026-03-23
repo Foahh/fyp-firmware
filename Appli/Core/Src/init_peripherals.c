@@ -112,6 +112,10 @@ void COM_Config(void) {
   ret = BSP_COM_Init(COM1, &COM_Init);
   APP_REQUIRE(ret == BSP_ERROR_NONE);
 
+  /* Enable NVIC for IT mode */
+  HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(USART1_IRQn);
+
 #if (USE_COM_LOG > 0)
   /* Select COM1 as the logging port */
   ret = BSP_COM_SelectLogPort(COM1);
@@ -549,6 +553,27 @@ void PeripheralResetAll_Config(void) {
 #endif
 #ifdef __HAL_RCC_VENC_RELEASE_RESET
   __HAL_RCC_VENC_RELEASE_RESET();
+#endif
+#ifdef __HAL_RCC_USART1_RELEASE_RESET
+  __HAL_RCC_USART1_RELEASE_RESET();
+#endif
+#ifdef __HAL_RCC_USART2_RELEASE_RESET
+  __HAL_RCC_USART2_RELEASE_RESET();
+#endif
+#ifdef __HAL_RCC_USART3_RELEASE_RESET
+  __HAL_RCC_USART3_RELEASE_RESET();
+#endif
+#ifdef __HAL_RCC_UART4_RELEASE_RESET
+  __HAL_RCC_UART4_RELEASE_RESET();
+#endif
+#ifdef __HAL_RCC_UART5_RELEASE_RESET
+  __HAL_RCC_UART5_RELEASE_RESET();
+#endif
+#ifdef __HAL_RCC_UART7_RELEASE_RESET
+  __HAL_RCC_UART7_RELEASE_RESET();
+#endif
+#ifdef __HAL_RCC_UART8_RELEASE_RESET
+  __HAL_RCC_UART8_RELEASE_RESET();
 #endif
 }
 #endif

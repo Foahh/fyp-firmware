@@ -89,6 +89,10 @@ void COM_Cmd_Dispatch(const HostMessage *msg) {
   }
 }
 
-bool COM_Cmd_IsHostRecognized(void) { return host_recognized; }
+bool COM_Cmd_IsHostRecognized(void) {
+  return host_recognized;
+}
 
-uint32_t COM_Cmd_GetLastHostSeenTick(void) { return host_last_seen_tick; }
+uint32_t COM_Cmd_GetLastHostSeenTick(void) {
+  return host_last_seen_tick;
+}
