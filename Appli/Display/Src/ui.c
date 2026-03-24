@@ -130,6 +130,7 @@ static void ui_thread_entry(ULONG arg) {
   /* Track whether previous frame had detections (for conditional clear) */
   uint8_t prev_had_detections = 0;
   uint8_t prev_tof_overlay_visible = 0;
+  uint8_t pending_overlay_clear_frames = 0;
 
   /* Setup LCD context */
   UI_SetupLCDContext();
@@ -164,13 +165,26 @@ static void ui_thread_entry(ULONG arg) {
         (det_info != NULL && det_info->nb_detect > 0) ? 1 : 0;
     uint8_t cur_tof_overlay_visible = g_tof_overlay_visible ? 1 : 0;
 
-    /* Also clear when TOF overlay is/was visible to avoid stale pixels
-     * when user toggles the overlay while no detections are present. */
-    if (cur_has_detections || prev_had_detections ||
-        cur_tof_overlay_visible || prev_tof_overlay_visible) {
+    uint8_t cur_overlay_active = cur_has_detections || cur_tof_overlay_visible;
+    uint8_t prev_overlay_active =
+        prev_had_detections || prev_tof_overlay_visible;
+
+    /* With double buffering, clear once more after overlays become inactive so
+     * both UI buffers are cleaned and stale boxes cannot reappear. */
+    if (!cur_overlay_active && prev_overlay_active) {
+      pending_overlay_clear_frames = 1;
+    }
+
+    if (cur_overlay_active || prev_overlay_active ||
+        pending_overlay_clear_frames > 0) {
       UTIL_LCD_FillRect(DISPLAY_LETTERBOX_X0, 0,
                         DISPLAY_LETTERBOX_WIDTH, DISPLAY_LETTERBOX_HEIGHT,
                         0x00000000);
+
+      if (!cur_overlay_active && !prev_overlay_active &&
+          pending_overlay_clear_frames > 0) {
+        pending_overlay_clear_frames--;
+      }
     }
 
     /* Draw panel text (may extend into camera area) */
