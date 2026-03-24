@@ -158,8 +158,6 @@ static void ui_thread_entry(ULONG arg) {
   UI_SetupLCDContext();
 
   while (1) {
-    uint32_t frame_start = HAL_GetTick();
-
     /* Update CPU load measurement */
     CPULoad_Update(&g_cpu_load);
 
@@ -229,13 +227,7 @@ static void ui_thread_entry(ULONG arg) {
     Buffer_SetUIDisplayIndex(Buffer_GetNextUIDisplayIndex());
     LCD_ReloadUILayer(ui_buffer);
 
-    /* Adaptive frame timing: sleep remaining time to hit target FPS */
-    uint32_t elapsed = HAL_GetTick() - frame_start;
-    if (elapsed < UI_UPDATE_SLEEP_TICKS) {
-      tx_thread_sleep(UI_UPDATE_SLEEP_TICKS - elapsed);
-    } else {
-      tx_thread_sleep(1);
-    }
+    tx_thread_sleep(UI_UPDATE_SLEEP_TICKS);
   }
 }
 
@@ -303,13 +295,11 @@ void UI_ToggleTOFOverlay(void) {
 void UI_ThreadSuspend(void) {
   g_ui_visible = 0;
   tx_thread_suspend(&ui_ctx.thread);
-  tx_thread_suspend(&idle_ctx.thread);
 }
 
 void UI_ThreadResume(void) {
-  tx_thread_resume(&idle_ctx.thread);
   UI_SetupLCDContext();
   LCD_SetUIAlpha(255);
-  tx_thread_resume(&ui_ctx.thread);
   g_ui_visible = 1;
+  tx_thread_resume(&ui_ctx.thread);
 }
