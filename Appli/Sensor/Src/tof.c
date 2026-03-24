@@ -72,8 +72,10 @@
  * Thread resources
  * ============================================================================ */
 
-static TX_THREAD tof_thread;
-static UCHAR tof_thread_stack[TOF_THREAD_STACK_SIZE];
+static struct {
+  TX_THREAD thread;
+  UCHAR stack[TOF_THREAD_STACK_SIZE];
+} tof_ctx;
 
 /* ============================================================================
  * Sensor state
@@ -379,9 +381,9 @@ static void tof_thread_entry(ULONG arg) {
  * ============================================================================ */
 
 void TOF_ThreadStart(void) {
-  UINT status = tx_thread_create(&tof_thread, "tof_ranging",
+  UINT status = tx_thread_create(&tof_ctx.thread, "tof_ranging",
                                  tof_thread_entry, 0,
-                                 tof_thread_stack, TOF_THREAD_STACK_SIZE,
+                                 tof_ctx.stack, TOF_THREAD_STACK_SIZE,
                                  TOF_THREAD_PRIORITY, TOF_THREAD_PRIORITY,
                                  TX_NO_TIME_SLICE, TX_AUTO_START);
   APP_REQUIRE(status == TX_SUCCESS);
@@ -419,7 +421,7 @@ const hazard_detection_t *TOF_GetHazardDetections(void) {
 }
 
 void TOF_Stop(void) {
-  tx_thread_suspend(&tof_thread);
+  tx_thread_suspend(&tof_ctx.thread);
   vl53l5cx_stop_ranging(&tof_obj.Dev);
   HAL_GPIO_WritePin(TOF_PWR_EN_PORT, TOF_PWR_EN_PIN, GPIO_PIN_RESET);
   BSP_LED_Off(LED_RED);
@@ -430,5 +432,5 @@ void TOF_Resume(void) {
   HAL_GPIO_WritePin(TOF_PWR_EN_PORT, TOF_PWR_EN_PIN, GPIO_PIN_SET);
   tx_thread_sleep(10);
   vl53l5cx_start_ranging(&tof_obj.Dev);
-  tx_thread_resume(&tof_thread);
+  tx_thread_resume(&tof_ctx.thread);
 }

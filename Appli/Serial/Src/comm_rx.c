@@ -41,8 +41,11 @@
  * Static resources
  * ============================================================================ */
 
-static TX_THREAD comm_rx_thread;
-static UCHAR comm_rx_thread_stack[COMM_RX_THREAD_STACK_SIZE];
+/* Thread resources */
+static struct {
+  TX_THREAD thread;
+  UCHAR stack[COMM_RX_THREAD_STACK_SIZE];
+} comm_rx_ctx;
 
 /* Single-byte HAL RX IT buffer */
 static uint8_t rx_byte;
@@ -184,8 +187,8 @@ void COM_RX_ThreadStart(void) {
   APP_REQUIRE(status == TX_SUCCESS);
 
   /* Create RX thread */
-  status = tx_thread_create(&comm_rx_thread, "comm_rx", comm_rx_thread_entry, 0,
-                            comm_rx_thread_stack, COMM_RX_THREAD_STACK_SIZE,
+  status = tx_thread_create(&comm_rx_ctx.thread, "comm_rx", comm_rx_thread_entry, 0,
+                            comm_rx_ctx.stack, COMM_RX_THREAD_STACK_SIZE,
                             COMM_RX_THREAD_PRIORITY, COMM_RX_THREAD_PRIORITY,
                             TX_NO_TIME_SLICE, TX_AUTO_START);
   APP_REQUIRE(status == TX_SUCCESS);

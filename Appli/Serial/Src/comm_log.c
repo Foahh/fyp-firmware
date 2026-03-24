@@ -36,8 +36,11 @@
  * Static resources
  * ============================================================================ */
 
-static TX_THREAD comm_log_thread;
-static UCHAR comm_log_thread_stack[COMM_LOG_THREAD_STACK_SIZE];
+/* Thread resources */
+static struct {
+  TX_THREAD thread;
+  UCHAR stack[COMM_LOG_THREAD_STACK_SIZE];
+} comm_log_ctx;
 
 /* ============================================================================
  * Internal helpers
@@ -126,8 +129,8 @@ void COM_Log_ThreadStart(void) {
   UINT status;
 
   status =
-      tx_thread_create(&comm_log_thread, "comm_log", comm_log_thread_entry, 0,
-                       comm_log_thread_stack, COMM_LOG_THREAD_STACK_SIZE,
+      tx_thread_create(&comm_log_ctx.thread, "comm_log", comm_log_thread_entry, 0,
+                       comm_log_ctx.stack, COMM_LOG_THREAD_STACK_SIZE,
                        COMM_LOG_THREAD_PRIORITY, COMM_LOG_THREAD_PRIORITY,
                        TX_NO_TIME_SLICE, TX_AUTO_START);
   APP_REQUIRE(status == TX_SUCCESS);

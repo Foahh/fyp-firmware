@@ -33,8 +33,12 @@
 
 /* Startup thread for runtime operations that require ThreadX resources */
 #define STARTUP_THREAD_STACK_SIZE 1024U
-static TX_THREAD startup_thread;
-static ULONG startup_thread_stack[STARTUP_THREAD_STACK_SIZE / sizeof(ULONG)];
+
+/* Thread resources */
+static struct {
+  TX_THREAD thread;
+  UCHAR stack[STARTUP_THREAD_STACK_SIZE];
+} startup_ctx;
 
 static void startup_thread_entry(ULONG arg);
 static void threadx_stack_error_notify_handler(TX_THREAD *thread_ptr);
@@ -70,9 +74,9 @@ UINT ThreadX_Start(VOID *memory_ptr) {
 
   TOF_ThreadStart();
 
-  ret = tx_thread_create(&startup_thread, "startup",
+  ret = tx_thread_create(&startup_ctx.thread, "startup",
                          startup_thread_entry, 0,
-                         startup_thread_stack, STARTUP_THREAD_STACK_SIZE,
+                         startup_ctx.stack, STARTUP_THREAD_STACK_SIZE,
                          1, 1, /* High priority to run first */
                          TX_NO_TIME_SLICE, TX_AUTO_START);
   APP_REQUIRE(ret == TX_SUCCESS);
@@ -115,7 +119,7 @@ static void startup_thread_entry(ULONG arg) {
 #endif
 
   /* Startup thread has completed its task, so it can exit */
-  tx_thread_delete(&startup_thread);
+  tx_thread_delete(&startup_ctx.thread);
 }
 
 static void threadx_stack_error_notify_handler(TX_THREAD *thread_ptr) {

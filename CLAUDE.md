@@ -84,6 +84,20 @@ Two-stage boot: **FSBL** (First Stage Boot Loader) initializes external memory a
 - Headers: no `app_` prefix, named after module (e.g., `cam.h`, `display.h`, `nn.h`, `pp.h`)
 - Internal headers: `*_internal.h` (e.g., `ui_internal.h`, `cam_internal.h`) for cross-file shared state within a subsystem
 
+### ThreadX thread resources
+
+When a module creates a ThreadX thread with a static stack, bundle the control block and stack in one anonymous struct and a single context name (e.g. `nn_ctx`, `ui_ctx`, `comm_rx_ctx`). Use `UCHAR stack[MODULE_THREAD_STACK_SIZE]` — not separate `TX_THREAD` / stack globals, and not a `ULONG` stack array.
+
+```c
+/* Thread resources */
+static struct {
+  TX_THREAD thread;
+  UCHAR stack[MODULE_THREAD_STACK_SIZE];
+} module_ctx;
+```
+
+Pass `module_ctx.stack` and the stack size in bytes to `tx_thread_create`. The camera module uses named types in `cam_internal.h` (`isp_ctx_t`, `lcd_reload_ctx_t`) with the same `TX_THREAD` + `UCHAR stack[]` layout plus extra fields (event groups, etc.).
+
 ### Key Libraries (in `Libraries/`)
 
 - **STM32N6xx_HAL_Driver** — Hardware abstraction
