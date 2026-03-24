@@ -252,8 +252,14 @@ void UI_DrawBuildOptions(void) {
   UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)line, LEFT_MODE);
 
   y += UI_FONT_HEIGHT + UI_LINE_SPACING;
-  snprintf(line, sizeof(line), "CPU %lu / NPU %lu MHz",
-           (unsigned long)AppClock_GetCpuFreqMHz(),
+  snprintf(line, sizeof(line), "CPU %lu MHz",
+           (unsigned long)AppClock_GetCpuFreqMHz());
+  tw = (uint32_t)strlen(line) * UI_FONT_WIDTH;
+  x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
+  UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)line, LEFT_MODE);
+
+  y += UI_FONT_HEIGHT + UI_LINE_SPACING;
+  snprintf(line, sizeof(line), "NPU %lu MHz",
            (unsigned long)AppClock_GetNpuFreqMHz());
   tw = (uint32_t)strlen(line) * UI_FONT_WIDTH;
   x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
@@ -263,7 +269,7 @@ void UI_DrawBuildOptions(void) {
 #ifdef CAMERA_NN_SNAPSHOT_MODE
   snprintf(line, sizeof(line), "CAMERA SNAPSHOT");
 #else
-  snprintf(line, sizeof(line), "CAMERA %dFPS", CAMERA_FPS);
+  snprintf(line, sizeof(line), "CAMERA %d FPS", CAMERA_FPS);
 #endif
   tw = (uint32_t)strlen(line) * UI_FONT_WIDTH;
   x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
