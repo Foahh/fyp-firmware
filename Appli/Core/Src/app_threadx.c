@@ -23,6 +23,7 @@
 #include "comm_log.h"
 #include "comm_rx.h"
 #include "comm_tx.h"
+#include "cpu_load.h"
 #include "error.h"
 #include "main.h"
 #include "nn.h"
@@ -65,6 +66,8 @@ UINT ThreadX_Start(VOID *memory_ptr) {
   PP_ThreadStart();
 
   COM_TX_ThreadStart();
+
+  CPU_LoadThreadStart();
 
   COM_Log_ThreadStart();
 

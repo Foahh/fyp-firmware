@@ -20,7 +20,6 @@
 
 #include "cam.h"
 #include "cam_config.h"
-#include "cpuload.h"
 #include "display.h"
 #include "error.h"
 #include "lcd_config.h"
@@ -72,9 +71,6 @@ const uint16_t g_line_y[] = {
 uint8_t ui_display_buffers[2][LCD_WIDTH * LCD_HEIGHT * 4] ALIGN_32 IN_PSRAM;
 volatile int ui_display_idx = 0;
 
-/* CPU load tracking (non-static: read by ui_panel for display) */
-cpuload_info_t g_cpu_load;
-
 /* UI state */
 static uint8_t g_ui_visible = 1;
 static uint8_t g_ui_initialized = 0;
@@ -94,20 +90,11 @@ static volatile uint8_t g_tof_overlay_visible = 0;
 /* Calculate sleep ticks from FPS */
 #define UI_UPDATE_SLEEP_TICKS (TX_TIMER_TICKS_PER_SECOND / UI_UPDATE_FPS)
 
-/* Idle measurement thread */
-#define IDLE_THREAD_STACK_SIZE 512
-#define IDLE_THREAD_PRIORITY   31 /* Lowest priority (runs when truly idle) */
-
 /* Thread resources */
 static struct {
   TX_THREAD thread;
   UCHAR stack[UI_THREAD_STACK_SIZE];
 } ui_ctx;
-
-static struct {
-  TX_THREAD thread;
-  UCHAR stack[IDLE_THREAD_STACK_SIZE];
-} idle_ctx;
 
 /* ============================================================================
  * Internal Helpers
@@ -127,20 +114,6 @@ static void UI_SetupLCDContext(void) {
  * ============================================================================ */
 
 /**
- * @brief  Idle measurement thread entry
- *         Runs at lowest priority to measure idle time via DWT cycle counter
- */
-static void idle_measure_thread_entry(ULONG arg) {
-  UNUSED(arg);
-
-  while (1) {
-    CPULoad_IdleEnter();
-    tx_thread_relinquish(); /* Yield to higher priority threads */
-    CPULoad_IdleExit();
-  }
-}
-
-/**
  * @brief  UI update thread entry
  */
 static void ui_thread_entry(ULONG arg) {
@@ -158,9 +131,6 @@ static void ui_thread_entry(ULONG arg) {
   UI_SetupLCDContext();
 
   while (1) {
-    /* Update CPU load measurement */
-    CPULoad_Update(&g_cpu_load);
-
     /* Get latest detection info */
     det_info = PP_GetInfo();
 
@@ -242,23 +212,9 @@ void UI_ThreadStart(void) {
     return;
   }
 
-  /* Initialize cycle counter for CPU load measurement */
-  CPULoad_InitCounter();
-
-  /* Initialize CPU load tracking */
-  CPULoad_Init(&g_cpu_load);
-
   /* Setup UI layer */
   g_ui_initialized = 1;
   LCD_SetUIAlpha(255);
-
-  /* Create idle measurement thread */
-  tx_status = tx_thread_create(&idle_ctx.thread, "idle_measure",
-                               idle_measure_thread_entry, 0,
-                               idle_ctx.stack, IDLE_THREAD_STACK_SIZE,
-                               IDLE_THREAD_PRIORITY, IDLE_THREAD_PRIORITY,
-                               TX_NO_TIME_SLICE, TX_AUTO_START);
-  APP_REQUIRE(tx_status == TX_SUCCESS);
 
   /* Create UI update thread */
   tx_status = tx_thread_create(&ui_ctx.thread, "ui_update",

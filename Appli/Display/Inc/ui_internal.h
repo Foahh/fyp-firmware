@@ -24,6 +24,7 @@ extern "C" {
 #endif
 
 #include "cam.h"
+#include "cpu_load.h"
 #include "lcd_config.h"
 #include "model_config.h"
 #include "pp.h"

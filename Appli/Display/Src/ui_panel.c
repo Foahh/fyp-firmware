@@ -19,7 +19,6 @@
 #include "ui_internal.h"
 
 #include "cam_config.h"
-#include "cpuload.h"
 #include "init_clock.h"
 #include "lcd_config.h"
 #include "model_config.h"
@@ -160,7 +159,7 @@ void UI_DrawCpuLoadSection(void) {
   static float smoothed_ratio = 0.0f;
   static uint8_t smoothing_initialized = 0U;
   const float smoothing_alpha = 0.20f;
-  float usage_ratio;
+  float usage_ratio = 0.0f;
   uint32_t bar_x = UI_TEXT_MARGIN_X;
   uint32_t bar_y = g_line_y[3];
   uint32_t bar_w = UI_PANEL_WIDTH - (2U * UI_TEXT_MARGIN_X);
@@ -169,9 +168,7 @@ void UI_DrawCpuLoadSection(void) {
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[2], (uint8_t *)"CPU Load", LEFT_MODE);
 
-  /* Read from old cpuload module (0-100 percentage) and convert to 0-1 ratio */
-  extern cpuload_info_t g_cpu_load;
-  usage_ratio = CPULoad_GetSmoothed(&g_cpu_load) / 100.0f;
+  usage_ratio = CPU_LoadGetUsageRatio();
   if (usage_ratio < 0.0f) {
     usage_ratio = 0.0f;
   } else if (usage_ratio > 1.0f) {

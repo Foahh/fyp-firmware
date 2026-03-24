@@ -176,12 +176,14 @@ set(THREADX_SOURCES
     ${THREADX_ROOT}/common/src/txe_timer_deactivate.c
     ${THREADX_ROOT}/common/src/txe_timer_delete.c
     ${THREADX_ROOT}/common/src/txe_timer_info_get.c
+    ${THREADX_ROOT}/utility/execution_profile_kit/tx_execution_profile.c
 )
 
 target_include_directories(
   stm32_interface
   INTERFACE
     ${THREADX_ROOT}/common/inc
+    ${THREADX_ROOT}/utility/execution_profile_kit
     ${THREADX_ROOT}/ports/cortex_m55/gnu/inc)
 
 add_library(threadx STATIC ${THREADX_SOURCES})

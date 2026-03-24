@@ -89,8 +89,8 @@ set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/tof.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/haptic.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/power_measurement_sync.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/cpu_load.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/bqueue.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/cpuload.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/timebase.c)
 
 # =============================================================================

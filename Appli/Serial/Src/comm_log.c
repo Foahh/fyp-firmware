@@ -18,6 +18,7 @@
 
 #include "comm_log.h"
 #include "comm_tx.h"
+#include "cpu_load.h"
 #include "error.h"
 #include "messages.pb.h"
 #include "pp.h"
@@ -59,6 +60,9 @@ static void comm_send_detection_result(const detection_info_t *info) {
   df->timing.postprocess_ms = info->postprocess_ms;
   df->timing.nn_period_ms = info->nn_period_ms;
   df->timing.frame_drops = info->frame_drops;
+
+  df->has_cpu = true;
+  df->cpu.usage_percent = CPU_LoadGetUsageRatio() * 100.0f;
 
   int n = info->nb_detect;
   if (n > DETECTION_MAX_BOXES) {

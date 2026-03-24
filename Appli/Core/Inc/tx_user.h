@@ -204,6 +204,9 @@
 
 /*#define TX_ENABLE_EVENT_TRACE*/
 
+/* Enable execution profile APIs used by CPU load measurement utility. */
+#define TX_EXECUTION_PROFILE_ENABLE
+
 /* Determine if block pool performance gathering is required by the application. When the following is
    defined, ThreadX gathers various block pool performance information. */
 
