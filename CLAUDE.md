@@ -124,7 +124,9 @@ Model config lives in `Networks/my_neural_art.json`. The `stedgeai` tool compile
 
 Two lock-free patterns are used for single-writer / multi-reader data sharing. DWT cycle counter is enabled once in `app_threadx.c` via `Timebase_EnableDWT()` before any threads start.
 
-**Seqlock (for small copied structs)** — Used when readers must get a fully coherent snapshot. Writer increments a sequence counter (odd = in-progress, even = stable) with `__DMB()` barriers. Reader retries if it observes an odd or changed sequence. Used by: `nn_thread.c` (nn_timing_t, 12B), `cpu_load.c` (cpu_load_info_t, 8B).
+**Seqlock (for small copied structs)** — Used when readers must get a fully coherent snapshot. Writer increments a sequence counter (odd = in-progress, even = stable) with `__DMB()` barriers. Reader retries if it observes an odd or changed sequence. Used by: `nn_thread.c` (nn_timing_t, 12B).
+
+**Volatile scalar + DMB** — For a single published value, `cpu_load.c` uses `volatile float` with `__DMB()` on writer after store and on reader before load.
 
 ```
 Writer:                         Reader:
