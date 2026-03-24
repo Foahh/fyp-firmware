@@ -168,7 +168,9 @@ def main():
         help="Serial read timeout in seconds (default: 2.0)",
     )
 
-    tracex_parser = sub.add_parser("tracex", help="Request and save TraceX dump over serial")
+    tracex_parser = sub.add_parser(
+        "tracex", help="Request and save TraceX dump over serial"
+    )
     tracex_parser.add_argument(
         "port",
         nargs="?",

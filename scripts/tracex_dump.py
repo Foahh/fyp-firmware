@@ -66,7 +66,14 @@ class SerialLink:
         self._ser.flush()
 
 
-def cmd_tracex_dump(project_root, port=None, output="tracex_dump.bin", chunk_size=256, baud=115200, timeout=2.0):
+def cmd_tracex_dump(
+    project_root,
+    port=None,
+    output="tracex_dump.bin",
+    chunk_size=256,
+    baud=115200,
+    timeout=2.0,
+):
     del project_root
     selected_port = resolve_port(port)
     out_path = Path(output).resolve()
@@ -98,14 +105,18 @@ def cmd_tracex_dump(project_root, port=None, output="tracex_dump.bin", chunk_siz
                     if chunk.done:
                         done = True
                 elif which == "ack":
-                    print(f"[tracex] ack command_id={msg.ack.command_id} success={msg.ack.success}")
+                    print(
+                        f"[tracex] ack command_id={msg.ack.command_id} success={msg.ack.success}"
+                    )
                     if done:
                         break
                 else:
                     continue
 
         if not done:
-            raise RuntimeError("TraceX dump did not complete (timeout or no done chunk)")
+            raise RuntimeError(
+                "TraceX dump did not complete (timeout or no done chunk)"
+            )
         print(f"[tracex] wrote {received} bytes to {out_path}")
     finally:
         link.close()

@@ -178,7 +178,9 @@ def _wait_balance(events):
         )
     rows.sort(
         key=lambda x: (
-            abs(x["sem_wait_pressure"]) + abs(x["flags_wait_pressure"]) + abs(x["mtx_wait_pressure"]),
+            abs(x["sem_wait_pressure"])
+            + abs(x["flags_wait_pressure"])
+            + abs(x["mtx_wait_pressure"]),
             x["sleep"],
         ),
         reverse=True,
@@ -385,7 +387,9 @@ def cmd_tracex_parse(
         print("[tracex-parse][anomaly] long interrupt burst p95 detected (>500k ticks)")
     if any(abs(r["delta"]) > 10 for r in rs_balance):
         print()
-        print("[tracex-parse][anomaly] threadResume/threadSuspend imbalance detected (|delta| > 10)")
+        print(
+            "[tracex-parse][anomaly] threadResume/threadSuspend imbalance detected (|delta| > 10)"
+        )
 
     if warning_buf is not None:
         warnings = [
@@ -394,4 +398,3 @@ def cmd_tracex_parse(
         if warnings:
             print()
             print(f"[tracex-parse] suppressed {len(warnings)} parser warning lines")
-
