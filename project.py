@@ -11,6 +11,7 @@ from scripts.format import cmd_format
 from scripts.generate_model import cmd_model
 from scripts.generate_proto import cmd_generate_proto
 from scripts.tracex_dump import cmd_tracex_dump
+from scripts.tracex_parse import cmd_tracex_parse
 from scripts.ui import cmd_ui
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -200,6 +201,33 @@ def main():
         help="Serial read timeout in seconds (default: 2.0)",
     )
 
+    tracex_parse_parser = sub.add_parser(
+        "tracex-parse", help="Parse a TraceX dump and print thread/event hotspots"
+    )
+    tracex_parse_parser.add_argument(
+        "input",
+        nargs="?",
+        default="tracex_dump.bin",
+        help="Input TraceX dump file (default: tracex_dump.bin)",
+    )
+    tracex_parse_parser.add_argument(
+        "--top",
+        type=int,
+        default=20,
+        help="Number of top rows to print (default: 20)",
+    )
+    tracex_parse_parser.add_argument(
+        "--pairs",
+        type=int,
+        default=20,
+        help="Top context-switch pairs to print (default: 20)",
+    )
+    tracex_parse_parser.add_argument(
+        "--show-parser-warnings",
+        action="store_true",
+        help="Show raw tracex-parser warnings instead of suppressing them",
+    )
+
     args = parser.parse_args()
 
     if args.command == "clean":
@@ -249,6 +277,17 @@ def main():
             baud=args.baud,
             timeout=args.timeout,
         )
+    elif args.command == "tracex-parse":
+        try:
+            cmd_tracex_parse(
+                args.input,
+                top=args.top,
+                show_pairs=args.pairs,
+                quiet_warnings=not args.show_parser_warnings,
+            )
+        except RuntimeError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            sys.exit(1)
 
 
 if __name__ == "__main__":
