@@ -52,6 +52,16 @@ void COM_Send_DeviceInfo(uint32_t command_id);
  */
 void COM_Send_Ack(uint32_t command_id, bool success);
 
+/**
+ * @brief  Send one TraceX dump chunk
+ * @param  offset: Byte offset into trace buffer
+ * @param  total_size: Total dump buffer size in bytes
+ * @param  data: Chunk bytes
+ * @param  data_len: Number of bytes in chunk
+ * @param  done: true for last chunk
+ */
+void COM_Send_TraceXChunk(uint32_t offset, uint32_t total_size, const uint8_t *data, uint32_t data_len, bool done);
+
 #ifdef __cplusplus
 }
 #endif

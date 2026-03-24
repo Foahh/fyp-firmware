@@ -29,6 +29,7 @@
 #include "nn.h"
 #include "pp.h"
 #include "tof.h"
+#include "tracex.h"
 #include "ui.h"
 #include "utils.h"
 
@@ -58,6 +59,8 @@ UINT ThreadX_Start(VOID *memory_ptr) {
 
   ret = tx_thread_stack_error_notify(threadx_stack_error_notify_handler);
   APP_REQUIRE(ret == TX_SUCCESS);
+
+  TraceX_Init();
 
   CAM_ThreadStart();
 

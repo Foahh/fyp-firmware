@@ -22,6 +22,7 @@
 #include "display.h"
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"
+#include "tracex.h"
 #include "ui.h"
 
 /* ============================================================================
@@ -96,6 +97,37 @@ static void handle_get_device_info(uint32_t cmd_id) {
   COM_Send_DeviceInfo(cmd_id);
 }
 
+static void handle_get_tracex_dump(uint32_t cmd_id, const GetTraceXDump *cmd) {
+  uint32_t total_size;
+  uint32_t offset = 0U;
+  uint32_t chunk_size;
+  uint8_t chunk[256];
+
+  if (!TraceX_IsEnabled()) {
+    COM_Send_Ack(cmd_id, false);
+    return;
+  }
+
+  total_size = TraceX_GetBufferSize();
+  chunk_size = cmd->chunk_size;
+  if (chunk_size == 0U || chunk_size > sizeof(chunk)) {
+    chunk_size = sizeof(chunk);
+  }
+
+  while (offset < total_size) {
+    size_t copied = TraceX_Read(offset, chunk, chunk_size);
+    bool done;
+    if (copied == 0U) {
+      break;
+    }
+    done = (offset + (uint32_t)copied) >= total_size;
+    COM_Send_TraceXChunk(offset, total_size, chunk, (uint32_t)copied, done);
+    offset += (uint32_t)copied;
+  }
+
+  COM_Send_Ack(cmd_id, (offset == total_size));
+}
+
 /* ============================================================================
  * Public API
  * ============================================================================ */
@@ -118,6 +150,11 @@ void COM_Cmd_Dispatch(const HostMessage *msg) {
     host_recognized = true;
     host_last_seen_tick = HAL_GetTick();
     handle_set_debug_op_enabled(cmd_id, &msg->command.set_debug_op_enabled);
+    break;
+  case HostMessage_get_tracex_dump_tag:
+    host_recognized = true;
+    host_last_seen_tick = HAL_GetTick();
+    handle_get_tracex_dump(cmd_id, &msg->command.get_tracex_dump);
     break;
   default:
     COM_Send_Ack(cmd_id, false);

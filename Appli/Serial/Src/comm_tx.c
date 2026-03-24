@@ -139,6 +139,25 @@ void COM_Send_Ack(uint32_t command_id, bool success) {
   COM_TX_Send(&msg);
 }
 
+void COM_Send_TraceXChunk(uint32_t offset, uint32_t total_size, const uint8_t *data, uint32_t data_len, bool done) {
+  DeviceMessage msg = DeviceMessage_init_zero;
+  TraceXChunk *chunk;
+
+  if (data == NULL || data_len == 0U || data_len > sizeof(msg.payload.tracex_chunk.data.bytes)) {
+    return;
+  }
+
+  msg.which_payload = DeviceMessage_tracex_chunk_tag;
+  chunk = &msg.payload.tracex_chunk;
+  chunk->offset = offset;
+  chunk->total_size = total_size;
+  chunk->data.size = (pb_size_t)data_len;
+  memcpy(chunk->data.bytes, data, data_len);
+  chunk->done = done;
+
+  COM_TX_Send(&msg);
+}
+
 /* ============================================================================
  * HAL UART TX complete callback (ISR context)
  * ============================================================================ */

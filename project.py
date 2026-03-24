@@ -10,6 +10,7 @@ from scripts.flash import cmd_flash
 from scripts.format import cmd_format
 from scripts.generate_model import cmd_model
 from scripts.generate_proto import cmd_generate_proto
+from scripts.tracex_dump import cmd_tracex_dump
 from scripts.ui import cmd_ui
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -139,6 +140,11 @@ def main():
         action="store_true",
         help="Flash firmware to device after building",
     )
+    build_parser.add_argument(
+        "--tracex",
+        action="store_true",
+        help="Enable ThreadX TraceX event tracing support in Appli",
+    )
 
     ui_parser = sub.add_parser("ui", help="Launch host serial visualizer")
     ui_parser.add_argument(
@@ -155,6 +161,39 @@ def main():
         help="Baud rate (default: 115200)",
     )
     ui_parser.add_argument(
+        "--timeout",
+        type=float,
+        default=2.0,
+        help="Serial read timeout in seconds (default: 2.0)",
+    )
+
+    tracex_parser = sub.add_parser("tracex", help="Request and save TraceX dump over serial")
+    tracex_parser.add_argument(
+        "port",
+        nargs="?",
+        default=None,
+        help="Serial port (optional; auto-detected if omitted)",
+    )
+    tracex_parser.add_argument(
+        "-o",
+        "--output",
+        default="tracex_dump.bin",
+        help="Output file for raw TraceX buffer (default: tracex_dump.bin)",
+    )
+    tracex_parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=256,
+        help="Requested chunk size in bytes (default: 256)",
+    )
+    tracex_parser.add_argument(
+        "-b",
+        "--baud",
+        type=int,
+        default=115200,
+        help="Baud rate (default: 115200)",
+    )
+    tracex_parser.add_argument(
         "--timeout",
         type=float,
         default=2.0,
@@ -195,11 +234,21 @@ def main():
             snapshot=snapshot_mode,
             overdrive=args.overdrive,
             camera_fps=camera_fps,
+            tracex=args.tracex,
         )
         if args.flash:
             cmd_flash(PROJECT_ROOT, build_type, PROJECT_NAME_PREFIX, force=args.force)
     elif args.command == "ui":
         cmd_ui(PROJECT_ROOT, args.port, baud=args.baud, timeout=args.timeout)
+    elif args.command == "tracex":
+        cmd_tracex_dump(
+            PROJECT_ROOT,
+            args.port,
+            args.output,
+            chunk_size=args.chunk_size,
+            baud=args.baud,
+            timeout=args.timeout,
+        )
 
 
 if __name__ == "__main__":

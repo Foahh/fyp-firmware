@@ -27,6 +27,9 @@ PB_BIND(DeviceInfo, DeviceInfo, 2)
 PB_BIND(Ack, Ack, AUTO)
 
 
+PB_BIND(TraceXChunk, TraceXChunk, 2)
+
+
 PB_BIND(SetDisplayEnabled, SetDisplayEnabled, AUTO)
 
 
@@ -34,6 +37,9 @@ PB_BIND(SetDebugOpEnabled, SetDebugOpEnabled, AUTO)
 
 
 PB_BIND(GetDeviceInfo, GetDeviceInfo, AUTO)
+
+
+PB_BIND(GetTraceXDump, GetTraceXDump, AUTO)
 
 
 PB_BIND(DeviceMessage, DeviceMessage, 2)

@@ -202,7 +202,9 @@
    code size and overhead, but provides the ability to generate system trace information which
    is available for viewing in TraceX.  */
 
-/*#define TX_ENABLE_EVENT_TRACE*/
+#ifdef TRACEX_ENABLE
+#define TX_ENABLE_EVENT_TRACE
+#endif
 
 /* Enable execution profile APIs used by CPU load measurement utility. */
 #define TX_EXECUTION_PROFILE_ENABLE

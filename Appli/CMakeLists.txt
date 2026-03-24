@@ -90,6 +90,7 @@ set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/haptic.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/power_measurement_sync.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/cpu_load.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/tracex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/bqueue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/timebase.c)
 
@@ -141,6 +142,11 @@ endif()
 option(OVERDRIVE_MODE "NPU at 1000 MHz (PLL2) and VDDCORE SCALE0; OFF = 800 MHz / SCALE1" OFF)
 if(OVERDRIVE_MODE)
   list(APPEND COMPILE_DEFINITIONS OVERDRIVE_MODE)
+endif()
+
+option(TRACEX_ENABLE "Enable ThreadX TraceX event trace collection" OFF)
+if(TRACEX_ENABLE)
+  list(APPEND COMPILE_DEFINITIONS TRACEX_ENABLE)
 endif()
 
 set(CAMERA_FPS_ALLOWED 10 15 20 25 30)

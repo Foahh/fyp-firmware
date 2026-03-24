@@ -72,6 +72,13 @@ message Ack {
   bool success = 2;
 }
 
+message TraceXChunk {
+  uint32 offset = 1;
+  uint32 total_size = 2;
+  bytes data = 3 [(nanopb).max_size = 256];
+  bool done = 4;
+}
+
 /* ============================================================================
  * Host payloads
  * ============================================================================ */
@@ -86,6 +93,10 @@ message SetDebugOpEnabled {
 
 message GetDeviceInfo {}
 
+message GetTraceXDump {
+  uint32 chunk_size = 1;
+}
+
 /* ============================================================================
  * Top-level wrappers
  * ============================================================================ */
@@ -95,6 +106,7 @@ message DeviceMessage {
     DetectionResult detection_result = 1;
     DeviceInfo device_info = 2;
     Ack ack = 3;
+    TraceXChunk tracex_chunk = 4;
   }
 }
 
@@ -104,5 +116,6 @@ message HostMessage {
     SetDisplayEnabled set_display_enabled = 2;
     GetDeviceInfo get_device_info = 3;
     SetDebugOpEnabled set_debug_op_enabled = 4;
+    GetTraceXDump get_tracex_dump = 5;
   }
 }

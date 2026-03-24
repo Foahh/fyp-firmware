@@ -97,6 +97,7 @@ def cmd_build(
     snapshot=False,
     overdrive=False,
     camera_fps=30,
+    tracex=False,
 ):
     require_tool("cmake")
 
@@ -114,6 +115,7 @@ def cmd_build(
     )
 
     appli_cmake_args.append(f"-DCAMERA_FPS={camera_fps}")
+    appli_cmake_args.append("-DTRACEX_ENABLE=ON" if tracex else "-DTRACEX_ENABLE=OFF")
 
     print(f"Building firmware (model: {model['define']}, CAMERA_FPS={camera_fps})")
 

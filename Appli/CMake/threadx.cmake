@@ -179,6 +179,22 @@ set(THREADX_SOURCES
     ${THREADX_ROOT}/utility/execution_profile_kit/tx_execution_profile.c
 )
 
+if(TRACEX_ENABLE)
+  list(APPEND THREADX_SOURCES
+      ${THREADX_ROOT}/common/src/tx_trace_initialize.c
+      ${THREADX_ROOT}/common/src/tx_trace_enable.c
+      ${THREADX_ROOT}/common/src/tx_trace_disable.c
+      ${THREADX_ROOT}/common/src/tx_trace_event_filter.c
+      ${THREADX_ROOT}/common/src/tx_trace_event_unfilter.c
+      ${THREADX_ROOT}/common/src/tx_trace_buffer_full_notify.c
+      ${THREADX_ROOT}/common/src/tx_trace_interrupt_control.c
+      ${THREADX_ROOT}/common/src/tx_trace_isr_enter_insert.c
+      ${THREADX_ROOT}/common/src/tx_trace_isr_exit_insert.c
+      ${THREADX_ROOT}/common/src/tx_trace_object_register.c
+      ${THREADX_ROOT}/common/src/tx_trace_object_unregister.c
+      ${THREADX_ROOT}/common/src/tx_trace_user_event_insert.c)
+endif()
+
 target_include_directories(
   stm32_interface
   INTERFACE
