@@ -21,7 +21,6 @@ void XSPI_Config(void);
 void LED_Config(void);
 void Button_Config(void);
 void NPU_Config(void);
-void Priority_Config(void);
 void GPIO_Config(void);
 
 /* Override __weak stubs in ll_aton npu_cache.c — names must match exactly */

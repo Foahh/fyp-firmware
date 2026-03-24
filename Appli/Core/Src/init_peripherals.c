@@ -146,20 +146,6 @@ void NPU_Config(void) {
   HAL_RAMCFG_EnableAXISRAM(&hramcfg);
 }
 
-void Priority_Config(void) {
-  uint32_t preemptPriority;
-  uint32_t subPriority;
-  IRQn_Type i;
-
-  HAL_NVIC_GetPriority(SysTick_IRQn, HAL_NVIC_GetPriorityGrouping(), &preemptPriority, &subPriority);
-  for (i = PVD_PVM_IRQn; i <= LTDC_UP_ERR_IRQn; i++) {
-    if (i == TIM2_IRQn) {
-      continue;
-    }
-    HAL_NVIC_SetPriority(i, preemptPriority, subPriority);
-  }
-}
-
 void npu_cache_enable_clocks_and_reset(void) {
   __HAL_RCC_CACHEAXIRAM_MEM_CLK_ENABLE();
   __HAL_RCC_CACHEAXI_CLK_ENABLE();

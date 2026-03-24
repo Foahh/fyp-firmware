@@ -92,8 +92,6 @@ int main(void) {
 
   CAM_Init();
 
-  Priority_Config();
-
   PWR_SyncInit();
 
   ThreadX_Init();
