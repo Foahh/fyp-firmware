@@ -5,8 +5,10 @@
 #include "tx_api.h"
 
 typedef unsigned long long cpu_load_execution_time_t;
+#ifdef TX_EXECUTION_PROFILE_ENABLE
 extern UINT _tx_execution_idle_time_reset(void);
 extern UINT _tx_execution_idle_time_get(cpu_load_execution_time_t *total_time);
+#endif
 
 /* CPU monitor thread configuration */
 #define CPU_LOAD_THREAD_STACK_SIZE 1024U
@@ -22,17 +24,24 @@ static uint32_t s_start_cycle = 0U;
 static bool s_started = false;
 
 static void cpu_load_thread_entry(ULONG arg);
+#ifdef TX_EXECUTION_PROFILE_ENABLE
 static void cpu_load_publish_snapshot(float usage_ratio);
+#endif
 
 static void cpu_load_init(void) {
   s_usage_ratio = 0.0f;
   s_start_cycle = 0U;
   s_started = false;
 
+#ifdef TX_EXECUTION_PROFILE_ENABLE
   (void)_tx_execution_idle_time_reset();
+#endif
 }
 
 bool CPU_LoadSample(void) {
+#ifndef TX_EXECUTION_PROFILE_ENABLE
+  return false;
+#else
   const uint32_t current_cycle = DWT->CYCCNT;
 
   if (!s_started) {
@@ -61,6 +70,7 @@ bool CPU_LoadSample(void) {
 
   s_start_cycle = current_cycle;
   return true;
+#endif
 }
 
 float CPU_LoadGetUsageRatio(void) {
@@ -96,6 +106,7 @@ static void cpu_load_thread_entry(ULONG arg) {
   }
 }
 
+#ifdef TX_EXECUTION_PROFILE_ENABLE
 static void cpu_load_publish_snapshot(float usage_ratio) {
   if (usage_ratio < 0.0f) {
     usage_ratio = 0.0f;
@@ -104,3 +115,4 @@ static void cpu_load_publish_snapshot(float usage_ratio) {
   }
   s_usage_ratio = usage_ratio;
 }
+#endif
