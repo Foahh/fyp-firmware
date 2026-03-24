@@ -60,7 +60,6 @@ class VisualizerState:
 
     frame_drops: int = 0
     cpu_usage_percent: float = 0.0
-    cpu_usage_mhz: float = 0.0
     cpu_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
 
     infer_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
@@ -279,7 +278,6 @@ def receiver_loop(
 
                 if result.HasField("cpu"):
                     state.cpu_usage_percent = float(result.cpu.usage_percent)
-                    state.cpu_usage_mhz = float(result.cpu.usage_mhz)
                     state.cpu_hist.append(state.cpu_usage_percent)
 
                 if result.HasField("tof"):
@@ -645,14 +643,20 @@ def create_gui(
 
         # --- CPU line chart ---
         pct = state.cpu_usage_percent
+        mcu_mhz = int(state.mcu_freq_mhz)
+        cpu_usage_mhz = (pct / 100.0) * float(mcu_mhz) if mcu_mhz > 0 else 0.0
         x_cpu = np.arange(len(state.cpu_hist))
         line_cpu.set_data(x_cpu, np.array(state.cpu_hist))
         ax_cpu.relim()
         ax_cpu.autoscale_view(scalex=True, scaley=False)
         cpu_percent_text.set_text(f"{pct:.1f}%")
-        cpu_freq_text.set_text(
-            f"MCU {state.mcu_freq_mhz}MHz\nNPU {state.npu_freq_mhz}MHz"
-        )
+        npu = int(state.npu_freq_mhz)
+        if mcu_mhz > 0:
+            cpu_freq_text.set_text(
+                f"{cpu_usage_mhz:.0f}MHz · CPU@{mcu_mhz}MHz / NPU@{npu}MHz"
+            )
+        else:
+            cpu_freq_text.set_text(f"CPU@{mcu_mhz}MHz / NPU@{npu}MHz")
 
         # --- Text ---
         status = "ALERT" if state.tof_alert else "OK"

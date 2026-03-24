@@ -8,24 +8,38 @@
 
 PB_BIND(Timing, Timing, AUTO)
 
+
 PB_BIND(Detection, Detection, AUTO)
+
 
 PB_BIND(TofAlert, TofAlert, 2)
 
+
 PB_BIND(CpuLoad, CpuLoad, AUTO)
+
 
 PB_BIND(DetectionResult, DetectionResult, 2)
 
+
 PB_BIND(DeviceInfo, DeviceInfo, 2)
+
 
 PB_BIND(Ack, Ack, AUTO)
 
+
 PB_BIND(SetDisplayEnabled, SetDisplayEnabled, AUTO)
+
 
 PB_BIND(SetDebugOpEnabled, SetDebugOpEnabled, AUTO)
 
+
 PB_BIND(GetDeviceInfo, GetDeviceInfo, AUTO)
+
 
 PB_BIND(DeviceMessage, DeviceMessage, 2)
 
+
 PB_BIND(HostMessage, HostMessage, AUTO)
+
+
+

@@ -11,308 +11,286 @@
 
 /* Struct definitions */
 typedef struct _Timing {
-  uint32_t inference_ms;
-  uint32_t postprocess_ms;
-  uint32_t nn_period_ms;
-  uint32_t frame_drops;
+    uint32_t inference_ms;
+    uint32_t postprocess_ms;
+    uint32_t nn_period_ms;
+    uint32_t frame_drops;
 } Timing;
 
 typedef struct _Detection {
-  float x_center;
-  float y_center;
-  float width;
-  float height;
-  float conf;
-  int32_t class_index;
+    float x_center;
+    float y_center;
+    float width;
+    float height;
+    float conf;
+    int32_t class_index;
 } Detection;
 
 typedef struct _TofAlert {
-  uint32_t hand_distance_mm;
-  uint32_t hazard_distance_mm;
-  bool alert;
-  float distance_3d_mm;
-  bool stale;
-  pb_size_t depth_grid_count;
-  int32_t depth_grid[64];
+    uint32_t hand_distance_mm;
+    uint32_t hazard_distance_mm;
+    bool alert;
+    float distance_3d_mm;
+    bool stale;
+    pb_size_t depth_grid_count;
+    int32_t depth_grid[64];
 } TofAlert;
 
 typedef struct _CpuLoad {
-  float usage_percent;
-  float usage_mhz;
+    float usage_percent;
 } CpuLoad;
 
 typedef struct _DetectionResult {
-  uint32_t timestamp;
-  bool has_timing;
-  Timing timing;
-  pb_size_t detections_count;
-  Detection detections[10];
-  bool has_tof;
-  TofAlert tof;
-  bool has_cpu;
-  CpuLoad cpu;
+    uint32_t timestamp;
+    bool has_timing;
+    Timing timing;
+    pb_size_t detections_count;
+    Detection detections[10];
+    bool has_tof;
+    TofAlert tof;
+    bool has_cpu;
+    CpuLoad cpu;
 } DetectionResult;
 
 typedef struct _DeviceInfo {
-  uint32_t display_width;
-  uint32_t display_height;
-  uint32_t letterbox_width;
-  uint32_t letterbox_height;
-  uint32_t nn_width;
-  uint32_t nn_height;
-  char model_name[64];
-  pb_size_t class_labels_count;
-  char class_labels[10][32];
-  uint32_t command_id;
-  uint32_t nn_input_size_bytes;
-  bool overdrive_mode;
-  uint32_t camera_fps;
-  uint32_t mcu_freq_mhz;
-  uint32_t npu_freq_mhz;
+    uint32_t display_width;
+    uint32_t display_height;
+    uint32_t letterbox_width;
+    uint32_t letterbox_height;
+    uint32_t nn_width;
+    uint32_t nn_height;
+    char model_name[64];
+    pb_size_t class_labels_count;
+    char class_labels[10][32];
+    uint32_t command_id;
+    uint32_t nn_input_size_bytes;
+    bool overdrive_mode;
+    uint32_t camera_fps;
+    uint32_t mcu_freq_mhz;
+    uint32_t npu_freq_mhz;
 } DeviceInfo;
 
 typedef struct _Ack {
-  uint32_t command_id;
-  bool success;
+    uint32_t command_id;
+    bool success;
 } Ack;
 
 typedef struct _SetDisplayEnabled {
-  bool enabled;
+    bool enabled;
 } SetDisplayEnabled;
 
 typedef struct _SetDebugOpEnabled {
-  bool enabled;
+    bool enabled;
 } SetDebugOpEnabled;
 
 typedef struct _GetDeviceInfo {
-  char dummy_field;
+    char dummy_field;
 } GetDeviceInfo;
 
 typedef struct _DeviceMessage {
-  pb_size_t which_payload;
-  union _DeviceMessage_payload {
-    DetectionResult detection_result;
-    DeviceInfo device_info;
-    Ack ack;
-  } payload;
+    pb_size_t which_payload;
+    union _DeviceMessage_payload {
+        DetectionResult detection_result;
+        DeviceInfo device_info;
+        Ack ack;
+    } payload;
 } DeviceMessage;
 
 typedef struct _HostMessage {
-  uint32_t command_id;
-  pb_size_t which_command;
-  union _HostMessage_command {
-    SetDisplayEnabled set_display_enabled;
-    GetDeviceInfo get_device_info;
-    SetDebugOpEnabled set_debug_op_enabled;
-  } command;
+    uint32_t command_id;
+    pb_size_t which_command;
+    union _HostMessage_command {
+        SetDisplayEnabled set_display_enabled;
+        GetDeviceInfo get_device_info;
+        SetDebugOpEnabled set_debug_op_enabled;
+    } command;
 } HostMessage;
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Initializer values for message structs */
-#define Timing_init_default            {0, 0, 0, 0}
-#define Detection_init_default         {0, 0, 0, 0, 0, 0}
-#define TofAlert_init_default          {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
-#define CpuLoad_init_default           {0, 0}
-#define DetectionResult_init_default   {0, false, Timing_init_default, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, false, TofAlert_init_default, false, CpuLoad_init_default}
-#define DeviceInfo_init_default        {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0}
-#define Ack_init_default               {0, 0}
-#define SetDisplayEnabled_init_default {0}
-#define SetDebugOpEnabled_init_default {0}
-#define GetDeviceInfo_init_default     {0}
-#define DeviceMessage_init_default \
-  {                                \
-    0, {                           \
-      DetectionResult_init_default \
-    }                              \
-  }
-#define HostMessage_init_default     \
-  {                                  \
-    0, 0, {                          \
-      SetDisplayEnabled_init_default \
-    }                                \
-  }
-#define Timing_init_zero            {0, 0, 0, 0}
-#define Detection_init_zero         {0, 0, 0, 0, 0, 0}
-#define TofAlert_init_zero          {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
-#define CpuLoad_init_zero           {0, 0}
-#define DetectionResult_init_zero   {0, false, Timing_init_zero, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, false, TofAlert_init_zero, false, CpuLoad_init_zero}
-#define DeviceInfo_init_zero        {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0}
-#define Ack_init_zero               {0, 0}
-#define SetDisplayEnabled_init_zero {0}
-#define SetDebugOpEnabled_init_zero {0}
-#define GetDeviceInfo_init_zero     {0}
-#define DeviceMessage_init_zero \
-  {                             \
-    0, {                        \
-      DetectionResult_init_zero \
-    }                           \
-  }
-#define HostMessage_init_zero     \
-  {                               \
-    0, 0, {                       \
-      SetDisplayEnabled_init_zero \
-    }                             \
-  }
+#define Timing_init_default                      {0, 0, 0, 0}
+#define Detection_init_default                   {0, 0, 0, 0, 0, 0}
+#define TofAlert_init_default                    {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
+#define CpuLoad_init_default                     {0}
+#define DetectionResult_init_default             {0, false, Timing_init_default, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, false, TofAlert_init_default, false, CpuLoad_init_default}
+#define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0}
+#define Ack_init_default                         {0, 0}
+#define SetDisplayEnabled_init_default           {0}
+#define SetDebugOpEnabled_init_default           {0}
+#define GetDeviceInfo_init_default               {0}
+#define DeviceMessage_init_default               {0, {DetectionResult_init_default}}
+#define HostMessage_init_default                 {0, 0, {SetDisplayEnabled_init_default}}
+#define Timing_init_zero                         {0, 0, 0, 0}
+#define Detection_init_zero                      {0, 0, 0, 0, 0, 0}
+#define TofAlert_init_zero                       {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
+#define CpuLoad_init_zero                        {0}
+#define DetectionResult_init_zero                {0, false, Timing_init_zero, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, false, TofAlert_init_zero, false, CpuLoad_init_zero}
+#define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0}
+#define Ack_init_zero                            {0, 0}
+#define SetDisplayEnabled_init_zero              {0}
+#define SetDebugOpEnabled_init_zero              {0}
+#define GetDeviceInfo_init_zero                  {0}
+#define DeviceMessage_init_zero                  {0, {DetectionResult_init_zero}}
+#define HostMessage_init_zero                    {0, 0, {SetDisplayEnabled_init_zero}}
 
 /* Field tags (for use in manual encoding/decoding) */
-#define Timing_inference_ms_tag              1
-#define Timing_postprocess_ms_tag            2
-#define Timing_nn_period_ms_tag              3
-#define Timing_frame_drops_tag               4
-#define Detection_x_center_tag               1
-#define Detection_y_center_tag               2
-#define Detection_width_tag                  3
-#define Detection_height_tag                 4
-#define Detection_conf_tag                   5
-#define Detection_class_index_tag            6
-#define TofAlert_hand_distance_mm_tag        1
-#define TofAlert_hazard_distance_mm_tag      2
-#define TofAlert_alert_tag                   3
-#define TofAlert_distance_3d_mm_tag          4
-#define TofAlert_stale_tag                   5
-#define TofAlert_depth_grid_tag              6
-#define CpuLoad_usage_percent_tag            1
-#define CpuLoad_usage_mhz_tag                2
-#define DetectionResult_timestamp_tag        1
-#define DetectionResult_timing_tag           2
-#define DetectionResult_detections_tag       3
-#define DetectionResult_tof_tag              5
-#define DetectionResult_cpu_tag              6
-#define DeviceInfo_display_width_tag         1
-#define DeviceInfo_display_height_tag        2
-#define DeviceInfo_letterbox_width_tag       3
-#define DeviceInfo_letterbox_height_tag      4
-#define DeviceInfo_nn_width_tag              5
-#define DeviceInfo_nn_height_tag             6
-#define DeviceInfo_model_name_tag            7
-#define DeviceInfo_class_labels_tag          8
-#define DeviceInfo_command_id_tag            9
-#define DeviceInfo_nn_input_size_bytes_tag   10
-#define DeviceInfo_overdrive_mode_tag        11
-#define DeviceInfo_camera_fps_tag            12
-#define DeviceInfo_mcu_freq_mhz_tag          13
-#define DeviceInfo_npu_freq_mhz_tag          14
-#define Ack_command_id_tag                   1
-#define Ack_success_tag                      2
-#define SetDisplayEnabled_enabled_tag        1
-#define SetDebugOpEnabled_enabled_tag        1
-#define DeviceMessage_detection_result_tag   1
-#define DeviceMessage_device_info_tag        2
-#define DeviceMessage_ack_tag                3
-#define HostMessage_command_id_tag           1
-#define HostMessage_set_display_enabled_tag  2
-#define HostMessage_get_device_info_tag      3
-#define HostMessage_set_debug_op_enabled_tag 4
+#define Timing_inference_ms_tag                  1
+#define Timing_postprocess_ms_tag                2
+#define Timing_nn_period_ms_tag                  3
+#define Timing_frame_drops_tag                   4
+#define Detection_x_center_tag                   1
+#define Detection_y_center_tag                   2
+#define Detection_width_tag                      3
+#define Detection_height_tag                     4
+#define Detection_conf_tag                       5
+#define Detection_class_index_tag                6
+#define TofAlert_hand_distance_mm_tag            1
+#define TofAlert_hazard_distance_mm_tag          2
+#define TofAlert_alert_tag                       3
+#define TofAlert_distance_3d_mm_tag              4
+#define TofAlert_stale_tag                       5
+#define TofAlert_depth_grid_tag                  6
+#define CpuLoad_usage_percent_tag                1
+#define DetectionResult_timestamp_tag            1
+#define DetectionResult_timing_tag               2
+#define DetectionResult_detections_tag           3
+#define DetectionResult_tof_tag                  5
+#define DetectionResult_cpu_tag                  6
+#define DeviceInfo_display_width_tag             1
+#define DeviceInfo_display_height_tag            2
+#define DeviceInfo_letterbox_width_tag           3
+#define DeviceInfo_letterbox_height_tag          4
+#define DeviceInfo_nn_width_tag                  5
+#define DeviceInfo_nn_height_tag                 6
+#define DeviceInfo_model_name_tag                7
+#define DeviceInfo_class_labels_tag              8
+#define DeviceInfo_command_id_tag                9
+#define DeviceInfo_nn_input_size_bytes_tag       10
+#define DeviceInfo_overdrive_mode_tag            11
+#define DeviceInfo_camera_fps_tag                12
+#define DeviceInfo_mcu_freq_mhz_tag              13
+#define DeviceInfo_npu_freq_mhz_tag              14
+#define Ack_command_id_tag                       1
+#define Ack_success_tag                          2
+#define SetDisplayEnabled_enabled_tag            1
+#define SetDebugOpEnabled_enabled_tag            1
+#define DeviceMessage_detection_result_tag       1
+#define DeviceMessage_device_info_tag            2
+#define DeviceMessage_ack_tag                    3
+#define HostMessage_command_id_tag               1
+#define HostMessage_set_display_enabled_tag      2
+#define HostMessage_get_device_info_tag          3
+#define HostMessage_set_debug_op_enabled_tag     4
 
 /* Struct field encoding specification for nanopb */
-#define Timing_FIELDLIST(X, a)                      \
-  X(a, STATIC, SINGULAR, UINT32, inference_ms, 1)   \
-  X(a, STATIC, SINGULAR, UINT32, postprocess_ms, 2) \
-  X(a, STATIC, SINGULAR, UINT32, nn_period_ms, 3)   \
-  X(a, STATIC, SINGULAR, UINT32, frame_drops, 4)
+#define Timing_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   inference_ms,      1) \
+X(a, STATIC,   SINGULAR, UINT32,   postprocess_ms,    2) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_period_ms,      3) \
+X(a, STATIC,   SINGULAR, UINT32,   frame_drops,       4)
 #define Timing_CALLBACK NULL
-#define Timing_DEFAULT  NULL
+#define Timing_DEFAULT NULL
 
-#define Detection_FIELDLIST(X, a)            \
-  X(a, STATIC, SINGULAR, FLOAT, x_center, 1) \
-  X(a, STATIC, SINGULAR, FLOAT, y_center, 2) \
-  X(a, STATIC, SINGULAR, FLOAT, width, 3)    \
-  X(a, STATIC, SINGULAR, FLOAT, height, 4)   \
-  X(a, STATIC, SINGULAR, FLOAT, conf, 5)     \
-  X(a, STATIC, SINGULAR, INT32, class_index, 6)
+#define Detection_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, FLOAT,    x_center,          1) \
+X(a, STATIC,   SINGULAR, FLOAT,    y_center,          2) \
+X(a, STATIC,   SINGULAR, FLOAT,    width,             3) \
+X(a, STATIC,   SINGULAR, FLOAT,    height,            4) \
+X(a, STATIC,   SINGULAR, FLOAT,    conf,              5) \
+X(a, STATIC,   SINGULAR, INT32,    class_index,       6)
 #define Detection_CALLBACK NULL
-#define Detection_DEFAULT  NULL
+#define Detection_DEFAULT NULL
 
-#define TofAlert_FIELDLIST(X, a)                        \
-  X(a, STATIC, SINGULAR, UINT32, hand_distance_mm, 1)   \
-  X(a, STATIC, SINGULAR, UINT32, hazard_distance_mm, 2) \
-  X(a, STATIC, SINGULAR, BOOL, alert, 3)                \
-  X(a, STATIC, SINGULAR, FLOAT, distance_3d_mm, 4)      \
-  X(a, STATIC, SINGULAR, BOOL, stale, 5)                \
-  X(a, STATIC, REPEATED, INT32, depth_grid, 6)
+#define TofAlert_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   hand_distance_mm,   1) \
+X(a, STATIC,   SINGULAR, UINT32,   hazard_distance_mm,   2) \
+X(a, STATIC,   SINGULAR, BOOL,     alert,             3) \
+X(a, STATIC,   SINGULAR, FLOAT,    distance_3d_mm,    4) \
+X(a, STATIC,   SINGULAR, BOOL,     stale,             5) \
+X(a, STATIC,   REPEATED, INT32,    depth_grid,        6)
 #define TofAlert_CALLBACK NULL
-#define TofAlert_DEFAULT  NULL
+#define TofAlert_DEFAULT NULL
 
-#define CpuLoad_FIELDLIST(X, a)                   \
-  X(a, STATIC, SINGULAR, FLOAT, usage_percent, 1) \
-  X(a, STATIC, SINGULAR, FLOAT, usage_mhz, 2)
+#define CpuLoad_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, FLOAT,    usage_percent,     1)
 #define CpuLoad_CALLBACK NULL
-#define CpuLoad_DEFAULT  NULL
+#define CpuLoad_DEFAULT NULL
 
-#define DetectionResult_FIELDLIST(X, a)          \
-  X(a, STATIC, SINGULAR, UINT32, timestamp, 1)   \
-  X(a, STATIC, OPTIONAL, MESSAGE, timing, 2)     \
-  X(a, STATIC, REPEATED, MESSAGE, detections, 3) \
-  X(a, STATIC, OPTIONAL, MESSAGE, tof, 5)        \
-  X(a, STATIC, OPTIONAL, MESSAGE, cpu, 6)
-#define DetectionResult_CALLBACK           NULL
-#define DetectionResult_DEFAULT            NULL
-#define DetectionResult_timing_MSGTYPE     Timing
+#define DetectionResult_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   timestamp,         1) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  timing,            2) \
+X(a, STATIC,   REPEATED, MESSAGE,  detections,        3) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  tof,               5) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  cpu,               6)
+#define DetectionResult_CALLBACK NULL
+#define DetectionResult_DEFAULT NULL
+#define DetectionResult_timing_MSGTYPE Timing
 #define DetectionResult_detections_MSGTYPE Detection
-#define DetectionResult_tof_MSGTYPE        TofAlert
-#define DetectionResult_cpu_MSGTYPE        CpuLoad
+#define DetectionResult_tof_MSGTYPE TofAlert
+#define DetectionResult_cpu_MSGTYPE CpuLoad
 
-#define DeviceInfo_FIELDLIST(X, a)                        \
-  X(a, STATIC, SINGULAR, UINT32, display_width, 1)        \
-  X(a, STATIC, SINGULAR, UINT32, display_height, 2)       \
-  X(a, STATIC, SINGULAR, UINT32, letterbox_width, 3)      \
-  X(a, STATIC, SINGULAR, UINT32, letterbox_height, 4)     \
-  X(a, STATIC, SINGULAR, UINT32, nn_width, 5)             \
-  X(a, STATIC, SINGULAR, UINT32, nn_height, 6)            \
-  X(a, STATIC, SINGULAR, STRING, model_name, 7)           \
-  X(a, STATIC, REPEATED, STRING, class_labels, 8)         \
-  X(a, STATIC, SINGULAR, UINT32, command_id, 9)           \
-  X(a, STATIC, SINGULAR, UINT32, nn_input_size_bytes, 10) \
-  X(a, STATIC, SINGULAR, BOOL, overdrive_mode, 11)        \
-  X(a, STATIC, SINGULAR, UINT32, camera_fps, 12)          \
-  X(a, STATIC, SINGULAR, UINT32, mcu_freq_mhz, 13)        \
-  X(a, STATIC, SINGULAR, UINT32, npu_freq_mhz, 14)
+#define DeviceInfo_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   display_width,     1) \
+X(a, STATIC,   SINGULAR, UINT32,   display_height,    2) \
+X(a, STATIC,   SINGULAR, UINT32,   letterbox_width,   3) \
+X(a, STATIC,   SINGULAR, UINT32,   letterbox_height,   4) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_width,          5) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_height,         6) \
+X(a, STATIC,   SINGULAR, STRING,   model_name,        7) \
+X(a, STATIC,   REPEATED, STRING,   class_labels,      8) \
+X(a, STATIC,   SINGULAR, UINT32,   command_id,        9) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_input_size_bytes,  10) \
+X(a, STATIC,   SINGULAR, BOOL,     overdrive_mode,   11) \
+X(a, STATIC,   SINGULAR, UINT32,   camera_fps,       12) \
+X(a, STATIC,   SINGULAR, UINT32,   mcu_freq_mhz,     13) \
+X(a, STATIC,   SINGULAR, UINT32,   npu_freq_mhz,     14)
 #define DeviceInfo_CALLBACK NULL
-#define DeviceInfo_DEFAULT  NULL
+#define DeviceInfo_DEFAULT NULL
 
-#define Ack_FIELDLIST(X, a)                     \
-  X(a, STATIC, SINGULAR, UINT32, command_id, 1) \
-  X(a, STATIC, SINGULAR, BOOL, success, 2)
+#define Ack_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   command_id,        1) \
+X(a, STATIC,   SINGULAR, BOOL,     success,           2)
 #define Ack_CALLBACK NULL
-#define Ack_DEFAULT  NULL
+#define Ack_DEFAULT NULL
 
 #define SetDisplayEnabled_FIELDLIST(X, a) \
-  X(a, STATIC, SINGULAR, BOOL, enabled, 1)
+X(a, STATIC,   SINGULAR, BOOL,     enabled,           1)
 #define SetDisplayEnabled_CALLBACK NULL
-#define SetDisplayEnabled_DEFAULT  NULL
+#define SetDisplayEnabled_DEFAULT NULL
 
 #define SetDebugOpEnabled_FIELDLIST(X, a) \
-  X(a, STATIC, SINGULAR, BOOL, enabled, 1)
+X(a, STATIC,   SINGULAR, BOOL,     enabled,           1)
 #define SetDebugOpEnabled_CALLBACK NULL
-#define SetDebugOpEnabled_DEFAULT  NULL
+#define SetDebugOpEnabled_DEFAULT NULL
 
-#define GetDeviceInfo_FIELDLIST(X, a)
+#define GetDeviceInfo_FIELDLIST(X, a) \
 
 #define GetDeviceInfo_CALLBACK NULL
-#define GetDeviceInfo_DEFAULT  NULL
+#define GetDeviceInfo_DEFAULT NULL
 
-#define DeviceMessage_FIELDLIST(X, a)                                                    \
-  X(a, STATIC, ONEOF, MESSAGE, (payload, detection_result, payload.detection_result), 1) \
-  X(a, STATIC, ONEOF, MESSAGE, (payload, device_info, payload.device_info), 2)           \
-  X(a, STATIC, ONEOF, MESSAGE, (payload, ack, payload.ack), 3)
-#define DeviceMessage_CALLBACK                         NULL
-#define DeviceMessage_DEFAULT                          NULL
+#define DeviceMessage_FIELDLIST(X, a) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (payload,detection_result,payload.detection_result),   1) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (payload,device_info,payload.device_info),   2) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (payload,ack,payload.ack),   3)
+#define DeviceMessage_CALLBACK NULL
+#define DeviceMessage_DEFAULT NULL
 #define DeviceMessage_payload_detection_result_MSGTYPE DetectionResult
-#define DeviceMessage_payload_device_info_MSGTYPE      DeviceInfo
-#define DeviceMessage_payload_ack_MSGTYPE              Ack
+#define DeviceMessage_payload_device_info_MSGTYPE DeviceInfo
+#define DeviceMessage_payload_ack_MSGTYPE Ack
 
-#define HostMessage_FIELDLIST(X, a)                                                            \
-  X(a, STATIC, SINGULAR, UINT32, command_id, 1)                                                \
-  X(a, STATIC, ONEOF, MESSAGE, (command, set_display_enabled, command.set_display_enabled), 2) \
-  X(a, STATIC, ONEOF, MESSAGE, (command, get_device_info, command.get_device_info), 3)         \
-  X(a, STATIC, ONEOF, MESSAGE, (command, set_debug_op_enabled, command.set_debug_op_enabled), 4)
-#define HostMessage_CALLBACK                             NULL
-#define HostMessage_DEFAULT                              NULL
-#define HostMessage_command_set_display_enabled_MSGTYPE  SetDisplayEnabled
-#define HostMessage_command_get_device_info_MSGTYPE      GetDeviceInfo
+#define HostMessage_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   command_id,        1) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (command,set_display_enabled,command.set_display_enabled),   2) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (command,get_device_info,command.get_device_info),   3) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (command,set_debug_op_enabled,command.set_debug_op_enabled),   4)
+#define HostMessage_CALLBACK NULL
+#define HostMessage_DEFAULT NULL
+#define HostMessage_command_set_display_enabled_MSGTYPE SetDisplayEnabled
+#define HostMessage_command_get_device_info_MSGTYPE GetDeviceInfo
 #define HostMessage_command_set_debug_op_enabled_MSGTYPE SetDebugOpEnabled
 
 extern const pb_msgdesc_t Timing_msg;
@@ -329,33 +307,33 @@ extern const pb_msgdesc_t DeviceMessage_msg;
 extern const pb_msgdesc_t HostMessage_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
-#define Timing_fields            &Timing_msg
-#define Detection_fields         &Detection_msg
-#define TofAlert_fields          &TofAlert_msg
-#define CpuLoad_fields           &CpuLoad_msg
-#define DetectionResult_fields   &DetectionResult_msg
-#define DeviceInfo_fields        &DeviceInfo_msg
-#define Ack_fields               &Ack_msg
+#define Timing_fields &Timing_msg
+#define Detection_fields &Detection_msg
+#define TofAlert_fields &TofAlert_msg
+#define CpuLoad_fields &CpuLoad_msg
+#define DetectionResult_fields &DetectionResult_msg
+#define DeviceInfo_fields &DeviceInfo_msg
+#define Ack_fields &Ack_msg
 #define SetDisplayEnabled_fields &SetDisplayEnabled_msg
 #define SetDebugOpEnabled_fields &SetDebugOpEnabled_msg
-#define GetDeviceInfo_fields     &GetDeviceInfo_msg
-#define DeviceMessage_fields     &DeviceMessage_msg
-#define HostMessage_fields       &HostMessage_msg
+#define GetDeviceInfo_fields &GetDeviceInfo_msg
+#define DeviceMessage_fields &DeviceMessage_msg
+#define HostMessage_fields &HostMessage_msg
 
 /* Maximum encoded size of messages (where known) */
-#define Ack_size               8
-#define CpuLoad_size           10
-#define DetectionResult_size   1152
-#define Detection_size         36
-#define DeviceInfo_size        463
-#define DeviceMessage_size     1155
-#define GetDeviceInfo_size     0
-#define HostMessage_size       10
-#define MESSAGES_PB_H_MAX_SIZE DeviceMessage_size
-#define SetDebugOpEnabled_size 2
-#define SetDisplayEnabled_size 2
-#define Timing_size            24
-#define TofAlert_size          725
+#define Ack_size                                 8
+#define CpuLoad_size                             5
+#define DetectionResult_size                     1147
+#define Detection_size                           36
+#define DeviceInfo_size                          463
+#define DeviceMessage_size                       1150
+#define GetDeviceInfo_size                       0
+#define HostMessage_size                         10
+#define MESSAGES_PB_H_MAX_SIZE                   DeviceMessage_size
+#define SetDebugOpEnabled_size                   2
+#define SetDisplayEnabled_size                   2
+#define Timing_size                              24
+#define TofAlert_size                            725
 
 #ifdef __cplusplus
 } /* extern "C" */
