@@ -59,10 +59,6 @@ int main(void) {
 
   HAL_Init();
 
-#ifdef DEBUG
-  PeripheralResetAll_Config();
-#endif
-
   SMPS_Config();
 
   SystemClock_Config();

@@ -28,10 +28,6 @@ void GPIO_Config(void);
 void npu_cache_enable_clocks_and_reset(void);
 void npu_cache_disable_clocks_and_reset(void);
 
-#ifdef DEBUG
-void PeripheralResetAll_Config(void);
-#endif
-
 #if (USE_BSP_COM_FEATURE > 0)
 void COM_Config(void);
 #endif
