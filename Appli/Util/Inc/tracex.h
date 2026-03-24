@@ -1,11 +1,12 @@
 #ifndef TRACEX_H
 #define TRACEX_H
 
-#ifdef TRACEX_ENABLE
-#include "tx_port.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#ifdef TRACEX_ENABLE
+#include "tx_port.h"
 
 #define TRACEX_BUFFER_SIZE_BYTES (64U * 1024U)
 extern ULONG g_tracex_buffer[TRACEX_BUFFER_SIZE_BYTES / sizeof(ULONG)];
