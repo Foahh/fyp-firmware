@@ -85,7 +85,7 @@ static volatile uint8_t g_tof_overlay_visible = 0;
 #define UI_THREAD_PRIORITY   9
 
 /* Update rate for periodic diagnostic updates */
-#define UI_UPDATE_FPS 30
+#define UI_UPDATE_FPS 20
 
 /* Calculate sleep ticks from FPS */
 #define UI_UPDATE_SLEEP_TICKS (TX_TIMER_TICKS_PER_SECOND / UI_UPDATE_FPS)
@@ -127,6 +127,10 @@ static void ui_thread_entry(ULONG arg) {
   /* Get NN crop ROI (constant after initialization) */
   roi_info = CAM_GetDisplayROI();
 
+  /* Track whether previous frame had detections (for conditional clear) */
+  uint8_t prev_had_detections = 0;
+  uint8_t prev_tof_overlay_visible = 0;
+
   /* Setup LCD context */
   UI_SetupLCDContext();
 
@@ -155,10 +159,19 @@ static void ui_thread_entry(ULONG arg) {
     /* Draw diagnostic panel background (left side) */
     UI_DrawPanelBackground();
 
-    /* Clear detection overlay area */
-    UTIL_LCD_FillRect(DISPLAY_LETTERBOX_X0, 0,
-                      DISPLAY_LETTERBOX_WIDTH, DISPLAY_LETTERBOX_HEIGHT,
-                      0x00000000);
+    /* Clear detection overlay area only when needed */
+    uint8_t cur_has_detections =
+        (det_info != NULL && det_info->nb_detect > 0) ? 1 : 0;
+    uint8_t cur_tof_overlay_visible = g_tof_overlay_visible ? 1 : 0;
+
+    /* Also clear when TOF overlay is/was visible to avoid stale pixels
+     * when user toggles the overlay while no detections are present. */
+    if (cur_has_detections || prev_had_detections ||
+        cur_tof_overlay_visible || prev_tof_overlay_visible) {
+      UTIL_LCD_FillRect(DISPLAY_LETTERBOX_X0, 0,
+                        DISPLAY_LETTERBOX_WIDTH, DISPLAY_LETTERBOX_HEIGHT,
+                        0x00000000);
+    }
 
     /* Draw panel text (may extend into camera area) */
     UI_DrawHeader();
@@ -186,12 +199,15 @@ static void ui_thread_entry(ULONG arg) {
     UI_DrawCpuLoadSection();
 
     /* Draw depth grid (toggled by user button) */
-    if (g_tof_overlay_visible) {
+    if (cur_tof_overlay_visible) {
       const tof_depth_grid_t *depth_grid = TOF_GetDepthGrid();
       if (depth_grid->valid) {
         UI_DrawDepthGrid(depth_grid, roi_info);
       }
     }
+
+    prev_had_detections = cur_has_detections;
+    prev_tof_overlay_visible = cur_tof_overlay_visible;
 
     /* Swap buffers and reload display */
     Buffer_SetUIDisplayIndex(Buffer_GetNextUIDisplayIndex());
