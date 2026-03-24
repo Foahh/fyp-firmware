@@ -126,7 +126,7 @@ Two lock-free patterns are used for single-writer / multi-reader data sharing. D
 
 **Seqlock (for small copied structs)** — Used when readers must get a fully coherent snapshot. Writer increments a sequence counter (odd = in-progress, even = stable) with `__DMB()` barriers. Reader retries if it observes an odd or changed sequence. Used by: `nn_thread.c` (nn_timing_t, 12B).
 
-**Volatile scalar + DMB** — For a single published value, `cpu_load.c` uses `volatile float` with `__DMB()` on writer after store and on reader before load.
+**Volatile scalar + DMB** — For a single published value, a `volatile` scalar with `__DMB()` on writer after store and on reader before load can publish one coherent value to readers.
 
 ```
 Writer:                         Reader:
