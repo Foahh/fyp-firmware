@@ -64,11 +64,13 @@ class VisualizerState:
     frame_drops: int = 0
     cpu_usage_percent: float = 0.0
     cpu_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
+    cpu_time_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
 
     infer_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
     post_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
     period_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
     fps_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
+    timing_time_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
 
     hand_mm: int = 0
     hazard_mm: int = 0
@@ -91,8 +93,10 @@ class VisualizerState:
     power_idle_avg_mw: float = 0.0
     power_infer_energy_uj: float = 0.0
     power_infer_duration_ms: float = 0.0
-    power_hist_mw: deque[float] = field(default_factory=lambda: deque(maxlen=240))
-    in_inference_hist: deque[bool] = field(default_factory=lambda: deque(maxlen=240))
+    power_infer_hist_mw: deque[float] = field(default_factory=lambda: deque(maxlen=240))
+    power_infer_time_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
+    power_idle_hist_mw: deque[float] = field(default_factory=lambda: deque(maxlen=240))
+    power_idle_time_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
 
 
 class SerialLink:
@@ -134,6 +138,7 @@ class SerialLink:
             try:
                 msg.ParseFromString(payload)
             except Exception as exc:
+                print(f"[firmware] Protobuf parse error: {exc}", file=sys.stderr)
                 del self._rx_buf[0]
                 continue
 
@@ -188,7 +193,8 @@ class PowerLink:
             sample = power_sample_pb2.PowerSample()
             try:
                 sample.ParseFromString(payload)
-            except Exception:
+            except Exception as exc:
+                print(f"[power] Protobuf parse error: {exc}", file=sys.stderr)
                 continue
             return sample
 
@@ -262,15 +268,18 @@ def receiver_loop(
                 if result.HasField("timing"):
                     period_ms = float(result.timing.nn_period_ms)
                     fps = (1000.0 / period_ms) if period_ms > 0.0 else 0.0
+                    now = time.time()
                     state.infer_hist.append(float(result.timing.inference_ms))
                     state.post_hist.append(float(result.timing.postprocess_ms))
                     state.period_hist.append(period_ms)
                     state.fps_hist.append(fps)
+                    state.timing_time_hist.append(now)
                     state.frame_drops = int(result.timing.frame_drops)
 
                 if result.HasField("cpu"):
                     state.cpu_usage_percent = float(result.cpu.usage_percent)
                     state.cpu_hist.append(state.cpu_usage_percent)
+                    state.cpu_time_hist.append(time.time())
 
                 if result.HasField("tof"):
                     tof = result.tof
@@ -329,6 +338,7 @@ def receiver_loop(
         except Exception as exc:  # Broad catch keeps GUI alive while cable reconnects.
             state.last_error = str(exc)
             state.firmware_connected = False
+            print(f"[firmware] Error: {exc}", file=sys.stderr)
             if link is not None:
                 try:
                     link.close()
@@ -363,19 +373,23 @@ def power_receiver_loop(
             duration_us = float(sample.duration_us)
             is_inference = bool(sample.is_inference)
 
-            state.power_hist_mw.append(avg_mw)
-            state.in_inference_hist.append(is_inference)
             state.power_in_inference = is_inference
+            now = time.time()
 
             if is_inference:
+                state.power_infer_hist_mw.append(avg_mw)
+                state.power_infer_time_hist.append(now)
                 state.power_infer_avg_mw = avg_mw
                 state.power_infer_duration_ms = duration_us / 1000.0
                 state.power_infer_energy_uj = avg_mw * duration_us / 1000.0
             else:
+                state.power_idle_hist_mw.append(avg_mw)
+                state.power_idle_time_hist.append(now)
                 state.power_idle_avg_mw = avg_mw
         except Exception as exc:  # Keep GUI alive if power monitor disconnects.
             state.last_power_error = str(exc)
             state.power_connected = False
+            print(f"[power] Error: {exc}", file=sys.stderr)
             if power_link is not None:
                 try:
                     power_link.close()
@@ -385,58 +399,109 @@ def power_receiver_loop(
             time.sleep(0.5)
 
 
+def _style_axis(ax, bg: str) -> None:
+    """Apply consistent professional styling to an axes."""
+    ax.set_facecolor(bg)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    for spine in ("bottom", "left"):
+        ax.spines[spine].set_color("#3a3a5c")
+    ax.tick_params(colors="#b0b0c8", labelsize=9)
+    ax.grid(True, linestyle=":", alpha=0.15, color="white")
+
+
+def _legend(ax, bg: str) -> None:
+    """Add a clean legend to an axes."""
+    leg = ax.legend(loc="upper left", fontsize=9, framealpha=0.85, edgecolor="none", facecolor=bg)
+    for text in leg.get_texts():
+        text.set_color("#d0d0e0")
+
+
 def create_gui(
     state: VisualizerState,
     cmd_queue: Queue[tuple[str, Optional[bool]]],
-) -> tuple[plt.Figure, FuncAnimation]:
+) -> tuple[list[plt.Figure], list[FuncAnimation]]:
+    # --- Theme constants ---
+    C_FIG_BG = "#000000"
+    C_AX_BG = "#0a0a14"
+    C_TEXT = "#d8d8e8"
+    C_TITLE = "#e8e8f0"
+    C_ACCENT = "#ED7D31"
+    C_INFER = "#5B9BD5"
+    C_PERIOD = "#ED7D31"
+    C_POWER_INF = "#E06666"
+    C_POWER_IDLE = "#5B9BD5"
+    C_CPU = "#6AA84F"
+    LW = 2.2
+
     plt.style.use("dark_background")
-    fig = plt.figure("FYP Firmware Serial Visualizer", figsize=(14, 9))
-    if hasattr(fig.canvas.manager, "set_window_title"):
-        fig.canvas.manager.set_window_title("FYP Firmware Serial Visualizer")
+    plt.rcParams.update({
+        "font.size": 10,
+        "axes.titlesize": 13,
+        "axes.titleweight": "semibold",
+        "axes.labelsize": 10,
+        "figure.facecolor": C_FIG_BG,
+        "axes.facecolor": C_AX_BG,
+        "text.color": C_TEXT,
+        "axes.labelcolor": C_TEXT,
+        "xtick.color": "#b0b0c8",
+        "ytick.color": "#b0b0c8",
+    })
 
-    grid = fig.add_gridspec(
-        5,
-        8,
-        height_ratios=[1, 1, 1, 1, 0.25],
-        width_ratios=[1, 1, 1, 1, 1, 1, 1, 1],
-        hspace=0.55,
-        wspace=0.45,
-    )
+    # --- Timing figure ---
+    fig_timing = plt.figure("Performance Timing", figsize=(8, 5))
+    fig_timing.set_facecolor(C_FIG_BG)
+    ax_timing = fig_timing.add_subplot(111)
 
-    ax_timing = fig.add_subplot(grid[0:2, 0:4])
-    ax_cpu = fig.add_subplot(grid[0:2, 4:6])
-    ax_tof = fig.add_subplot(grid[0:2, 6:8])
-    ax_power = fig.add_subplot(grid[2:4, 0:4])
-    ax_text = fig.add_subplot(grid[2:4, 4:8])
+    # --- CPU figure ---
+    fig_cpu = plt.figure("CPU Utilisation", figsize=(6, 5))
+    fig_cpu.set_facecolor(C_FIG_BG)
+    ax_cpu = fig_cpu.add_subplot(111)
+
+    # --- ToF figure ---
+    fig_tof = plt.figure("ToF Depth Grid", figsize=(6, 5))
+    fig_tof.set_facecolor(C_FIG_BG)
+    ax_tof = fig_tof.add_subplot(111)
+
+    # --- Power figure ---
+    fig_power = plt.figure("Power Consumption", figsize=(8, 5))
+    fig_power.set_facecolor(C_FIG_BG)
+    ax_power = fig_power.add_subplot(111)
+
+    # --- Info figure ---
+    fig_info = plt.figure("Device Info", figsize=(8, 7))
+    fig_info.set_facecolor(C_FIG_BG)
+    grid_info = fig_info.add_gridspec(2, 1, height_ratios=[9, 0.5])
+    ax_text = fig_info.add_subplot(grid_info[0])
     ax_text.axis("off")
+    ax_text.set_facecolor(C_FIG_BG)
 
-    ax_btn_info = fig.add_subplot(grid[4, 1:3])
-    ax_btn_toggle = fig.add_subplot(grid[4, 3:5])
-    btn_info = Button(
-        ax_btn_info, "Get Device Info", color="#333333", hovercolor="#555555"
-    )
-    btn_toggle = Button(
-        ax_btn_toggle, "Toggle Display", color="#333333", hovercolor="#555555"
-    )
-    btn_info.label.set_color("white")
-    btn_toggle.label.set_color("white")
+    # --- Buttons ---
+    ax_btn_info = fig_info.add_subplot(grid_info[1])
+    ax_btn_info.axis("off")
+    btn_ax1 = plt.axes([0.25, 0.02, 0.2, 0.04])
+    btn_ax2 = plt.axes([0.55, 0.02, 0.2, 0.04])
+    btn_info = Button(btn_ax1, "Get Device Info", color="#252545", hovercolor="#35355a")
+    btn_toggle = Button(btn_ax2, "Toggle Display", color="#252545", hovercolor="#35355a")
+    for btn in (btn_info, btn_toggle):
+        btn.label.set_color(C_TEXT)
+        btn.label.set_fontsize(10)
 
     # --- Timing plot ---
+    _style_axis(ax_timing, C_AX_BG)
     (line_inf,) = ax_timing.plot(
-        [], [], label="Inference", color="#00ff00", linewidth=2
+        [], [], label="Inference", color=C_INFER, linewidth=LW
     )
     (line_period,) = ax_timing.plot(
-        [], [], label="NN Period", color="#ffaa00", linewidth=2
+        [], [], label="NN Period", color=C_PERIOD, linewidth=LW
     )
-    ax_timing.set_title("Performance Timing (ms)", fontsize=14, pad=10)
-    ax_timing.set_xlabel("Recent Frames", fontsize=10)
-    ax_timing.set_ylabel("Milliseconds", fontsize=10)
-    ax_timing.legend(loc="upper left", framealpha=0.7)
-    ax_timing.grid(True, linestyle="--", alpha=0.3)
-    ax_timing.spines["top"].set_visible(False)
-    ax_timing.spines["right"].set_visible(False)
+    ax_timing.set_title("Performance Timing", color=C_TITLE, pad=10)
+    ax_timing.set_xlabel("Time (s)")
+    ax_timing.set_ylabel("Milliseconds")
+    _legend(ax_timing, C_AX_BG)
 
     # --- ToF heatmap ---
+    ax_tof.set_facecolor(C_AX_BG)
     img = ax_tof.imshow(
         np.full((8, 8), np.nan),
         cmap="magma",
@@ -444,25 +509,31 @@ def create_gui(
         vmin=0,
         vmax=2000,
     )
-    cbar = fig.colorbar(img, ax=ax_tof, fraction=0.046, pad=0.04)
-    cbar.set_label("Distance (mm)", rotation=270, labelpad=15)
-    ax_tof.set_title("ToF Depth Grid (8x8)", fontsize=14, pad=10)
+    cbar = fig_tof.colorbar(img, ax=ax_tof, fraction=0.046, pad=0.04)
+    cbar.set_label("Distance (mm)", rotation=270, labelpad=15, color=C_TEXT)
+    cbar.ax.yaxis.set_tick_params(color="#b0b0c8")
+    for label in cbar.ax.get_yticklabels():
+        label.set_color("#b0b0c8")
+    ax_tof.set_title("ToF Depth Grid (8x8)", color=C_TITLE, pad=10)
     ax_tof.set_xticks(np.arange(-0.5, 8, 1), minor=True)
     ax_tof.set_yticks(np.arange(-0.5, 8, 1), minor=True)
-    ax_tof.grid(which="minor", color="w", linestyle="-", linewidth=1, alpha=0.2)
+    ax_tof.grid(which="minor", color="w", linestyle="-", linewidth=0.5, alpha=0.15)
     ax_tof.tick_params(which="minor", bottom=False, left=False)
     ax_tof.set_xticks([])
     ax_tof.set_yticks([])
 
     # --- Power plot ---
-    (line_power,) = ax_power.plot([], [], label="Power", color="#ff4444", linewidth=2)
-    ax_power.set_title("Power (mW)", fontsize=14, pad=10)
-    ax_power.set_xlabel("Recent Samples", fontsize=10)
-    ax_power.set_ylabel("mW", fontsize=10)
-    ax_power.legend(loc="upper left", framealpha=0.7)
-    ax_power.grid(True, linestyle="--", alpha=0.3)
-    ax_power.spines["top"].set_visible(False)
-    ax_power.spines["right"].set_visible(False)
+    _style_axis(ax_power, C_AX_BG)
+    (line_power_inf,) = ax_power.plot(
+        [], [], label="Inference", color=C_POWER_INF, linewidth=LW
+    )
+    (line_power_idle,) = ax_power.plot(
+        [], [], label="Idle", color=C_POWER_IDLE, linewidth=LW
+    )
+    ax_power.set_title("Power Consumption", color=C_TITLE, pad=10)
+    ax_power.set_xlabel("Time (s)")
+    ax_power.set_ylabel("mW")
+    _legend(ax_power, C_AX_BG)
     power_peak_text = ax_power.text(
         0.98,
         0.95,
@@ -471,18 +542,18 @@ def create_gui(
         ha="right",
         va="top",
         fontsize=10,
-        color="#ffaa00",
+        color=C_ACCENT,
     )
 
     # --- CPU line chart ---
-    (line_cpu,) = ax_cpu.plot([], [], label="CPU %", color="#00ff88", linewidth=2)
-    ax_cpu.set_ylim(0, 100)
-    ax_cpu.set_title("CPU (%)", fontsize=12, pad=10)
-    ax_cpu.set_xlabel("Recent Frames", fontsize=10)
-    ax_cpu.set_ylabel("%", fontsize=10)
-    ax_cpu.spines["top"].set_visible(False)
-    ax_cpu.spines["right"].set_visible(False)
-    ax_cpu.grid(True, linestyle="--", alpha=0.3)
+    _style_axis(ax_cpu, C_AX_BG)
+    (line_cpu,) = ax_cpu.plot(
+        [], [], label="CPU %", color=C_CPU, linewidth=LW
+    )
+    ax_cpu.set_ylim(auto=True)
+    ax_cpu.set_title("CPU Utilisation", color=C_TITLE, pad=10)
+    ax_cpu.set_xlabel("Time (s)")
+    ax_cpu.set_ylabel("%")
     cpu_percent_text = ax_cpu.text(
         0.98,
         0.95,
@@ -490,9 +561,9 @@ def create_gui(
         transform=ax_cpu.transAxes,
         ha="right",
         va="top",
-        fontsize=14,
+        fontsize=15,
         fontweight="bold",
-        color="white",
+        color=C_TEXT,
     )
     cpu_freq_text = ax_cpu.text(
         0.98,
@@ -502,7 +573,7 @@ def create_gui(
         ha="right",
         va="bottom",
         fontsize=9,
-        color="#dddddd",
+        color="#9898b8",
     )
 
     # --- Text box ---
@@ -513,14 +584,16 @@ def create_gui(
         va="top",
         ha="left",
         family="monospace",
-        fontsize=8,
-        color="#eeeeee",
+        fontsize=8.5,
+        color=C_TEXT,
+        linespacing=1.35,
     )
 
-    fig.tight_layout(pad=0.8)
-    fig.subplots_adjust(left=0.06, right=0.96, top=0.96, bottom=0.02, hspace=1)
-
-    infer_fill_ref = [None]
+    fig_timing.tight_layout()
+    fig_cpu.tight_layout()
+    fig_tof.tight_layout()
+    fig_power.tight_layout()
+    fig_info.tight_layout()
 
     def on_get_info(_event) -> None:
         cmd_queue.put(("get_info", None))
@@ -530,66 +603,67 @@ def create_gui(
 
     btn_info.on_clicked(on_get_info)
     btn_toggle.on_clicked(on_toggle_display)
-    fig._visualizer_widgets = (btn_info, btn_toggle)
+    fig_info._visualizer_widgets = (btn_info, btn_toggle)
 
-    def update(_frame_idx):
-        # --- Timing ---
-        x = np.arange(len(state.infer_hist))
+    SEP = "\u2500" * 30
+
+    def update_timing(_frame_idx):
+        if state.timing_time_hist:
+            t0 = state.timing_time_hist[0]
+            x = np.array([t - t0 for t in state.timing_time_hist])
+        else:
+            x = np.array([])
         line_inf.set_data(x, np.array(state.infer_hist))
         line_period.set_data(x, np.array(state.period_hist))
         ax_timing.relim()
         ax_timing.autoscale_view()
+        return (line_inf, line_period)
 
-        # --- ToF ---
-        img.set_data(state.tof_grid)
-
-        # --- Power ---
-        x_power = np.arange(len(state.power_hist_mw))
-        line_power.set_data(x_power, np.array(state.power_hist_mw))
-
-        power_peak_text.set_text(
-            f"infer: {state.power_infer_avg_mw:.0f}mW  idle: {state.power_idle_avg_mw:.0f}mW"
-        )
-
-        # Sync highlight spans on power plot
-        if infer_fill_ref[0] is not None:
-            infer_fill_ref[0].remove()
-            infer_fill_ref[0] = None
-        if len(state.in_inference_hist) > 0:
-            infer_arr = np.fromiter(state.in_inference_hist, dtype=bool)
-            x_sh = np.arange(len(infer_arr))
-            infer_fill_ref[0] = ax_power.fill_between(
-                x_sh,
-                0,
-                1,
-                where=infer_arr,
-                transform=ax_power.get_xaxis_transform(),
-                alpha=0.15,
-                color="#4488ff",
-                zorder=0,
-            )
-
-        ax_power.relim()
-        ax_power.autoscale_view()
-
-        # --- CPU line chart ---
+    def update_cpu(_frame_idx):
         pct = state.cpu_usage_percent
         mcu_mhz = int(state.mcu_freq_mhz)
         cpu_usage_mhz = (pct / 100.0) * float(mcu_mhz) if mcu_mhz > 0 else 0.0
-        x_cpu = np.arange(len(state.cpu_hist))
+        if state.cpu_time_hist:
+            t0_cpu = state.cpu_time_hist[0]
+            x_cpu = np.array([t - t0_cpu for t in state.cpu_time_hist])
+        else:
+            x_cpu = np.array([])
         line_cpu.set_data(x_cpu, np.array(state.cpu_hist))
         ax_cpu.relim()
-        ax_cpu.autoscale_view(scalex=True, scaley=False)
+        ax_cpu.autoscale_view()
         cpu_percent_text.set_text(f"{pct:.1f}%")
         npu = int(state.npu_freq_mhz)
         if mcu_mhz > 0:
-            cpu_freq_text.set_text(
-                f"{cpu_usage_mhz:.0f}MHz · CPU@{mcu_mhz}MHz / NPU@{npu}MHz"
-            )
+            cpu_freq_text.set_text(f"{cpu_usage_mhz:.0f} MHz  |  CPU {mcu_mhz} MHz / NPU {npu} MHz")
         else:
-            cpu_freq_text.set_text(f"CPU@{mcu_mhz}MHz / NPU@{npu}MHz")
+            cpu_freq_text.set_text(f"CPU {mcu_mhz} MHz / NPU {npu} MHz")
+        return (line_cpu, cpu_percent_text, cpu_freq_text)
 
-        # --- Text ---
+    def update_tof(_frame_idx):
+        img.set_data(state.tof_grid)
+        return (img,)
+
+    def update_power(_frame_idx):
+        t0_power = min(
+            state.power_infer_time_hist[0] if state.power_infer_time_hist else float("inf"),
+            state.power_idle_time_hist[0] if state.power_idle_time_hist else float("inf"),
+        )
+        if state.power_infer_time_hist:
+            x_inf = np.array([t - t0_power for t in state.power_infer_time_hist])
+        else:
+            x_inf = np.array([])
+        if state.power_idle_time_hist:
+            x_idle = np.array([t - t0_power for t in state.power_idle_time_hist])
+        else:
+            x_idle = np.array([])
+        line_power_inf.set_data(x_inf, np.array(state.power_infer_hist_mw))
+        line_power_idle.set_data(x_idle, np.array(state.power_idle_hist_mw))
+        power_peak_text.set_text(f"infer: {state.power_infer_avg_mw:.0f} mW   idle: {state.power_idle_avg_mw:.0f} mW")
+        ax_power.relim()
+        ax_power.autoscale_view()
+        return (line_power_inf, line_power_idle, power_peak_text)
+
+    def update_info(_frame_idx):
         status = "ALERT" if state.tof_alert else "OK"
         stale = "stale" if state.tof_stale else "fresh"
         class_labels = ", ".join(state.class_labels) or "-"
@@ -597,43 +671,56 @@ def create_gui(
         recog_fw_host = "yes" if state.firmware_recognized else "no"
         detections_text = state.detections_text or "  -"
         last_pp = state.post_hist[-1] if state.post_hist else 0.0
-
-        lines = [
-            f"Frames: {state.frame_count}  Drops: {state.frame_drops}  TS: {state.last_timestamp}ms  PP: {last_pp:.1f}ms",
-            f"Model: {state.model_name}  NN: {state.nn_size_text}",
-            f"Display: {state.display_width}x{state.display_height}  LB: {state.letterbox_width}x{state.letterbox_height}",
-            f"Cam: {state.camera_mode_text}  Mode: {state.build_mode_text}",
-            f"Built: {state.build_timestamp}",
-            "",
-            f"STM32: {'yes' if state.firmware_connected else 'no'}  H->D:{recog_host_fw} D->H:{recog_fw_host}",
-            f"Disp: {'on' if state.display_enabled else 'off'}",
-            f"ToF: hand={state.hand_mm}mm haz={state.hazard_mm}mm {status}({stale})",
-            f"ESP32: {'yes' if state.power_connected else 'no'}  infer={state.power_infer_avg_mw:.0f}mW ({state.power_infer_duration_ms:.1f}ms)  idle={state.power_idle_avg_mw:.0f}mW",
-            f"  energy={state.power_infer_energy_uj:.0f}uJ  npu_delta={'%dmW' % int(state.power_infer_avg_mw - state.power_idle_avg_mw) if state.power_idle_avg_mw > 0 else '-'}",
-            f"ACK: {state.last_ack}",
-            f"Err: {state.last_error or '-'}",
-            f"PwrErr: {state.last_power_error or '-'}",
-            f"Labels: {class_labels}",
-            "",
-            f"Detections ({state.detection_count}): {detections_text}",
-        ]
-        summary = "\n".join(lines)
-        text_box.set_text(summary)
-
-        return (
-            line_inf,
-            line_period,
-            img,
-            text_box,
-            line_power,
-            power_peak_text,
-            line_cpu,
-            cpu_percent_text,
-            cpu_freq_text,
+        npu_delta = (
+            f"{int(state.power_infer_avg_mw - state.power_idle_avg_mw)} mW"
+            if state.power_idle_avg_mw > 0
+            else "-"
         )
 
-    anim = FuncAnimation(fig, update, interval=120, blit=False, cache_frame_data=False)
-    return fig, anim
+        lines = [
+            f" Device",
+            SEP,
+            f"  Model   {state.model_name}   NN: {state.nn_size_text}",
+            f"  Display {state.display_width}x{state.display_height}   Letterbox: {state.letterbox_width}x{state.letterbox_height}",
+            f"  Camera  {state.camera_mode_text}   Mode: {state.build_mode_text}",
+            f"  Built   {state.build_timestamp}",
+            "",
+            f" Connection",
+            SEP,
+            f"  STM32   {'connected' if state.firmware_connected else 'disconnected'}   H\u2192D: {recog_host_fw}  D\u2192H: {recog_fw_host}",
+            f"  Display {'on' if state.display_enabled else 'off'}",
+            "",
+            f" Sensors",
+            SEP,
+            f"  ToF     hand {state.hand_mm} mm   haz {state.hazard_mm} mm   {status} ({stale})",
+            f"  Power   infer {state.power_infer_avg_mw:.0f} mW ({state.power_infer_duration_ms:.1f} ms)   idle {state.power_idle_avg_mw:.0f} mW",
+            f"          energy {state.power_infer_energy_uj:.0f} uJ   npu delta {npu_delta}",
+            f"  ESP32   {'connected' if state.power_connected else 'disconnected'}",
+            "",
+            f" Stats",
+            SEP,
+            f"  Frames  {state.frame_count}   Drops: {state.frame_drops}   PP: {last_pp:.1f} ms",
+            f"  Labels  {class_labels}",
+            f"  ACK     {state.last_ack}",
+            f"  Err     {state.last_error or '-'}",
+            f"  PwrErr  {state.last_power_error or '-'}",
+            "",
+            f" Detections ({state.detection_count})",
+            SEP,
+            f"  {detections_text}",
+        ]
+        text_box.set_text("\n".join(lines))
+        return (text_box,)
+
+    anim_timing = FuncAnimation(fig_timing, update_timing, interval=120, blit=False, cache_frame_data=False)
+    anim_cpu = FuncAnimation(fig_cpu, update_cpu, interval=120, blit=False, cache_frame_data=False)
+    anim_tof = FuncAnimation(fig_tof, update_tof, interval=120, blit=False, cache_frame_data=False)
+    anim_power = FuncAnimation(fig_power, update_power, interval=120, blit=False, cache_frame_data=False)
+    anim_info = FuncAnimation(fig_info, update_info, interval=120, blit=False, cache_frame_data=False)
+
+    figures = [fig_timing, fig_cpu, fig_tof, fig_power, fig_info]
+    animations = [anim_timing, anim_cpu, anim_tof, anim_power, anim_info]
+    return figures, animations
 
 
 def parse_args() -> argparse.Namespace:
@@ -747,7 +834,7 @@ def resolve_power_port(port: Optional[str]) -> Optional[str]:
         return None
 
     _ESPRESSIF_VIDS = {0x303A}
-    _POWER_KEYWORDS = {"esp32": 6, "espressif": 6, "esp": 4, "jtag": 2}
+    _POWER_KEYWORDS = {"esp32c6": 8, "c6": 7, "esp32": 6, "espressif": 6, "esp": 4, "jtag": 2}
     scorer = lambda info: _score_port(info, _POWER_KEYWORDS, preferred_vids=_ESPRESSIF_VIDS)
     ranked = _rank_ports(ports, scorer)
 
@@ -783,7 +870,7 @@ def main() -> int:
     # Handshake: host introduces itself by requesting device metadata.
     cmd_queue.put(("get_info", None))
 
-    fig, _anim = create_gui(state, cmd_queue)
+    figures, animations = create_gui(state, cmd_queue)
     try:
         plt.show()
     finally:
