@@ -190,7 +190,7 @@ static void ui_thread_entry(ULONG arg) {
     /* Draw panel text (may extend into camera area) */
     UI_DrawHeader();
     UI_DrawBuildOptions();
-    UI_DrawModelNameBottomRight();
+    UI_DrawBottomRightInfo();
     UI_DrawRuntimeSection();
 
     /* Draw detection info in diagnostic panel if available */

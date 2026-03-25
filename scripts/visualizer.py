@@ -54,6 +54,7 @@ class VisualizerState:
     nn_size_text: str = "unknown"
     build_mode_text: str = "unknown"
     camera_mode_text: str = "unknown"
+    build_timestamp: str = "unknown"
     display_enabled: Optional[bool] = None
     firmware_recognized: bool = False
     host_introduced: bool = False
@@ -322,6 +323,7 @@ def receiver_loop(
                 else:
                     state.camera_mode_text = f"{info.camera_fps} fps"
                 state.firmware_recognized = True
+                state.build_timestamp = info.build_timestamp or "unknown"
 
             elif which == "ack":
                 ack = dev_msg.ack
@@ -672,6 +674,7 @@ def create_gui(
             f"Model: {state.model_name}  NN: {state.nn_size_text}",
             f"Display: {state.display_width}x{state.display_height}  LB: {state.letterbox_width}x{state.letterbox_height}",
             f"Cam: {state.camera_mode_text}  Mode: {state.build_mode_text}",
+            f"Built: {state.build_timestamp}",
             "",
             f"STM32: {'yes' if state.firmware_connected else 'no'}  H->D:{recog_host_fw} D->H:{recog_fw_host}",
             f"Disp: {'on' if display_toggle_state['enabled'] else 'off'}  Pipe: {'on' if display_toggle_state['cam_pipe_enabled'] else 'off'}",

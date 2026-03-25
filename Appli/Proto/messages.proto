@@ -65,6 +65,7 @@ message DeviceInfo {
   uint32 camera_fps = 12;
   uint32 mcu_freq_mhz = 13;
   uint32 npu_freq_mhz = 14;
+  string build_timestamp = 15 [(nanopb).max_size = 24];
 }
 
 message Ack {

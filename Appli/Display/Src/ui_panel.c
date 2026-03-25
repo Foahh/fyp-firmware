@@ -18,6 +18,7 @@
 
 #include "ui_internal.h"
 
+#include "build_timestamp.h"
 #include "cam_config.h"
 #include "init_clock.h"
 #include "lcd_config.h"
@@ -282,11 +283,20 @@ void UI_DrawBuildOptions(void) {
 /**
  * @brief  Show neural network model id at bottom right (camera area)
  */
-void UI_DrawModelNameBottomRight(void) {
-  uint32_t tw = (uint32_t)strlen(MDL_DISPLAY_NAME) * UI_FONT_WIDTH;
-  uint32_t x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
+void UI_DrawBottomRightInfo(void) {
+  uint32_t tw;
+  uint32_t x0;
   uint32_t y = LCD_HEIGHT - UI_TEXT_MARGIN_Y - UI_FONT_HEIGHT;
 
+  /* Model name (bottom line) */
+  tw = (uint32_t)strlen(MDL_DISPLAY_NAME) * UI_FONT_WIDTH;
+  x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
   UTIL_LCD_SetTextColor(UI_COLOR_METADATA);
   UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)MDL_DISPLAY_NAME, LEFT_MODE);
+
+  /* Build timestamp (one line above model name) */
+  y -= UI_LINE_HEIGHT;
+  tw = (uint32_t)strlen(BUILD_TIMESTAMP) * UI_FONT_WIDTH;
+  x0 = LCD_WIDTH - UI_TEXT_MARGIN_X - tw;
+  UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)BUILD_TIMESTAMP, LEFT_MODE);
 }

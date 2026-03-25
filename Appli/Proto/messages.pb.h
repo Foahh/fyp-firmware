@@ -68,6 +68,7 @@ typedef struct _DeviceInfo {
     uint32_t camera_fps;
     uint32_t mcu_freq_mhz;
     uint32_t npu_freq_mhz;
+    char build_timestamp[24];
 } DeviceInfo;
 
 typedef struct _Ack {
@@ -131,7 +132,7 @@ extern "C" {
 #define TofAlert_init_default                    {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
 #define CpuLoad_init_default                     {0}
 #define DetectionResult_init_default             {0, false, Timing_init_default, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, false, TofAlert_init_default, false, CpuLoad_init_default}
-#define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0}
+#define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0, ""}
 #define Ack_init_default                         {0, 0}
 #define TraceXChunk_init_default                 {0, 0, {0, {0}}, 0}
 #define SetDisplayEnabled_init_default           {0}
@@ -145,7 +146,7 @@ extern "C" {
 #define TofAlert_init_zero                       {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
 #define CpuLoad_init_zero                        {0}
 #define DetectionResult_init_zero                {0, false, Timing_init_zero, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, false, TofAlert_init_zero, false, CpuLoad_init_zero}
-#define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0}
+#define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0, ""}
 #define Ack_init_zero                            {0, 0}
 #define TraceXChunk_init_zero                    {0, 0, {0, {0}}, 0}
 #define SetDisplayEnabled_init_zero              {0}
@@ -192,6 +193,7 @@ extern "C" {
 #define DeviceInfo_camera_fps_tag                12
 #define DeviceInfo_mcu_freq_mhz_tag              13
 #define DeviceInfo_npu_freq_mhz_tag              14
+#define DeviceInfo_build_timestamp_tag           15
 #define Ack_command_id_tag                       1
 #define Ack_success_tag                          2
 #define TraceXChunk_offset_tag                   1
@@ -272,7 +274,8 @@ X(a, STATIC,   SINGULAR, UINT32,   nn_input_size_bytes,  10) \
 X(a, STATIC,   SINGULAR, BOOL,     overdrive_mode,   11) \
 X(a, STATIC,   SINGULAR, UINT32,   camera_fps,       12) \
 X(a, STATIC,   SINGULAR, UINT32,   mcu_freq_mhz,     13) \
-X(a, STATIC,   SINGULAR, UINT32,   npu_freq_mhz,     14)
+X(a, STATIC,   SINGULAR, UINT32,   npu_freq_mhz,     14) \
+X(a, STATIC,   SINGULAR, STRING,   build_timestamp,  15)
 #define DeviceInfo_CALLBACK NULL
 #define DeviceInfo_DEFAULT NULL
 
@@ -371,7 +374,7 @@ extern const pb_msgdesc_t HostMessage_msg;
 #define CpuLoad_size                             5
 #define DetectionResult_size                     1147
 #define Detection_size                           36
-#define DeviceInfo_size                          463
+#define DeviceInfo_size                          488
 #define DeviceMessage_size                       1150
 #define GetDeviceInfo_size                       0
 #define GetTraceXDump_size                       6

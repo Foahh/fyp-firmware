@@ -111,7 +111,7 @@ void UI_DrawDetectionInfoSection(const detection_info_t *info);
 void UI_DrawCpuLoadSection(void);
 void UI_DrawProximitySection(const tof_alert_t *alert);
 void UI_DrawBuildOptions(void);
-void UI_DrawModelNameBottomRight(void);
+void UI_DrawBottomRightInfo(void);
 
 /* ui_overlay.c */
 void UI_DrawDetectionOverlays(const detection_info_t *info,

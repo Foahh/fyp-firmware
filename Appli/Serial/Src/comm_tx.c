@@ -17,6 +17,7 @@
  */
 
 #include "comm_tx.h"
+#include "build_timestamp.h"
 #include "cam_config.h"
 #include "error.h"
 #include "lcd_config.h"
@@ -126,6 +127,10 @@ void COM_Send_DeviceInfo(uint32_t command_id) {
     strncpy(di->class_labels[i], MDL_PP_CLASS_LABELS[i], sizeof(di->class_labels[i]) - 1);
     di->class_labels[i][sizeof(di->class_labels[i]) - 1] = '\0';
   }
+
+  /* Build timestamp */
+  strncpy(di->build_timestamp, BUILD_TIMESTAMP, sizeof(di->build_timestamp) - 1);
+  di->build_timestamp[sizeof(di->build_timestamp) - 1] = '\0';
 
   COM_TX_Send(&msg);
 }

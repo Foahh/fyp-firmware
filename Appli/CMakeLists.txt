@@ -186,6 +186,17 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/network.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/nanopb.cmake)
 
 # =============================================================================
+# Build Timestamp (regenerated on every build)
+# =============================================================================
+set(BUILD_TIMESTAMP_H "${CMAKE_CURRENT_BINARY_DIR}/build_timestamp.h")
+add_custom_target(
+  build_timestamp ALL
+  COMMAND ${CMAKE_COMMAND} -P
+          "${CMAKE_CURRENT_SOURCE_DIR}/CMake/build_timestamp.cmake"
+  BYPRODUCTS ${BUILD_TIMESTAMP_H}
+  COMMENT "Generating build timestamp")
+
+# =============================================================================
 # Main Executable
 # =============================================================================
 add_executable(${PROJECT_NAME})
@@ -196,6 +207,8 @@ target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES} ${APP_SOURCES})
 # Include directories and compile definitions are inherited from stm32_interface
 # via linked libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE stm32_interface)
+add_dependencies(${PROJECT_NAME} build_timestamp)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # Link libraries
 target_link_libraries(
