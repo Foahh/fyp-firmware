@@ -88,7 +88,7 @@ set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Serial/Src/comm_tx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/tof.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/haptic.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Measurement/Src/power_measurement_sync.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/power_measurement_sync.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/cpu_load.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/tracex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/bqueue.c
@@ -103,7 +103,6 @@ set(INCLUDE_DIRECTORIES
     ${CMAKE_CURRENT_SOURCE_DIR}/NN/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Display/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/Measurement/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Config/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc)
