@@ -75,8 +75,7 @@ static struct {
 /* Buffer queues and input buffers */
 #ifdef CAMERA_NN_SNAPSHOT_MODE
 static TX_EVENT_FLAGS_GROUP nn_snapshot_flags;
-static uint8_t nn_input_buffers[2][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
-static volatile int nn_snap_write_idx;
+static uint8_t nn_input_buffer[NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
 #else
 static bqueue_t nn_input_queue;
 static uint8_t nn_input_buffers[3][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
@@ -163,13 +162,7 @@ static void nn_thread_entry(ULONG arg) {
     ULONG actual_flags;
     tx_event_flags_get(&nn_snapshot_flags, 0x01, TX_OR_CLEAR,
                        &actual_flags, TX_WAIT_FOREVER);
-    /* The buffer that just finished capturing is the current write buffer */
-    int captured_idx = nn_snap_write_idx;
-    /* Swap to other buffer for next capture */
-    nn_snap_write_idx ^= 1;
-    /* Pre-request next snapshot (overlaps with inference) */
-    CAM_NNPipe_RequestSnapshot(nn_input_buffers[nn_snap_write_idx]);
-    capture_buffer = nn_input_buffers[captured_idx];
+    capture_buffer = nn_input_buffer;
 #else
     /* Get latest input buffer (LIFO), discarding stale frames */
     uint32_t skipped = 0;
@@ -231,6 +224,9 @@ static void nn_thread_entry(ULONG arg) {
 #ifndef CAMERA_NN_SNAPSHOT_MODE
     /* Release input buffer back to free pool */
     BQUE_PutFree(&nn_input_queue);
+#else
+    /* Request next snapshot now that inference is done */
+    CAM_NNPipe_RequestSnapshot(nn_input_buffer);
 #endif
 
     /* Mark output buffer as ready for postprocess */
@@ -249,7 +245,7 @@ void NN_SignalSnapshotReady(void) {
 }
 
 uint8_t *NN_GetSnapshotBuffer(void) {
-  return nn_input_buffers[nn_snap_write_idx];
+  return nn_input_buffer;
 }
 
 #else
@@ -358,9 +354,8 @@ void NN_ThreadStart(void) {
   /* Initialize input buffer(s) */
 #ifdef CAMERA_NN_SNAPSHOT_MODE
   APP_REQUIRE(tx_event_flags_create(&nn_snapshot_flags, "nn_snapshot") == TX_SUCCESS);
-  memset(nn_input_buffers, 0, sizeof(nn_input_buffers));
-  SCB_CleanInvalidateDCache_by_Addr((void *)nn_input_buffers, sizeof(nn_input_buffers));
-  nn_snap_write_idx = 0;
+  memset(nn_input_buffer, 0, sizeof(nn_input_buffer));
+  SCB_CleanInvalidateDCache_by_Addr((void *)nn_input_buffer, sizeof(nn_input_buffer));
 #else
   /* Initialize input buffer queue - using 3 buffers to handle 30 FPS pipeline latency */
   uint8_t *in_bufs[3] = {nn_input_buffers[0], nn_input_buffers[1], nn_input_buffers[2]};
