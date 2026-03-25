@@ -13,3 +13,6 @@
 [submodule "External/nanopb"]
 	path = External/nanopb
 	url = https://github.com/nanopb/nanopb.git
+[submodule "External/fyp-power-measure"]
+	path = External/fyp-power-measure
+	url = https://github.com/Foahh/fyp-power-measure.git

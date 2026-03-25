@@ -103,7 +103,7 @@ void COM_Config(void) {
   int32_t ret = BSP_ERROR_NONE;
 
   /* Configure COM1 (USART1) for logging */
-  COM_Init.BaudRate = 115200U;
+  COM_Init.BaudRate = 921600U;
   COM_Init.WordLength = COM_WORDLENGTH_8B;
   COM_Init.StopBits = COM_STOPBITS_1;
   COM_Init.Parity = COM_PARITY_NONE;

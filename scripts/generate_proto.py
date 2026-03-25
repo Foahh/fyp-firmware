@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PROTO_DIR = ROOT / "Appli" / "Proto"
 OUT_DIR = PROTO_DIR
+POWER_PROTO_DIR = ROOT / "External" / "fyp-power-measure" / "lib" / "nanopb"
 NANOPB_PROTO = ROOT / "External" / "nanopb" / "generator" / "proto"
 
 
@@ -111,6 +112,35 @@ def cmd_generate_proto(proto=None):
             str(NANOPB_PROTO / "nanopb.proto"),
         ]
     )
+
+    # Power monitor proto (External/fyp-power-measure)
+    power_protos = list(POWER_PROTO_DIR.glob("*.proto"))
+    for proto in power_protos:
+        name = proto.stem
+        print(f"\n=== power-measure: {name}.proto ===")
+
+        # nanopb C files
+        run(
+            [
+                "protoc",
+                f"--plugin=protoc-gen-nanopb={NANOPB_PLUGIN}",
+                f"--nanopb_out={POWER_PROTO_DIR}",
+                f"-I{POWER_PROTO_DIR}",
+                f"-I{NANOPB_PROTO}",
+                str(proto),
+            ]
+        )
+
+        # Python protobuf module
+        run(
+            [
+                "protoc",
+                f"--python_out={POWER_PROTO_DIR}",
+                f"-I{POWER_PROTO_DIR}",
+                f"-I{NANOPB_PROTO}",
+                str(proto),
+            ]
+        )
 
     print("\nDone.")
 

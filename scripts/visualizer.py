@@ -24,10 +24,13 @@ from serial.tools import list_ports
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PROTO_DIR = os.path.join(REPO_ROOT, "Appli", "Proto")
-if PROTO_DIR not in sys.path:
-    sys.path.insert(0, PROTO_DIR)
+POWER_PROTO_DIR = os.path.join(REPO_ROOT, "External", "fyp-power-measure", "lib", "nanopb")
+for _dir in (PROTO_DIR, POWER_PROTO_DIR):
+    if _dir not in sys.path:
+        sys.path.insert(0, _dir)
 
 import messages_pb2  # noqa: E402
+import power_sample_pb2  # noqa: E402
 
 
 @dataclass
@@ -69,7 +72,6 @@ class VisualizerState:
     fps_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
     power_hist_mw: deque[float] = field(default_factory=lambda: deque(maxlen=240))
     sync_hist: deque[bool] = field(default_factory=lambda: deque(maxlen=240))
-    sync_period_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
 
     hand_mm: int = 0
     hazard_mm: int = 0
@@ -86,14 +88,13 @@ class VisualizerState:
     last_rx_time: float = 0.0
     firmware_connected: bool = False
     power_connected: bool = False
-    power_last_ts_us: int = 0
-    power_current_ma: float = 0.0
-    power_bus_v: float = 0.0
-    power_mw: float = 0.0
     power_sync: bool = False
-    power_sync_avg_mw: float = 0.0
-    power_sync_peak_mw: float = 0.0
-    power_sync_samples: int = 0
+    power_infer_avg_mw: float = 0.0
+    power_idle_avg_mw: float = 0.0
+    power_infer_energy_uj: float = 0.0
+    power_infer_duration_ms: float = 0.0
+    power_hist_mw: deque[float] = field(default_factory=lambda: deque(maxlen=240))
+    sync_hist: deque[bool] = field(default_factory=lambda: deque(maxlen=240))
 
 
 def read_exact(ser: serial.Serial, size: int) -> bytes:
@@ -165,40 +166,55 @@ class SerialLink:
 
 
 class PowerLink:
+    """Length-prefixed nanopb PowerSample frames over serial."""
+
+    MAX_FRAME_LEN = 64
+
     def __init__(self, port: str, baud: int, timeout_s: float):
         self._ser = serial.Serial(port, baud, timeout=timeout_s)
         self._ser.reset_input_buffer()
         self._ser.reset_output_buffer()
         self._ser.write(b"START\n")
         self._ser.flush()
+        # Drain text preamble lines (# comments) before protobuf stream.
+        self._ser.timeout = 2.0
+        while True:
+            line = self._ser.readline()
+            if not line:
+                break
+            text = line.decode("utf-8", errors="ignore").strip()
+            if text.startswith("# Streaming"):
+                break
+        self._ser.timeout = timeout_s
 
     def close(self) -> None:
         self._ser.close()
 
-    def recv_power_sample(self) -> tuple[int, float, float, float, int]:
-        while True:
-            raw = self._ser.readline()
-            if not raw:
+    def _read_exact(self, n: int) -> bytes:
+        data = b""
+        while len(data) < n:
+            chunk = self._ser.read(n - len(data))
+            if not chunk:
                 raise IOError("Power serial read timeout")
-            line = raw.decode("utf-8", errors="ignore").strip()
-            if not line:
+            data += chunk
+        return data
+
+    def recv_power_sample(self) -> power_sample_pb2.PowerSample:
+        """Returns a parsed PowerSample protobuf message."""
+        while True:
+            prefix = self._read_exact(4)
+            length = struct.unpack("<I", prefix)[0]
+            if length == 0 or length > self.MAX_FRAME_LEN:
+                # Likely misaligned — skip one byte and retry.
+                self._ser.read(1)
                 continue
-            if line.startswith("#"):
-                continue
-            if line.lower().startswith("ts_us,"):
-                continue
-            parts = [p.strip() for p in line.split(",")]
-            if len(parts) != 5:
-                continue
+            payload = self._read_exact(length)
+            sample = power_sample_pb2.PowerSample()
             try:
-                ts_us = int(parts[0])
-                current_ma = float(parts[1])
-                bus_v = float(parts[2])
-                power_mw = float(parts[3])
-                sync = int(parts[4])
-            except ValueError:
+                sample.ParseFromString(payload)
+            except Exception:
                 continue
-            return ts_us, current_ma, bus_v, power_mw, sync
+            return sample
 
 
 def build_detection_text(
@@ -350,12 +366,6 @@ def power_receiver_loop(
     state: VisualizerState,
     stop_evt: threading.Event,
 ) -> None:
-    # Aggregates for power statistics while SYNC pin is HIGH.
-    sync_high_power_sum_mw = 0.0
-    sync_high_samples = 0
-    sync_high_peak_mw = 0.0
-    prev_sync = 0
-    last_rise_ts_us: Optional[int] = None
     power_link: Optional[PowerLink] = None
     while not stop_evt.is_set():
         try:
@@ -369,34 +379,22 @@ def power_receiver_loop(
                 state.power_connected = True
                 state.last_power_error = ""
 
-            ts_us, current_ma, bus_v, power_mw, sync = power_link.recv_power_sample()
-            if power_mw is None or not np.isfinite(power_mw):
-                power_mw = 0.0
-            state.power_last_ts_us = ts_us
-            state.power_current_ma = current_ma
-            state.power_bus_v = bus_v
-            state.power_mw = power_mw
-            state.power_sync = sync == 1
-            state.power_hist_mw.append(power_mw)
-            state.sync_hist.append(sync == 1)
-            if sync == 1 and prev_sync == 0:
-                if last_rise_ts_us is not None:
-                    period_ms = (ts_us - last_rise_ts_us) / 1000.0
-                    if period_ms > 0.0:
-                        state.sync_period_hist.append(period_ms)
-                last_rise_ts_us = ts_us
-            prev_sync = sync
-            if state.power_sync:
-                sync_high_power_sum_mw += power_mw
-                sync_high_samples += 1
-                sync_high_peak_mw = max(sync_high_peak_mw, power_mw)
-            state.power_sync_samples = sync_high_samples
-            state.power_sync_avg_mw = (
-                (sync_high_power_sum_mw / sync_high_samples)
-                if sync_high_samples > 0
-                else 0.0
-            )
-            state.power_sync_peak_mw = sync_high_peak_mw
+            sample = power_link.recv_power_sample()
+            avg_mw = float(sample.avg_mw)
+            duration_us = float(sample.duration_us)
+            is_inference = bool(sample.is_inference)
+
+            # Append to history for the power plot.
+            state.power_hist_mw.append(avg_mw)
+            state.sync_hist.append(is_inference)
+            state.power_sync = is_inference
+
+            if is_inference:
+                state.power_infer_avg_mw = avg_mw
+                state.power_infer_duration_ms = duration_us / 1000.0
+                state.power_infer_energy_uj = avg_mw * duration_us / 1000.0
+            else:
+                state.power_idle_avg_mw = avg_mw
         except Exception as exc:  # Keep GUI alive if power monitor disconnects.
             state.last_power_error = str(exc)
             state.power_connected = False
@@ -461,9 +459,6 @@ def create_gui(
     (line_period,) = ax_timing.plot(
         [], [], label="NN Period", color="#ffaa00", linewidth=2
     )
-    (line_sync_period,) = ax_timing.plot(
-        [], [], label="SYNC Period", color="#ff66cc", linewidth=2
-    )
     ax_timing.set_title("Performance Timing (ms)", fontsize=14, pad=10)
     ax_timing.set_xlabel("Recent Frames", fontsize=10)
     ax_timing.set_ylabel("Milliseconds", fontsize=10)
@@ -492,14 +487,6 @@ def create_gui(
 
     # --- Power plot ---
     (line_power,) = ax_power.plot([], [], label="Power", color="#ff4444", linewidth=2)
-    line_sync_avg = ax_power.axhline(
-        y=0,
-        color="#00ff88",
-        linestyle="--",
-        linewidth=1.5,
-        label="Sync Avg",
-        visible=False,
-    )
     ax_power.set_title("Power (mW)", fontsize=14, pad=10)
     ax_power.set_xlabel("Recent Samples", fontsize=10)
     ax_power.set_ylabel("mW", fontsize=10)
@@ -596,8 +583,6 @@ def create_gui(
         x = np.arange(len(state.infer_hist))
         line_inf.set_data(x, np.array(state.infer_hist))
         line_period.set_data(x, np.array(state.period_hist))
-        x_sync = np.arange(len(state.sync_period_hist))
-        line_sync_period.set_data(x_sync, np.array(state.sync_period_hist))
         ax_timing.relim()
         ax_timing.autoscale_view()
 
@@ -608,12 +593,9 @@ def create_gui(
         x_power = np.arange(len(state.power_hist_mw))
         line_power.set_data(x_power, np.array(state.power_hist_mw))
 
-        if state.power_sync_avg_mw > 0:
-            line_sync_avg.set_ydata([state.power_sync_avg_mw])
-            line_sync_avg.set_visible(True)
-        else:
-            line_sync_avg.set_visible(False)
-        power_peak_text.set_text(f"peak: {state.power_sync_peak_mw:.0f} mW")
+        power_peak_text.set_text(
+            f"infer: {state.power_infer_avg_mw:.0f}mW  idle: {state.power_idle_avg_mw:.0f}mW"
+        )
 
         # Sync highlight spans on power plot
         if sync_fill_ref[0] is not None:
@@ -679,7 +661,8 @@ def create_gui(
             f"STM32: {'yes' if state.firmware_connected else 'no'}  H->D:{recog_host_fw} D->H:{recog_fw_host}",
             f"Disp: {'on' if display_toggle_state['enabled'] else 'off'}  Pipe: {'on' if display_toggle_state['cam_pipe_enabled'] else 'off'}",
             f"ToF: hand={state.hand_mm}mm haz={state.hazard_mm}mm {status}({stale})",
-            f"ESP32: {'yes' if state.power_connected else 'no'}  {state.power_current_ma:.1f}mA {state.power_bus_v:.3f}V",
+            f"ESP32: {'yes' if state.power_connected else 'no'}  infer={state.power_infer_avg_mw:.0f}mW ({state.power_infer_duration_ms:.1f}ms)  idle={state.power_idle_avg_mw:.0f}mW",
+            f"  energy={state.power_infer_energy_uj:.0f}uJ  npu_delta={'%dmW' % int(state.power_infer_avg_mw - state.power_idle_avg_mw) if state.power_idle_avg_mw > 0 else '-'}",
             f"ACK: {state.last_ack}",
             f"Err: {state.last_error or '-'}",
             f"PwrErr: {state.last_power_error or '-'}",
@@ -693,11 +676,9 @@ def create_gui(
         return (
             line_inf,
             line_period,
-            line_sync_period,
             img,
             text_box,
             line_power,
-            line_sync_avg,
             power_peak_text,
             line_cpu,
             cpu_percent_text,
@@ -720,8 +701,8 @@ def parse_args() -> argparse.Namespace:
         "-b",
         "--baud",
         type=int,
-        default=115200,
-        help="Baud rate (default: 115200)",
+        default=921600,
+        help="Baud rate (default: 921600)",
     )
     parser.add_argument(
         "--timeout",
@@ -737,20 +718,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--power-baud",
         type=int,
-        default=115200,
-        help="Power monitor baud rate (default: 115200)",
+        default=921600,
+        help="Power monitor baud rate (default: 921600)",
     )
     return parser.parse_args()
+
+
+def _real_ports() -> list:
+    return [p for p in list_ports.comports() if p.vid is not None]
 
 
 def resolve_port(port: Optional[str]) -> str:
     if port:
         return port
 
-    ports = list(list_ports.comports())
+    ports = _real_ports()
     if not ports:
         raise RuntimeError("No serial ports found. Pass port explicitly.")
 
+    espressif_vids = {0x303A}
     st_vids = {0x0483}
     keyword_scores = {
         "stm32": 6,
@@ -765,6 +751,8 @@ def resolve_port(port: Optional[str]) -> str:
 
     def score_port(info) -> int:
         score = 0
+        if info.vid in espressif_vids:
+            return -1
         if info.vid in st_vids:
             score += 10
         text = " ".join(
@@ -788,7 +776,7 @@ def resolve_port(port: Optional[str]) -> str:
     selected_info = ranked[0]
     selected = selected_info.device
     selected_score = score_port(selected_info)
-    if selected_score == 0 and len(ranked) > 1:
+    if selected_score <= 0 and len(ranked) > 1:
         candidates = ", ".join(p.device for p in ranked[:4])
         print(
             f"[visualizer] Could not confidently identify firmware port; choosing {selected} from: {candidates}"
@@ -798,6 +786,54 @@ def resolve_port(port: Optional[str]) -> str:
             f"[visualizer] Auto-selected firmware-like port: {selected} (score={selected_score})"
         )
     return selected
+
+
+def resolve_power_port(port: Optional[str]) -> Optional[str]:
+    if port:
+        return port
+
+    espressif_vids = {0x303A}
+    keyword_scores = {
+        "esp32": 6,
+        "espressif": 6,
+        "esp": 4,
+        "jtag": 2,
+    }
+
+    ports = _real_ports()
+    if not ports:
+        return None
+
+    def score_port(info) -> int:
+        score = 0
+        if info.vid in espressif_vids:
+            score += 10
+        text = " ".join(
+            [
+                (info.manufacturer or ""),
+                (info.product or ""),
+                (info.description or ""),
+                (info.interface or ""),
+            ]
+        ).lower()
+        for needle, weight in keyword_scores.items():
+            if needle in text:
+                score += weight
+        return score
+
+    ranked = sorted(
+        ports,
+        key=lambda p: (score_port(p), p.device),
+        reverse=True,
+    )
+    best = ranked[0]
+    best_score = score_port(best)
+    if best_score <= 0:
+        return None
+    print(
+        f"[visualizer] Auto-selected power monitor port: {best.device} (score={best_score})"
+    )
+    return best.device
 
 
 def main() -> int:
@@ -812,9 +848,10 @@ def main() -> int:
         daemon=True,
     )
     rx_thread.start()
+    power_port = resolve_power_port(args.power_port)
     power_thread = threading.Thread(
         target=power_receiver_loop,
-        args=(args.power_port, args.power_baud, args.timeout, state, stop_evt),
+        args=(power_port, args.power_baud, args.timeout, state, stop_evt),
         daemon=True,
     )
     power_thread.start()
