@@ -58,7 +58,6 @@ class VisualizerState:
     build_mode_text: str = "unknown"
     camera_mode_text: str = "unknown"
     build_timestamp: str = "unknown"
-    display_enabled: Optional[bool] = None
     firmware_recognized: bool = False
     host_introduced: bool = False
 
@@ -70,8 +69,6 @@ class VisualizerState:
     post_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
     period_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
     fps_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
-    power_hist_mw: deque[float] = field(default_factory=lambda: deque(maxlen=240))
-    sync_hist: deque[bool] = field(default_factory=lambda: deque(maxlen=240))
 
     hand_mm: int = 0
     hazard_mm: int = 0
@@ -89,23 +86,13 @@ class VisualizerState:
     last_rx_time: float = 0.0
     firmware_connected: bool = False
     power_connected: bool = False
-    power_sync: bool = False
+    power_in_inference: bool = False
     power_infer_avg_mw: float = 0.0
     power_idle_avg_mw: float = 0.0
     power_infer_energy_uj: float = 0.0
     power_infer_duration_ms: float = 0.0
     power_hist_mw: deque[float] = field(default_factory=lambda: deque(maxlen=240))
-    sync_hist: deque[bool] = field(default_factory=lambda: deque(maxlen=240))
-
-
-def read_exact(ser: serial.Serial, size: int) -> bytes:
-    data = b""
-    while len(data) < size:
-        chunk = ser.read(size - len(data))
-        if not chunk:
-            raise IOError("Serial read timeout")
-        data += chunk
-    return data
+    in_inference_hist: deque[bool] = field(default_factory=lambda: deque(maxlen=240))
 
 
 class SerialLink:
@@ -175,18 +162,6 @@ class PowerLink:
         self._ser = serial.Serial(port, baud, timeout=timeout_s)
         self._ser.reset_input_buffer()
         self._ser.reset_output_buffer()
-        self._ser.write(b"START\n")
-        self._ser.flush()
-        # Drain text preamble lines (# comments) before protobuf stream.
-        self._ser.timeout = 2.0
-        while True:
-            line = self._ser.readline()
-            if not line:
-                break
-            text = line.decode("utf-8", errors="ignore").strip()
-            if text.startswith("# Streaming"):
-                break
-        self._ser.timeout = timeout_s
 
     def close(self) -> None:
         self._ser.close()
@@ -388,10 +363,9 @@ def power_receiver_loop(
             duration_us = float(sample.duration_us)
             is_inference = bool(sample.is_inference)
 
-            # Append to history for the power plot.
             state.power_hist_mw.append(avg_mw)
-            state.sync_hist.append(is_inference)
-            state.power_sync = is_inference
+            state.in_inference_hist.append(is_inference)
+            state.power_in_inference = is_inference
 
             if is_inference:
                 state.power_infer_avg_mw = avg_mw
@@ -546,7 +520,7 @@ def create_gui(
     fig.tight_layout(pad=0.8)
     fig.subplots_adjust(left=0.06, right=0.96, top=0.96, bottom=0.02, hspace=1)
 
-    sync_fill_ref = [None]
+    infer_fill_ref = [None]
 
     def on_get_info(_event) -> None:
         cmd_queue.put(("get_info", None))
@@ -578,17 +552,17 @@ def create_gui(
         )
 
         # Sync highlight spans on power plot
-        if sync_fill_ref[0] is not None:
-            sync_fill_ref[0].remove()
-            sync_fill_ref[0] = None
-        if len(state.sync_hist) > 0:
-            sync_arr = np.array(list(state.sync_hist), dtype=bool)
-            x_sh = np.arange(len(sync_arr))
-            sync_fill_ref[0] = ax_power.fill_between(
+        if infer_fill_ref[0] is not None:
+            infer_fill_ref[0].remove()
+            infer_fill_ref[0] = None
+        if len(state.in_inference_hist) > 0:
+            infer_arr = np.fromiter(state.in_inference_hist, dtype=bool)
+            x_sh = np.arange(len(infer_arr))
+            infer_fill_ref[0] = ax_power.fill_between(
                 x_sh,
                 0,
                 1,
-                where=sync_arr,
+                where=infer_arr,
                 transform=ax_power.get_xaxis_transform(),
                 alpha=0.15,
                 color="#4488ff",
@@ -597,13 +571,6 @@ def create_gui(
 
         ax_power.relim()
         ax_power.autoscale_view()
-
-        # --- Sync background tint for timing and tof ---
-        bg = "#0a0a20" if state.power_sync else "#000000"
-        ax_timing.set_facecolor(bg)
-        ax_tof.set_facecolor(bg)
-        ax_power.set_facecolor(bg)
-        ax_cpu.set_facecolor(bg)
 
         # --- CPU line chart ---
         pct = state.cpu_usage_percent
@@ -708,6 +675,39 @@ def _real_ports() -> list:
     return [p for p in list_ports.comports() if p.vid is not None]
 
 
+def _score_port(
+    info,
+    keyword_scores: dict[str, int],
+    preferred_vids: set[int] | None = None,
+    rejected_vids: set[int] | None = None,
+) -> int:
+    """Score a serial port by VID and keyword matches in its metadata."""
+    if rejected_vids and info.vid in rejected_vids:
+        return -1
+    score = 0
+    if preferred_vids and info.vid in preferred_vids:
+        score += 10
+    text = " ".join(
+        [
+            (info.manufacturer or ""),
+            (info.product or ""),
+            (info.description or ""),
+            (info.interface or ""),
+        ]
+    ).lower()
+    for needle, weight in keyword_scores.items():
+        if needle in text:
+            score += weight
+    return score
+
+
+def _rank_ports(ports: list, scorer) -> list[tuple[object, int]]:
+    """Return ports sorted by (score, device) descending, with cached scores."""
+    scored = [(p, scorer(p)) for p in ports]
+    scored.sort(key=lambda t: (t[1], t[0].device), reverse=True)
+    return scored
+
+
 def resolve_port(port: Optional[str]) -> str:
     if port:
         return port
@@ -716,98 +716,42 @@ def resolve_port(port: Optional[str]) -> str:
     if not ports:
         raise RuntimeError("No serial ports found. Pass port explicitly.")
 
-    espressif_vids = {0x303A}
-    st_vids = {0x0483}
-    keyword_scores = {
-        "stm32": 6,
-        "stmicro": 6,
-        "stlink": 5,
-        "nucleo": 4,
-        "discovery": 4,
-        "virtual com": 3,
-        "vcp": 3,
-        "usb serial": 1,
+    _ESPRESSIF_VIDS = {0x303A}
+    _ST_VIDS = {0x0483}
+    _FW_KEYWORDS = {
+        "stm32": 6, "stmicro": 6, "stlink": 5,
+        "nucleo": 4, "discovery": 4, "virtual com": 3, "vcp": 3, "usb serial": 1,
     }
+    scorer = lambda info: _score_port(info, _FW_KEYWORDS, preferred_vids=_ST_VIDS, rejected_vids=_ESPRESSIF_VIDS)
+    ranked = _rank_ports(ports, scorer)
 
-    def score_port(info) -> int:
-        score = 0
-        if info.vid in espressif_vids:
-            return -1
-        if info.vid in st_vids:
-            score += 10
-        text = " ".join(
-            [
-                (info.manufacturer or ""),
-                (info.product or ""),
-                (info.description or ""),
-                (info.interface or ""),
-            ]
-        ).lower()
-        for needle, weight in keyword_scores.items():
-            if needle in text:
-                score += weight
-        return score
-
-    ranked = sorted(
-        ports,
-        key=lambda p: (score_port(p), p.device),
-        reverse=True,
-    )
-    selected_info = ranked[0]
-    selected = selected_info.device
-    selected_score = score_port(selected_info)
+    selected, selected_score = ranked[0]
     if selected_score <= 0 and len(ranked) > 1:
-        candidates = ", ".join(p.device for p in ranked[:4])
+        candidates = ", ".join(p.device for p, _ in ranked[:4])
         print(
-            f"[visualizer] Could not confidently identify firmware port; choosing {selected} from: {candidates}"
+            f"[visualizer] Could not confidently identify firmware port; choosing {selected.device} from: {candidates}"
         )
     else:
         print(
-            f"[visualizer] Auto-selected firmware-like port: {selected} (score={selected_score})"
+            f"[visualizer] Auto-selected firmware-like port: {selected.device} (score={selected_score})"
         )
-    return selected
+    return selected.device
 
 
 def resolve_power_port(port: Optional[str]) -> Optional[str]:
     if port:
         return port
 
-    espressif_vids = {0x303A}
-    keyword_scores = {
-        "esp32": 6,
-        "espressif": 6,
-        "esp": 4,
-        "jtag": 2,
-    }
-
     ports = _real_ports()
     if not ports:
         return None
 
-    def score_port(info) -> int:
-        score = 0
-        if info.vid in espressif_vids:
-            score += 10
-        text = " ".join(
-            [
-                (info.manufacturer or ""),
-                (info.product or ""),
-                (info.description or ""),
-                (info.interface or ""),
-            ]
-        ).lower()
-        for needle, weight in keyword_scores.items():
-            if needle in text:
-                score += weight
-        return score
+    _ESPRESSIF_VIDS = {0x303A}
+    _POWER_KEYWORDS = {"esp32": 6, "espressif": 6, "esp": 4, "jtag": 2}
+    scorer = lambda info: _score_port(info, _POWER_KEYWORDS, preferred_vids=_ESPRESSIF_VIDS)
+    ranked = _rank_ports(ports, scorer)
 
-    ranked = sorted(
-        ports,
-        key=lambda p: (score_port(p), p.device),
-        reverse=True,
-    )
-    best = ranked[0]
-    best_score = score_port(best)
+    best, best_score = ranked[0]
     if best_score <= 0:
         return None
     print(

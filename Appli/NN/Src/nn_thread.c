@@ -207,6 +207,9 @@ static void nn_thread_entry(ULONG arg) {
     inference_end_cycles = DWT->CYCCNT;
     period_cycles = inference_end_cycles - last_inference_end_cycles;
     timing_sample.nn_period_ms = CYCLES_TO_MS(period_cycles);
+#ifdef POWER_MEASURE_MODE
+    timing_sample.nn_period_ms -= PWR_SYNC_IDLE_MS;
+#endif
     last_inference_end_cycles = inference_end_cycles;
 
 #ifndef POWER_MEASURE_MODE
