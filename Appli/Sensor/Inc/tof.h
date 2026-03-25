@@ -144,6 +144,12 @@ typedef struct {
  * ============================================================================ */
 
 /**
+ * @brief  Initialize ToF hardware (GPIO, EXTI). Does NOT create ThreadX resources.
+ * @note   Call from main() before ThreadX starts.
+ */
+void TOF_Init(void);
+
+/**
  * @brief  Create and start the ToF ranging thread.
  */
 void TOF_ThreadStart(void);

@@ -144,3 +144,10 @@ void USART1_IRQHandler(void) {
 void EXTI13_IRQHandler(void) {
   BSP_PB_IRQHandler(BUTTON_USER1);
 }
+
+/**
+ * @brief This function handles EXTI Line 0 interrupt (TOF data ready).
+ */
+void EXTI0_IRQHandler(void) {
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+}

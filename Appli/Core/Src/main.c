@@ -26,6 +26,7 @@
 #include "npu_cache.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6570_discovery_bus.h"
+#include "tof.h"
 #include "ui.h"
 
 #ifdef POWER_MEASURE_MODE
@@ -94,6 +95,8 @@ int main(void) {
   BSP_I2C1_Init();
 
   CAM_Init();
+
+  TOF_Init();
 
 #ifdef POWER_MEASURE_MODE
   PWR_SyncInit();

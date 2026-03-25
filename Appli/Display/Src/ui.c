@@ -28,8 +28,8 @@
 #include "stm32_lcd.h"
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"
-#include "tof.h"
 #include "timebase.h"
+#include "tof.h"
 #include "ui.h"
 #include "utils.h"
 #include <stdarg.h>

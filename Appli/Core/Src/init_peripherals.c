@@ -169,16 +169,6 @@ void GPIO_Config(void) {
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
-  __HAL_RCC_GPIOQ_CLK_ENABLE();
-
-  /* Configure PQ5 (TOF_PWR_EN) as output push-pull, initially LOW */
-  GPIO_InitTypeDef gpio = {0};
-  gpio.Pin = GPIO_PIN_5;
-  gpio.Mode = GPIO_MODE_OUTPUT_PP;
-  gpio.Pull = GPIO_NOPULL;
-  gpio.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_WritePin(GPIOQ, GPIO_PIN_5, GPIO_PIN_RESET);
-  HAL_GPIO_Init(GPIOQ, &gpio);
 }
 
 void Button_Config(void) {
