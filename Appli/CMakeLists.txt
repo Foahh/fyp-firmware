@@ -119,7 +119,8 @@ endif()
 # =============================================================================
 # Compile Definitions
 # =============================================================================
-set(COMPILE_DEFINITIONS
+# Platform/library definitions
+set(PLATFORM_DEFINITIONS
     USE_HAL_DRIVER
     STM32N657xx
     TX_INCLUDE_USER_DEFINE_FILE
@@ -134,19 +135,22 @@ set(COMPILE_DEFINITIONS
     LL_ATON_DBG_BUFFER_INFO_EXCLUDED=1
     ${MODEL_DEFINE})
 
+option(TRACEX_ENABLE "Enable ThreadX TraceX event trace collection" OFF)
+if(TRACEX_ENABLE)
+  list(APPEND PLATFORM_DEFINITIONS TRACEX_ENABLE)
+endif()
+
+# App-only definitions
+set(APP_DEFINITIONS "")
+
 option(POWER_MEASURE_MODE "Power measurement mode: snapshot camera, idle gaps between inferences" OFF)
 if(POWER_MEASURE_MODE)
-  list(APPEND COMPILE_DEFINITIONS POWER_MEASURE_MODE)
+  list(APPEND APP_DEFINITIONS POWER_MEASURE_MODE)
 endif()
 
 option(OVERDRIVE_MODE "NPU at 1000 MHz (PLL2) and VDDCORE SCALE0; OFF = 800 MHz / SCALE1" OFF)
 if(OVERDRIVE_MODE)
-  list(APPEND COMPILE_DEFINITIONS OVERDRIVE_MODE)
-endif()
-
-option(TRACEX_ENABLE "Enable ThreadX TraceX event trace collection" OFF)
-if(TRACEX_ENABLE)
-  list(APPEND COMPILE_DEFINITIONS TRACEX_ENABLE)
+  list(APPEND APP_DEFINITIONS OVERDRIVE_MODE)
 endif()
 
 set(CAMERA_FPS_ALLOWED 10 15 20 25 30)
@@ -160,14 +164,14 @@ if(NOT CAMERA_FPS IN_LIST CAMERA_FPS_ALLOWED)
     FATAL_ERROR
       "CAMERA_FPS must be one of: ${_CAMERA_FPS_LIST}, got '${CAMERA_FPS}'")
 endif()
-list(APPEND COMPILE_DEFINITIONS "CAMERA_FPS=${CAMERA_FPS}")
+list(APPEND APP_DEFINITIONS "CAMERA_FPS=${CAMERA_FPS}")
 
 # =============================================================================
 # Interface Library for Common Configuration
 # =============================================================================
 add_library(stm32_interface INTERFACE)
 target_include_directories(stm32_interface INTERFACE ${INCLUDE_DIRECTORIES})
-target_compile_definitions(stm32_interface INTERFACE ${COMPILE_DEFINITIONS})
+target_compile_definitions(stm32_interface INTERFACE ${PLATFORM_DEFINITIONS})
 
 # =============================================================================
 # Include Library CMake Files
@@ -204,9 +208,8 @@ add_executable(${PROJECT_NAME})
 # Application sources
 target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES} ${APP_SOURCES})
 
-# Include directories and compile definitions are inherited from stm32_interface
-# via linked libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE stm32_interface)
+target_compile_definitions(${PROJECT_NAME} PRIVATE ${APP_DEFINITIONS})
 add_dependencies(${PROJECT_NAME} build_timestamp)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
