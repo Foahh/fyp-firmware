@@ -36,7 +36,7 @@ typedef struct {
   uint32_t frame_drops;  /**< Cumulative count of dropped/skipped frames */
 } nn_timing_t;
 
-#ifdef CAMERA_NN_SNAPSHOT_MODE
+#ifdef POWER_MEASURE_MODE
 
 /**
  * @brief  Signal that a snapshot frame is ready (ISR-safe)
@@ -57,7 +57,7 @@ uint8_t *NN_GetSnapshotBuffer(void);
  */
 bqueue_t *NN_GetInputQueue(void);
 
-#endif /* CAMERA_NN_SNAPSHOT_MODE */
+#endif /* POWER_MEASURE_MODE */
 
 /**
  * @brief  Get pointer to NN output buffer queue

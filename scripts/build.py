@@ -94,7 +94,7 @@ def cmd_build(
     fsbl=True,
     sign=True,
     force=False,
-    snapshot=False,
+    power_measure=False,
     overdrive=False,
     camera_fps=30,
     tracex=False,
@@ -107,7 +107,7 @@ def cmd_build(
     ]
 
     appli_cmake_args.append(
-        "-DCAMERA_NN_SNAPSHOT_MODE=ON" if snapshot else "-DCAMERA_NN_SNAPSHOT_MODE=OFF"
+        "-DPOWER_MEASURE_MODE=ON" if power_measure else "-DPOWER_MEASURE_MODE=OFF"
     )
 
     appli_cmake_args.append(

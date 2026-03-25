@@ -106,7 +106,7 @@ void COM_Send_DeviceInfo(uint32_t command_id) {
   di->npu_freq_mhz = 800U;
 #endif
 
-#ifdef CAMERA_NN_SNAPSHOT_MODE
+#ifdef POWER_MEASURE_MODE
   di->camera_fps = 0;
 #else
   di->camera_fps = CAMERA_FPS;

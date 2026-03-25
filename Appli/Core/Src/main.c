@@ -24,10 +24,13 @@
 #include "init_mpu.h"
 #include "init_peripherals.h"
 #include "npu_cache.h"
-#include "power_measurement_sync.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6570_discovery_bus.h"
 #include "ui.h"
+
+#ifdef POWER_MEASURE_MODE
+#include "power_measurement_sync.h"
+#endif
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -92,7 +95,9 @@ int main(void) {
 
   CAM_Init();
 
+#ifdef POWER_MEASURE_MODE
   PWR_SyncInit();
+#endif
 
   ThreadX_Init();
 

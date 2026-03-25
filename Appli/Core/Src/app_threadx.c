@@ -108,14 +108,14 @@ void ThreadX_Init(void) {
 static void startup_thread_entry(ULONG arg) {
   UNUSED(arg);
 
-#ifndef CAMERA_NN_SNAPSHOT_MODE
+#ifndef POWER_MEASURE_MODE
   bqueue_t *nn_input_queue;
   uint8_t *first_nn_buffer;
 #endif
 
   CAM_DisplayPipe_Start(CMW_MODE_CONTINUOUS);
 
-#ifdef CAMERA_NN_SNAPSHOT_MODE
+#ifdef POWER_MEASURE_MODE
   CAM_NNPipe_Start(NN_GetSnapshotBuffer(), CMW_MODE_SNAPSHOT);
 #else
   nn_input_queue = NN_GetInputQueue();

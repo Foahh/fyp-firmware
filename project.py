@@ -46,7 +46,7 @@ MODELS = {
 
 DEFAULT_MODEL = "yolox_nano"
 
-CAMERA_FPS_CHOICES = (0, 10, 15, 20, 25, 30)
+CAMERA_FPS_CHOICES = (10, 15, 20, 25, 30)
 DEFAULT_CAMERA_FPS = 30
 
 
@@ -117,12 +117,17 @@ def main():
         type=int,
         default=DEFAULT_CAMERA_FPS,
         metavar="N",
-        help=f"Camera frame rate (choices: {CAMERA_FPS_CHOICES}, default: {DEFAULT_CAMERA_FPS}; --fps 0 enables snapshot mode: camera captures single frames on-demand instead of continuous streaming)",
+        help=f"Camera frame rate (choices: {CAMERA_FPS_CHOICES}, default: {DEFAULT_CAMERA_FPS})",
     )
     build_parser.add_argument(
         "--debug",
         action="store_true",
         help="Build in Debug mode",
+    )
+    build_parser.add_argument(
+        "--power-measure",
+        action="store_true",
+        help="Power measurement mode: single-frame camera capture with idle gaps between inferences",
     )
     build_parser.add_argument(
         "--appli",
@@ -241,13 +246,9 @@ def main():
     elif args.command == "proto":
         cmd_generate_proto(args.proto or None)
     elif args.command == "build":
-        if args.fps > 0 and args.fps not in CAMERA_FPS_CHOICES:
-            parser.error(
-                f"--fps must be one of {CAMERA_FPS_CHOICES} or 0 for snapshot mode"
-            )
+        if args.fps not in CAMERA_FPS_CHOICES:
+            parser.error(f"--fps must be one of {CAMERA_FPS_CHOICES}")
 
-        snapshot_mode = args.fps <= 0
-        camera_fps = args.fps if args.fps > 0 else DEFAULT_CAMERA_FPS
         build_appli = args.appli or not args.fsbl
         build_fsbl = args.fsbl or not args.appli
         build_type = "Debug" if args.debug else BUILD_TYPE
@@ -261,9 +262,9 @@ def main():
             fsbl=build_fsbl,
             sign=args.flash,
             force=args.force,
-            snapshot=snapshot_mode,
+            power_measure=args.power_measure,
             overdrive=args.overdrive,
-            camera_fps=camera_fps,
+            camera_fps=args.fps,
             tracex=args.tracex,
         )
         if args.flash:

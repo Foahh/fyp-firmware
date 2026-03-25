@@ -88,7 +88,7 @@ set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Serial/Src/comm_tx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/tof.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/haptic.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/power_measurement_sync.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Measurement/Src/power_measurement_sync.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/cpu_load.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/tracex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/bqueue.c
@@ -103,6 +103,7 @@ set(INCLUDE_DIRECTORIES
     ${CMAKE_CURRENT_SOURCE_DIR}/NN/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Display/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Measurement/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Config/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc)
@@ -134,9 +135,9 @@ set(COMPILE_DEFINITIONS
     LL_ATON_DBG_BUFFER_INFO_EXCLUDED=1
     ${MODEL_DEFINE})
 
-option(CAMERA_NN_SNAPSHOT_MODE "NN camera pipe snapshot mode" OFF)
-if(CAMERA_NN_SNAPSHOT_MODE)
-  list(APPEND COMPILE_DEFINITIONS CAMERA_NN_SNAPSHOT_MODE)
+option(POWER_MEASURE_MODE "Power measurement mode: snapshot camera, idle gaps between inferences" OFF)
+if(POWER_MEASURE_MODE)
+  list(APPEND COMPILE_DEFINITIONS POWER_MEASURE_MODE)
 endif()
 
 option(OVERDRIVE_MODE "NPU at 1000 MHz (PLL2) and VDDCORE SCALE0; OFF = 800 MHz / SCALE1" OFF)
