@@ -28,7 +28,7 @@ extern "C" {
 
 /* Idle gap between inferences */
 #ifndef PWR_SYNC_IDLE_MS
-#define PWR_SYNC_IDLE_MS 5
+#define PWR_SYNC_IDLE_MS 100
 #endif
 #define PWR_SYNC_IDLE_TICKS MS_TO_TICKS(PWR_SYNC_IDLE_MS)
 
