@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PROTO_DIR = ROOT / "Appli" / "Proto"
 OUT_DIR = PROTO_DIR
-POWER_PROTO_DIR = ROOT / "External" / "fyp-power-measure" / "lib" / "nanopb"
+POWER_PROTO_DIR = ROOT / "External" / "fyp-power-measure"
 NANOPB_PROTO = ROOT / "External" / "nanopb" / "generator" / "proto"
 
 

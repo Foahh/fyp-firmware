@@ -163,8 +163,8 @@ def main():
         "-b",
         "--baud",
         type=int,
-        default=115200,
-        help="Baud rate (default: 115200)",
+        default=921600,
+        help="Baud rate (default: 921600)",
     )
     ui_parser.add_argument(
         "--timeout",
@@ -198,8 +198,8 @@ def main():
         "-b",
         "--baud",
         type=int,
-        default=115200,
-        help="Baud rate (default: 115200)",
+        default=921600,
+        help="Baud rate (default: 921600)",
     )
     tracex_parser.add_argument(
         "--timeout",

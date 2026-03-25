@@ -30,7 +30,6 @@
  * ============================================================================ */
 
 static volatile bool display_enabled = true;
-static volatile bool display_pipe_enabled = true;
 static volatile bool host_recognized = false;
 static volatile uint32_t host_last_seen_tick = 0;
 
@@ -53,7 +52,6 @@ static void handle_set_display_enabled(uint32_t cmd_id,
     UI_ThreadResume();
 
     display_enabled = true;
-    display_pipe_enabled = true;
   } else if (!cmd->enabled && display_enabled) {
     CAM_DisplayPipe_Suspend();
     CAM_LCDReloadThreadSuspend();
@@ -66,29 +64,6 @@ static void handle_set_display_enabled(uint32_t cmd_id,
     __HAL_RCC_LTDC_CLK_SLEEP_DISABLE();
 
     display_enabled = false;
-    display_pipe_enabled = false;
-  }
-  COM_Send_Ack(cmd_id, true);
-}
-
-static void handle_set_debug_op_enabled(uint32_t cmd_id,
-                                        const SetDebugOpEnabled *cmd) {
-  /* Pipe-only command: do not touch UI/LCD/global display power state. */
-  if (!display_enabled) {
-    COM_Send_Ack(cmd_id, false);
-    return;
-  }
-
-  if (cmd->enabled && !display_pipe_enabled) {
-    CAM_LCDReloadThreadResume();
-    CAM_DisplayPipe_Resume();
-    UI_ThreadResume();
-    display_pipe_enabled = true;
-  } else if (!cmd->enabled && display_pipe_enabled) {
-    CAM_DisplayPipe_Suspend();
-    CAM_LCDReloadThreadSuspend();
-    UI_ThreadSuspend();
-    display_pipe_enabled = false;
   }
   COM_Send_Ack(cmd_id, true);
 }
@@ -145,11 +120,6 @@ void COM_Cmd_Dispatch(const HostMessage *msg) {
     host_recognized = true;
     host_last_seen_tick = HAL_GetTick();
     handle_get_device_info(cmd_id);
-    break;
-  case HostMessage_set_debug_op_enabled_tag:
-    host_recognized = true;
-    host_last_seen_tick = HAL_GetTick();
-    handle_set_debug_op_enabled(cmd_id, &msg->command.set_debug_op_enabled);
     break;
   case HostMessage_get_tracex_dump_tag:
     host_recognized = true;

@@ -24,7 +24,7 @@ from serial.tools import list_ports
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PROTO_DIR = os.path.join(REPO_ROOT, "Appli", "Proto")
-POWER_PROTO_DIR = os.path.join(REPO_ROOT, "External", "fyp-power-measure", "lib", "nanopb")
+POWER_PROTO_DIR = os.path.join(REPO_ROOT, "External", "fyp-power-measure")
 for _dir in (PROTO_DIR, POWER_PROTO_DIR):
     if _dir not in sys.path:
         sys.path.insert(0, _dir)
@@ -82,6 +82,7 @@ class VisualizerState:
         default_factory=lambda: np.full((8, 8), np.nan, dtype=np.float32)
     )
 
+    display_enabled: bool = True
     last_ack: str = "No ACK received."
     last_error: str = ""
     last_power_error: str = ""
@@ -244,6 +245,7 @@ def receiver_loop(
     stop_evt: threading.Event,
 ) -> None:
     command_id = 1
+    pending_display_cmds: dict[int, bool] = {}
     link: Optional[SerialLink] = None
     while not stop_evt.is_set():
         try:
@@ -266,9 +268,7 @@ def receiver_loop(
                 elif command == "set_display":
                     msg.set_display_enabled.enabled = bool(value)
                     state.host_introduced = True
-                elif command == "set_debug_op":
-                    msg.set_debug_op_enabled.enabled = bool(value)
-                    state.host_introduced = True
+                    pending_display_cmds[msg.command_id] = bool(value)
                 link.send_host_message(msg)
             except Empty:
                 pass
@@ -346,6 +346,10 @@ def receiver_loop(
                 state.last_ack = (
                     f"ACK command_id={ack.command_id} success={ack.success}"
                 )
+                if ack.command_id in pending_display_cmds:
+                    if ack.success:
+                        state.display_enabled = pending_display_cmds[ack.command_id]
+                    del pending_display_cmds[ack.command_id]
 
         except Exception as exc:  # Broad catch keeps GUI alive while cable reconnects.
             state.last_error = str(exc)
@@ -434,23 +438,14 @@ def create_gui(
 
     ax_btn_info = fig.add_subplot(grid[4, 1:3])
     ax_btn_toggle = fig.add_subplot(grid[4, 3:5])
-    ax_btn_cam_only = fig.add_subplot(grid[4, 5:7])
-
     btn_info = Button(
         ax_btn_info, "Get Device Info", color="#333333", hovercolor="#555555"
     )
     btn_toggle = Button(
         ax_btn_toggle, "Toggle Display", color="#333333", hovercolor="#555555"
     )
-    btn_cam_only = Button(
-        ax_btn_cam_only,
-        "Toggle CAM Pipe",
-        color="#333333",
-        hovercolor="#555555",
-    )
     btn_info.label.set_color("white")
     btn_toggle.label.set_color("white")
-    btn_cam_only.label.set_color("white")
 
     # --- Timing plot ---
     (line_inf,) = ax_timing.plot(
@@ -551,32 +546,17 @@ def create_gui(
     fig.tight_layout(pad=0.8)
     fig.subplots_adjust(left=0.06, right=0.96, top=0.96, bottom=0.02, hspace=1)
 
-    display_toggle_state = {"enabled": True, "cam_pipe_enabled": True}
     sync_fill_ref = [None]
 
     def on_get_info(_event) -> None:
         cmd_queue.put(("get_info", None))
 
     def on_toggle_display(_event) -> None:
-        display_toggle_state["enabled"] = not display_toggle_state["enabled"]
-        if not display_toggle_state["enabled"]:
-            display_toggle_state["cam_pipe_enabled"] = False
-        else:
-            display_toggle_state["cam_pipe_enabled"] = True
-        cmd_queue.put(("set_display", display_toggle_state["enabled"]))
-
-    def on_toggle_camera_only(_event) -> None:
-        if not display_toggle_state["enabled"]:
-            return
-        display_toggle_state["cam_pipe_enabled"] = not display_toggle_state[
-            "cam_pipe_enabled"
-        ]
-        cmd_queue.put(("set_debug_op", display_toggle_state["cam_pipe_enabled"]))
+        cmd_queue.put(("set_display", not state.display_enabled))
 
     btn_info.on_clicked(on_get_info)
     btn_toggle.on_clicked(on_toggle_display)
-    btn_cam_only.on_clicked(on_toggle_camera_only)
-    fig._visualizer_widgets = (btn_info, btn_toggle, btn_cam_only)
+    fig._visualizer_widgets = (btn_info, btn_toggle)
 
     def update(_frame_idx):
         # --- Timing ---
@@ -659,7 +639,7 @@ def create_gui(
             f"Built: {state.build_timestamp}",
             "",
             f"STM32: {'yes' if state.firmware_connected else 'no'}  H->D:{recog_host_fw} D->H:{recog_fw_host}",
-            f"Disp: {'on' if display_toggle_state['enabled'] else 'off'}  Pipe: {'on' if display_toggle_state['cam_pipe_enabled'] else 'off'}",
+            f"Disp: {'on' if state.display_enabled else 'off'}",
             f"ToF: hand={state.hand_mm}mm haz={state.hazard_mm}mm {status}({stale})",
             f"ESP32: {'yes' if state.power_connected else 'no'}  infer={state.power_infer_avg_mw:.0f}mW ({state.power_infer_duration_ms:.1f}ms)  idle={state.power_idle_avg_mw:.0f}mW",
             f"  energy={state.power_infer_energy_uj:.0f}uJ  npu_delta={'%dmW' % int(state.power_infer_avg_mw - state.power_idle_avg_mw) if state.power_idle_avg_mw > 0 else '-'}",

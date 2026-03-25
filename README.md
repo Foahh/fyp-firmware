@@ -86,7 +86,7 @@ pip install -r requirements.txt
 ### Run
 
 ```bash
-python project.py ui --baud 115200
+python project.py ui --baud 921600
 ```
 
 Use `--help` for all options:

@@ -88,10 +88,6 @@ typedef struct _SetDisplayEnabled {
     bool enabled;
 } SetDisplayEnabled;
 
-typedef struct _SetDebugOpEnabled {
-    bool enabled;
-} SetDebugOpEnabled;
-
 typedef struct _GetDeviceInfo {
     char dummy_field;
 } GetDeviceInfo;
@@ -116,7 +112,6 @@ typedef struct _HostMessage {
     union _HostMessage_command {
         SetDisplayEnabled set_display_enabled;
         GetDeviceInfo get_device_info;
-        SetDebugOpEnabled set_debug_op_enabled;
         GetTraceXDump get_tracex_dump;
     } command;
 } HostMessage;
@@ -136,7 +131,6 @@ extern "C" {
 #define Ack_init_default                         {0, 0}
 #define TraceXChunk_init_default                 {0, 0, {0, {0}}, 0}
 #define SetDisplayEnabled_init_default           {0}
-#define SetDebugOpEnabled_init_default           {0}
 #define GetDeviceInfo_init_default               {0}
 #define GetTraceXDump_init_default               {0}
 #define DeviceMessage_init_default               {0, {DetectionResult_init_default}}
@@ -150,7 +144,6 @@ extern "C" {
 #define Ack_init_zero                            {0, 0}
 #define TraceXChunk_init_zero                    {0, 0, {0, {0}}, 0}
 #define SetDisplayEnabled_init_zero              {0}
-#define SetDebugOpEnabled_init_zero              {0}
 #define GetDeviceInfo_init_zero                  {0}
 #define GetTraceXDump_init_zero                  {0}
 #define DeviceMessage_init_zero                  {0, {DetectionResult_init_zero}}
@@ -201,7 +194,6 @@ extern "C" {
 #define TraceXChunk_data_tag                     3
 #define TraceXChunk_done_tag                     4
 #define SetDisplayEnabled_enabled_tag            1
-#define SetDebugOpEnabled_enabled_tag            1
 #define GetTraceXDump_chunk_size_tag             1
 #define DeviceMessage_detection_result_tag       1
 #define DeviceMessage_device_info_tag            2
@@ -210,7 +202,6 @@ extern "C" {
 #define HostMessage_command_id_tag               1
 #define HostMessage_set_display_enabled_tag      2
 #define HostMessage_get_device_info_tag          3
-#define HostMessage_set_debug_op_enabled_tag     4
 #define HostMessage_get_tracex_dump_tag          5
 
 /* Struct field encoding specification for nanopb */
@@ -298,11 +289,6 @@ X(a, STATIC,   SINGULAR, BOOL,     enabled,           1)
 #define SetDisplayEnabled_CALLBACK NULL
 #define SetDisplayEnabled_DEFAULT NULL
 
-#define SetDebugOpEnabled_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, BOOL,     enabled,           1)
-#define SetDebugOpEnabled_CALLBACK NULL
-#define SetDebugOpEnabled_DEFAULT NULL
-
 #define GetDeviceInfo_FIELDLIST(X, a) \
 
 #define GetDeviceInfo_CALLBACK NULL
@@ -329,13 +315,11 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (payload,tracex_chunk,payload.tracex_chunk), 
 X(a, STATIC,   SINGULAR, UINT32,   command_id,        1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (command,set_display_enabled,command.set_display_enabled),   2) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (command,get_device_info,command.get_device_info),   3) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (command,set_debug_op_enabled,command.set_debug_op_enabled),   4) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (command,get_tracex_dump,command.get_tracex_dump),   5)
 #define HostMessage_CALLBACK NULL
 #define HostMessage_DEFAULT NULL
 #define HostMessage_command_set_display_enabled_MSGTYPE SetDisplayEnabled
 #define HostMessage_command_get_device_info_MSGTYPE GetDeviceInfo
-#define HostMessage_command_set_debug_op_enabled_MSGTYPE SetDebugOpEnabled
 #define HostMessage_command_get_tracex_dump_MSGTYPE GetTraceXDump
 
 extern const pb_msgdesc_t Timing_msg;
@@ -347,7 +331,6 @@ extern const pb_msgdesc_t DeviceInfo_msg;
 extern const pb_msgdesc_t Ack_msg;
 extern const pb_msgdesc_t TraceXChunk_msg;
 extern const pb_msgdesc_t SetDisplayEnabled_msg;
-extern const pb_msgdesc_t SetDebugOpEnabled_msg;
 extern const pb_msgdesc_t GetDeviceInfo_msg;
 extern const pb_msgdesc_t GetTraceXDump_msg;
 extern const pb_msgdesc_t DeviceMessage_msg;
@@ -363,7 +346,6 @@ extern const pb_msgdesc_t HostMessage_msg;
 #define Ack_fields &Ack_msg
 #define TraceXChunk_fields &TraceXChunk_msg
 #define SetDisplayEnabled_fields &SetDisplayEnabled_msg
-#define SetDebugOpEnabled_fields &SetDebugOpEnabled_msg
 #define GetDeviceInfo_fields &GetDeviceInfo_msg
 #define GetTraceXDump_fields &GetTraceXDump_msg
 #define DeviceMessage_fields &DeviceMessage_msg
@@ -380,7 +362,6 @@ extern const pb_msgdesc_t HostMessage_msg;
 #define GetTraceXDump_size                       6
 #define HostMessage_size                         14
 #define MESSAGES_PB_H_MAX_SIZE                   DeviceMessage_size
-#define SetDebugOpEnabled_size                   2
 #define SetDisplayEnabled_size                   2
 #define Timing_size                              24
 #define TofAlert_size                            725

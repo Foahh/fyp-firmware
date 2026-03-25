@@ -88,10 +88,6 @@ message SetDisplayEnabled {
   bool enabled = 1;
 }
 
-message SetDebugOpEnabled {
-  bool enabled = 1;
-}
-
 message GetDeviceInfo {}
 
 message GetTraceXDump {
@@ -116,7 +112,6 @@ message HostMessage {
   oneof command {
     SetDisplayEnabled set_display_enabled = 2;
     GetDeviceInfo get_device_info = 3;
-    SetDebugOpEnabled set_debug_op_enabled = 4;
     GetTraceXDump get_tracex_dump = 5;
   }
 }
