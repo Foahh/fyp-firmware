@@ -34,6 +34,7 @@
 #include "stm32n6570_discovery.h"
 #include "stm32n6570_discovery_bus.h"
 #include "stm32n6xx_hal.h"
+#include "timebase.h"
 #include "tx_api.h"
 #include "vl53l5cx.h"
 #include "vl53l5cx_api.h"
@@ -56,7 +57,8 @@
 #define TOF_PWR_EN_PIN  GPIO_PIN_5
 
 /* Poll at 2x the 15Hz ranging frequency */
-#define TOF_POLL_TICKS ((TX_TIMER_TICKS_PER_SECOND + 29) / 30)
+#define TOF_SAMPLE_FPS 30
+#define TOF_POLL_TICKS FPS_TO_TICKS(TOF_SAMPLE_FPS)
 
 /* Depth data staleness threshold */
 #define TOF_STALENESS_MS 500
@@ -285,7 +287,7 @@ static void tof_thread_entry(ULONG arg) {
 
   /* Power on sensor via PQ5 */
   HAL_GPIO_WritePin(TOF_PWR_EN_PORT, TOF_PWR_EN_PIN, GPIO_PIN_SET);
-  tx_thread_sleep(10); /* 10ms power-up delay */
+  tx_thread_sleep(MS_TO_TICKS(10)); /* 10ms power-up delay */
 
   /* Register bus I/O */
   VL53L5CX_IO_t io = {
@@ -430,7 +432,7 @@ void TOF_Stop(void) {
 
 void TOF_Resume(void) {
   HAL_GPIO_WritePin(TOF_PWR_EN_PORT, TOF_PWR_EN_PIN, GPIO_PIN_SET);
-  tx_thread_sleep(10);
+  tx_thread_sleep(MS_TO_TICKS(10)); /* 10ms power-up delay */
   vl53l5cx_start_ranging(&tof_obj.Dev);
   tx_thread_resume(&tof_ctx.thread);
 }

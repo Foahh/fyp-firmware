@@ -2,6 +2,7 @@
 
 #include "error.h"
 #include "stm32n6xx_hal.h"
+#include "timebase.h"
 #include "tx_api.h"
 
 typedef unsigned long long cpu_load_execution_time_t;
@@ -14,7 +15,7 @@ extern UINT _tx_execution_idle_time_get(cpu_load_execution_time_t *total_time);
 #define CPU_LOAD_THREAD_STACK_SIZE 1024U
 #define CPU_LOAD_THREAD_PRIORITY   10U
 #define CPU_LOAD_SAMPLE_PERIOD_MS  100U
-#define CPU_LOAD_SAMPLE_TICKS      (TX_TIMER_TICKS_PER_SECOND * CPU_LOAD_SAMPLE_PERIOD_MS / 1000U)
+#define CPU_LOAD_SAMPLE_TICKS      MS_TO_TICKS(CPU_LOAD_SAMPLE_PERIOD_MS)
 
 static TX_THREAD s_cpu_load_thread;
 static UCHAR s_cpu_load_stack[CPU_LOAD_THREAD_STACK_SIZE];

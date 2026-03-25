@@ -23,6 +23,7 @@
  */
 
 #include "platform.h"
+#include "timebase.h"
 #include "tx_api.h"
 
 uint8_t RdByte(VL53L5CX_Platform *p_platform, uint16_t RegisterAdress,
@@ -68,7 +69,7 @@ uint8_t WaitMs(VL53L5CX_Platform *p_platform, uint32_t TimeMs) {
   if (TimeMs == 0) {
     return 0;
   }
-  ULONG ticks = TimeMs * TX_TIMER_TICKS_PER_SECOND / 1000;
+  ULONG ticks = MS_TO_TICKS(TimeMs);
   if (ticks == 0) {
     ticks = 1;
   }

@@ -29,7 +29,7 @@
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"
 #include "tof.h"
-#include "tx_user.h" /* For TX_TIMER_TICKS_PER_SECOND */
+#include "timebase.h"
 #include "ui.h"
 #include "utils.h"
 #include <stdarg.h>
@@ -88,7 +88,7 @@ static volatile uint8_t g_tof_overlay_visible = 0;
 #define UI_UPDATE_FPS 20
 
 /* Calculate sleep ticks from FPS */
-#define UI_UPDATE_SLEEP_TICKS (TX_TIMER_TICKS_PER_SECOND / UI_UPDATE_FPS)
+#define UI_UPDATE_SLEEP_TICKS FPS_TO_TICKS(UI_UPDATE_FPS)
 
 /* Thread resources */
 static struct {

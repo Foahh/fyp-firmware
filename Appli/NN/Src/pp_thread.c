@@ -141,7 +141,7 @@ static void pp_thread_entry(ULONG arg) {
     }
     write_buf->nn_period_ms = nn_timing.nn_period_ms;
     write_buf->inference_ms = nn_timing.inference_ms;
-    write_buf->postprocess_ms = Timebase_CyclesToMs(pp_end_cycles - pp_start_cycles);
+    write_buf->postprocess_ms = CYCLES_TO_MS(pp_end_cycles - pp_start_cycles);
     write_buf->frame_drops = nn_timing.frame_drops;
     write_buf->timestamp_ms = HAL_GetTick();
 
