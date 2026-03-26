@@ -162,11 +162,14 @@ class PowerLink:
     """Length-prefixed nanopb PowerSample frames over serial."""
 
     MAX_FRAME_LEN = 64
+    HANDSHAKE_REQUEST = b"PM_PING\n"
+    HANDSHAKE_ACK_PREFIX = "PM_ACK"
 
     def __init__(self, port: str, baud: int, timeout_s: float):
         self._ser = serial.Serial(port, baud, timeout=timeout_s)
         self._ser.reset_input_buffer()
         self._ser.reset_output_buffer()
+        self._handshake(timeout_s)
 
     def close(self) -> None:
         self._ser.close()
@@ -179,6 +182,24 @@ class PowerLink:
                 raise IOError("Power serial read timeout")
             data += chunk
         return data
+
+    def _handshake(self, timeout_s: float) -> None:
+        """Verify monitor responds before binary frame decoding begins."""
+        deadline = time.monotonic() + max(0.5, timeout_s)
+        self._ser.write(self.HANDSHAKE_REQUEST)
+        self._ser.flush()
+        while time.monotonic() < deadline:
+            line = self._ser.readline()
+            if not line:
+                continue
+            text = line.decode("utf-8", errors="ignore").strip()
+            if not text:
+                continue
+            if text.startswith(self.HANDSHAKE_ACK_PREFIX):
+                print(f"[power] ACK: {text}")
+                self._ser.reset_input_buffer()
+                return
+        raise IOError("Power monitor handshake timeout (missing PM_ACK)")
 
     def recv_power_sample(self) -> power_sample_pb2.PowerSample:
         """Returns a parsed PowerSample protobuf message."""

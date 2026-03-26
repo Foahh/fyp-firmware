@@ -1,6 +1,8 @@
 pyserial>=3.5
+
 grpcio-tools>=1.78.0
 protobuf
+
 matplotlib>=3.10.8
 numpy>=2.4.3
 tracex-parser>=3.0.1
