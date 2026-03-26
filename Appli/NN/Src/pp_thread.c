@@ -139,9 +139,9 @@ static void pp_thread_entry(ULONG arg) {
     for (int i = 0; i < pp_output.nb_detect && i < DETECTION_MAX_BOXES; i++) {
       write_buf->detects[i] = pp_output.pOutBuff[i];
     }
-    write_buf->nn_period_ms = nn_timing.nn_period_ms;
-    write_buf->inference_ms = nn_timing.inference_ms;
-    write_buf->postprocess_ms = CYCLES_TO_MS(pp_end_cycles - pp_start_cycles);
+    write_buf->nn_period_us = nn_timing.nn_period_us;
+    write_buf->inference_us = nn_timing.inference_us;
+    write_buf->postprocess_us = CYCLES_TO_US(pp_end_cycles - pp_start_cycles);
     write_buf->frame_drops = nn_timing.frame_drops;
     write_buf->timestamp_ms = HAL_GetTick();
 

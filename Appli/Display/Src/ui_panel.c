@@ -109,7 +109,7 @@ void UI_DrawDetectionInfoSection(const detection_info_t *info) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[8],
                            (uint8_t *)"Inference", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
-  snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)info->inference_ms);
+  snprintf(text_buf, sizeof(text_buf), "%luus", (unsigned long)info->inference_us);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[9],
                            (uint8_t *)text_buf, LEFT_MODE);
 
@@ -118,7 +118,7 @@ void UI_DrawDetectionInfoSection(const detection_info_t *info) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[10],
                            (uint8_t *)"Postprocess", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
-  snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)info->postprocess_ms);
+  snprintf(text_buf, sizeof(text_buf), "%luus", (unsigned long)info->postprocess_us);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[11],
                            (uint8_t *)text_buf, LEFT_MODE);
 
@@ -127,8 +127,8 @@ void UI_DrawDetectionInfoSection(const detection_info_t *info) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[12],
                            (uint8_t *)"Overhead", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
-  uint32_t overhead_ms = info->nn_period_ms > info->inference_ms ? info->nn_period_ms - info->inference_ms : 0;
-  snprintf(text_buf, sizeof(text_buf), "%lums", (unsigned long)overhead_ms);
+  uint32_t overhead_us = info->nn_period_us > info->inference_us ? info->nn_period_us - info->inference_us : 0;
+  snprintf(text_buf, sizeof(text_buf), "%luus", (unsigned long)overhead_us);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[13],
                            (uint8_t *)text_buf, LEFT_MODE);
 
@@ -137,7 +137,7 @@ void UI_DrawDetectionInfoSection(const detection_info_t *info) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[14],
                            (uint8_t *)"Inf. FPS", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
-  float fps = info->nn_period_ms > 0 ? 1000.0f / info->nn_period_ms : 0.0f;
+  float fps = info->nn_period_us > 0 ? 1000000.0f / info->nn_period_us : 0.0f;
   snprintf(text_buf, sizeof(text_buf), "%.1f", fps);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[15],
                            (uint8_t *)text_buf, LEFT_MODE);

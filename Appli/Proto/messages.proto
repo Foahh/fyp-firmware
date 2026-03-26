@@ -7,9 +7,9 @@ import "nanopb.proto";
  * ============================================================================ */
 
 message Timing {
-  uint32 inference_ms = 1;
-  uint32 postprocess_ms = 2;
-  uint32 nn_period_ms = 3;
+  uint32 inference_us = 1;
+  uint32 postprocess_us = 2;
+  uint32 nn_period_us = 3;
   uint32 frame_drops = 4;
 }
 

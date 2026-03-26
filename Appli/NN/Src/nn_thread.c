@@ -202,13 +202,13 @@ static void nn_thread_entry(ULONG arg) {
 
     /* Measure only async NPU run window (submit -> completion). */
     inference_cycles = NN_RunInferenceCycles(nn_ctx_network);
-    timing_sample.inference_ms = CYCLES_TO_MS(inference_cycles);
+    timing_sample.inference_us = CYCLES_TO_US(inference_cycles);
 
     inference_end_cycles = DWT->CYCCNT;
     period_cycles = inference_end_cycles - last_inference_end_cycles;
-    timing_sample.nn_period_ms = CYCLES_TO_MS(period_cycles);
+    timing_sample.nn_period_us = CYCLES_TO_US(period_cycles);
 #ifdef POWER_MEASURE_MODE
-    timing_sample.nn_period_ms -= PWR_SYNC_IDLE_MS;
+    timing_sample.nn_period_us -= (uint32_t)PWR_SYNC_IDLE_MS * 1000U;
 #endif
     last_inference_end_cycles = inference_end_cycles;
 

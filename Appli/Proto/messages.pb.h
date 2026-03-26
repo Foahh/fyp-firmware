@@ -11,9 +11,9 @@
 
 /* Struct definitions */
 typedef struct _Timing {
-    uint32_t inference_ms;
-    uint32_t postprocess_ms;
-    uint32_t nn_period_ms;
+    uint32_t inference_us;
+    uint32_t postprocess_us;
+    uint32_t nn_period_us;
     uint32_t frame_drops;
 } Timing;
 
@@ -150,9 +150,9 @@ extern "C" {
 #define HostMessage_init_zero                    {0, 0, {SetDisplayEnabled_init_zero}}
 
 /* Field tags (for use in manual encoding/decoding) */
-#define Timing_inference_ms_tag                  1
-#define Timing_postprocess_ms_tag                2
-#define Timing_nn_period_ms_tag                  3
+#define Timing_inference_us_tag                  1
+#define Timing_postprocess_us_tag                2
+#define Timing_nn_period_us_tag                  3
 #define Timing_frame_drops_tag                   4
 #define Detection_x_center_tag                   1
 #define Detection_y_center_tag                   2
@@ -206,9 +206,9 @@ extern "C" {
 
 /* Struct field encoding specification for nanopb */
 #define Timing_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   inference_ms,      1) \
-X(a, STATIC,   SINGULAR, UINT32,   postprocess_ms,    2) \
-X(a, STATIC,   SINGULAR, UINT32,   nn_period_ms,      3) \
+X(a, STATIC,   SINGULAR, UINT32,   inference_us,      1) \
+X(a, STATIC,   SINGULAR, UINT32,   postprocess_us,    2) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_period_us,      3) \
 X(a, STATIC,   SINGULAR, UINT32,   frame_drops,       4)
 #define Timing_CALLBACK NULL
 #define Timing_DEFAULT NULL

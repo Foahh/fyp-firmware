@@ -56,9 +56,9 @@ static void comm_send_detection_result(const detection_info_t *info) {
   df->timestamp = HAL_GetTick();
 
   df->has_timing = true;
-  df->timing.inference_ms = info->inference_ms;
-  df->timing.postprocess_ms = info->postprocess_ms;
-  df->timing.nn_period_ms = info->nn_period_ms;
+  df->timing.inference_us = info->inference_us;
+  df->timing.postprocess_us = info->postprocess_us;
+  df->timing.nn_period_us = info->nn_period_us;
   df->timing.frame_drops = info->frame_drops;
 
   df->has_cpu = true;

@@ -19,6 +19,11 @@ extern "C" {
   ((uint32_t)(((uint64_t)(cycles) * 1000ULL + ((uint64_t)SystemCoreClock / 2ULL)) / \
               (uint64_t)SystemCoreClock))
 
+/* Convert DWT cycle count to microseconds (rounded) */
+#define CYCLES_TO_US(cycles)                                                           \
+  ((uint32_t)(((uint64_t)(cycles) * 1000000ULL + ((uint64_t)SystemCoreClock / 2ULL)) / \
+              (uint64_t)SystemCoreClock))
+
 #ifdef __cplusplus
 }
 #endif

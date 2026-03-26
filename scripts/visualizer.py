@@ -287,12 +287,12 @@ def receiver_loop(
                 state.detections_text = build_detection_text(result, state.class_labels)
 
                 if result.HasField("timing"):
-                    period_ms = float(result.timing.nn_period_ms)
-                    fps = (1000.0 / period_ms) if period_ms > 0.0 else 0.0
+                    period_us = float(result.timing.nn_period_us)
+                    fps = (1000000.0 / period_us) if period_us > 0.0 else 0.0
                     now = time.time()
-                    state.infer_hist.append(float(result.timing.inference_ms))
-                    state.post_hist.append(float(result.timing.postprocess_ms))
-                    state.period_hist.append(period_ms)
+                    state.infer_hist.append(float(result.timing.inference_us))
+                    state.post_hist.append(float(result.timing.postprocess_us))
+                    state.period_hist.append(period_us)
                     state.fps_hist.append(fps)
                     state.timing_time_hist.append(now)
                     state.frame_drops = int(result.timing.frame_drops)
@@ -518,7 +518,7 @@ def create_gui(
     )
     ax_timing.set_title("Performance Timing", color=C_TITLE, pad=10)
     ax_timing.set_xlabel("Time (s)")
-    ax_timing.set_ylabel("Milliseconds")
+    ax_timing.set_ylabel("Microseconds")
     _legend(ax_timing, C_AX_BG)
 
     # --- ToF heatmap ---
@@ -720,7 +720,7 @@ def create_gui(
             "",
             f" Stats",
             SEP,
-            f"  Frames  {state.frame_count}   Drops: {state.frame_drops}   PP: {last_pp:.1f} ms",
+            f"  Frames  {state.frame_count}   Drops: {state.frame_drops}   PP: {last_pp:.0f} us",
             f"  Labels  {class_labels}",
             f"  ACK     {state.last_ack}",
             f"  Err     {state.last_error or '-'}",
