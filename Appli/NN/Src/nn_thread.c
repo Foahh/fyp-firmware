@@ -26,9 +26,7 @@
 #include "utils.h"
 #include <string.h>
 
-#ifdef POWER_MEASURE_MODE
 #include "power_measurement_sync.h"
-#endif
 
 /* Include ST.AI runtime API */
 #include "stai.h"
@@ -76,7 +74,7 @@ static struct {
 } nn_ctx;
 
 /* Buffer queues and input buffers */
-#ifdef POWER_MEASURE_MODE
+#ifdef SNAPSHOT_MODE
 static TX_EVENT_FLAGS_GROUP nn_snapshot_flags;
 static uint8_t nn_input_buffer[NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
 #else
@@ -97,7 +95,7 @@ static volatile uint32_t nn_timing_seq = 0;
 static volatile uint8_t nn_timing_published_idx = 0;
 static uint8_t nn_timing_write_idx = 1;
 
-#ifndef POWER_MEASURE_MODE
+#ifndef SNAPSHOT_MODE
 /* Frame drop counter (accumulated from bqueue skips in NN thread) */
 static uint32_t nn_frame_drop_count = 0;
 #endif
@@ -119,9 +117,7 @@ static uint32_t NN_RunInferenceCycles(stai_network *network) {
 
   start_cycles = DWT->CYCCNT;
 
-#ifdef POWER_MEASURE_MODE
   PWR_SyncBegin();
-#endif
   do {
     ret = mdl_run(network, STAI_MODE_ASYNC);
     if (ret == STAI_RUNNING_WFE) {
@@ -129,9 +125,7 @@ static uint32_t NN_RunInferenceCycles(stai_network *network) {
     }
   } while (ret == STAI_RUNNING_WFE || ret == STAI_RUNNING_NO_WFE);
   APP_REQUIRE(ret == STAI_DONE);
-#ifdef POWER_MEASURE_MODE
   PWR_SyncEnd();
-#endif
 
   return DWT->CYCCNT - start_cycles;
 }
@@ -164,7 +158,7 @@ static void nn_thread_entry(ULONG arg) {
     nn_timing_t timing_sample;
     int i;
 
-#ifdef POWER_MEASURE_MODE
+#ifdef SNAPSHOT_MODE
     /* Wait for snapshot frame */
     ULONG actual_flags;
     tx_event_flags_get(&nn_snapshot_flags, 0x01, TX_OR_CLEAR,
@@ -207,12 +201,9 @@ static void nn_thread_entry(ULONG arg) {
     inference_end_cycles = DWT->CYCCNT;
     period_cycles = inference_end_cycles - last_inference_end_cycles;
     timing_sample.nn_period_us = CYCLES_TO_US(period_cycles);
-#ifdef POWER_MEASURE_MODE
-    timing_sample.nn_period_us -= (uint32_t)PWR_SYNC_IDLE_MS * 1000U;
-#endif
     last_inference_end_cycles = inference_end_cycles;
 
-#ifndef POWER_MEASURE_MODE
+#ifndef SNAPSHOT_MODE
     timing_sample.frame_drops = nn_frame_drop_count;
 #else
     timing_sample.frame_drops = 0;
@@ -231,14 +222,12 @@ static void nn_thread_entry(ULONG arg) {
     stai_ret = mdl_new_inference(nn_ctx_network);
     APP_REQUIRE(stai_ret == STAI_SUCCESS);
 
-#ifndef POWER_MEASURE_MODE
+#ifndef SNAPSHOT_MODE
     /* Release input buffer back to free pool */
     BQUE_PutFree(&nn_input_queue);
 #else
     /* Request next snapshot now that inference is done */
     CAM_NNPipe_RequestSnapshot(nn_input_buffer);
-    /* Idle gap for external power measurement sampling */
-    tx_thread_sleep(PWR_SYNC_IDLE_TICKS);
 #endif
 
     /* Mark output buffer as ready for postprocess */
@@ -250,7 +239,7 @@ static void nn_thread_entry(ULONG arg) {
  * Public API Functions
  * ============================================================================ */
 
-#ifdef POWER_MEASURE_MODE
+#ifdef SNAPSHOT_MODE
 
 void NN_SignalSnapshotReady(void) {
   tx_event_flags_set(&nn_snapshot_flags, 0x01, TX_OR);
@@ -270,7 +259,7 @@ bqueue_t *NN_GetInputQueue(void) {
   return &nn_input_queue;
 }
 
-#endif /* POWER_MEASURE_MODE */
+#endif /* SNAPSHOT_MODE */
 
 /**
  * @brief  Get pointer to NN output buffer queue
@@ -364,7 +353,7 @@ void NN_ThreadStart(void) {
   }
 
   /* Initialize input buffer(s) */
-#ifdef POWER_MEASURE_MODE
+#ifdef SNAPSHOT_MODE
   APP_REQUIRE(tx_event_flags_create(&nn_snapshot_flags, "nn_snapshot") == TX_SUCCESS);
   memset(nn_input_buffer, 0, sizeof(nn_input_buffer));
   SCB_CleanInvalidateDCache_by_Addr((void *)nn_input_buffer, sizeof(nn_input_buffer));

@@ -103,7 +103,7 @@ void COM_Send_DeviceInfo(uint32_t command_id) {
   di->mcu_freq_mhz = AppClock_GetCpuFreqMHz();
   di->npu_freq_mhz = AppClock_GetNpuFreqMHz();
 
-#ifdef POWER_MEASURE_MODE
+#ifdef SNAPSHOT_MODE
   di->camera_fps = 0;
 #else
   di->camera_fps = CAMERA_FPS;

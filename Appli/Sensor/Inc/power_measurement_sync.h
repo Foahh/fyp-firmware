@@ -24,13 +24,6 @@ extern "C" {
 #endif
 
 #include "stm32n6xx_hal.h"
-#include "timebase.h"
-
-/* Idle gap between inferences */
-#ifndef PWR_SYNC_IDLE_MS
-#define PWR_SYNC_IDLE_MS 50
-#endif
-#define PWR_SYNC_IDLE_TICKS MS_TO_TICKS(PWR_SYNC_IDLE_MS)
 
 #ifndef PWR_SYNC_GPIO_PORT
 #define PWR_SYNC_GPIO_PORT GPIOD

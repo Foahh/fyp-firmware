@@ -33,6 +33,31 @@ import messages_pb2  # noqa: E402
 import power_sample_pb2  # noqa: E402
 
 
+def open_serial_binary(port: str, baud: int, timeout_s: float) -> serial.Serial:
+    """Open UART for length-prefixed protobuf (8N1, no flow control, binary-safe).
+
+    Uses exclusive access on Linux when supported so ModemManager/other daemons
+    cannot probe the same ttyACM device concurrently (a common cause of
+    \"connected\" ports with no valid frames).
+    """
+    kw: dict = {
+        "port": port,
+        "baudrate": baud,
+        "timeout": timeout_s,
+        "write_timeout": timeout_s,
+        "bytesize": serial.EIGHTBITS,
+        "parity": serial.PARITY_NONE,
+        "stopbits": serial.STOPBITS_ONE,
+        "xonxoff": False,
+        "rtscts": False,
+        "dsrdtr": False,
+    }
+    try:
+        return serial.Serial(**kw, exclusive=True)
+    except (TypeError, ValueError, AttributeError):
+        return serial.Serial(**kw)
+
+
 @dataclass
 class VisualizerState:
     frame_count: int = 0
@@ -86,6 +111,8 @@ class VisualizerState:
     last_power_error: str = ""
     last_rx_time: float = 0.0
     firmware_connected: bool = False
+    firmware_port_path: str = ""
+    firmware_baud: int = 0
     power_connected: bool = False
     power_in_inference: bool = False
     power_infer_avg_mw: float = 0.0
@@ -100,7 +127,7 @@ class VisualizerState:
 
 class SerialLink:
     def __init__(self, port: str, baud: int, timeout_s: float):
-        self._ser = serial.Serial(port, baud, timeout=timeout_s)
+        self._ser = open_serial_binary(port, baud, timeout_s)
         self._ser.reset_input_buffer()
         self._ser.reset_output_buffer()
         self._tx_lock = threading.Lock()
@@ -165,10 +192,11 @@ class PowerLink:
     HANDSHAKE_ACK_PREFIX = "PM_ACK"
 
     def __init__(self, port: str, baud: int, timeout_s: float):
-        self._ser = serial.Serial(port, baud, timeout=timeout_s)
+        self._ser = open_serial_binary(port, baud, timeout_s)
         self._ser.reset_input_buffer()
         self._ser.reset_output_buffer()
         self._handshake(timeout_s)
+        self._ser.timeout = None
 
     def close(self) -> None:
         self._ser.close()
@@ -219,6 +247,27 @@ class PowerLink:
             return sample
 
 
+def probe_power_monitor_pm_ping(port: str, baud: int, handshake_timeout_s: float) -> bool:
+    """Return True if the port responds to PM_PING with a PM_ACK line (ESP32 monitor)."""
+    ser = open_serial_binary(port, baud, 0.1)
+    try:
+        ser.reset_input_buffer()
+        ser.reset_output_buffer()
+        ser.write(PowerLink.HANDSHAKE_REQUEST)
+        ser.flush()
+        deadline = time.monotonic() + max(0.5, handshake_timeout_s)
+        while time.monotonic() < deadline:
+            line = ser.readline()
+            if not line:
+                continue
+            text = line.decode("utf-8", errors="ignore").strip()
+            if text.startswith(PowerLink.HANDSHAKE_ACK_PREFIX):
+                return True
+        return False
+    finally:
+        ser.close()
+
+
 def build_detection_text(
     result: messages_pb2.DetectionResult, class_labels: list[str]
 ) -> str:
@@ -248,31 +297,63 @@ def receiver_loop(
     command_id = 1
     pending_display_cmds: dict[int, bool] = {}
     link: Optional[SerialLink] = None
+    last_get_info_mono: float = 0.0
+    GET_INFO_RESEND_S = 1.5
+
+    def send_get_info(why: str) -> None:
+        nonlocal command_id, last_get_info_mono
+        assert link is not None
+        msg = messages_pb2.HostMessage()
+        msg.command_id = command_id
+        command_id += 1
+        msg.get_device_info.SetInParent()
+        link.send_host_message(msg)
+        state.host_introduced = True
+        last_get_info_mono = time.monotonic()
+        print(f"[firmware] Sent get_device_info ({why})", file=sys.stderr)
+
     while not stop_evt.is_set():
         try:
             if link is None:
                 selected_port = resolve_port(port)
                 link = SerialLink(selected_port, baud, timeout_s)
                 state.firmware_connected = True
+                state.firmware_port_path = selected_port
+                state.firmware_baud = baud
+                state.firmware_recognized = False
+                state.host_introduced = False
                 state.last_error = ""
-                # Re-introduce host after every reconnect so firmware can resend metadata.
-                cmd_queue.put(("get_info", None))
+                print(
+                    f"[firmware] Opened {selected_port} @ {baud} baud (8N1, no handshake)",
+                    file=sys.stderr,
+                )
+                # Handshake immediately so the first RX bytes are not consumed before we ask.
+                send_get_info("initial handshake")
 
-            try:
-                command, value = cmd_queue.get_nowait()
+            while True:
+                try:
+                    command, value = cmd_queue.get_nowait()
+                except Empty:
+                    break
                 msg = messages_pb2.HostMessage()
                 msg.command_id = command_id
                 command_id += 1
                 if command == "get_info":
                     msg.get_device_info.SetInParent()
                     state.host_introduced = True
+                    last_get_info_mono = time.monotonic()
                 elif command == "set_display":
                     msg.set_display_enabled.enabled = bool(value)
                     state.host_introduced = True
                     pending_display_cmds[msg.command_id] = bool(value)
                 link.send_host_message(msg)
-            except Empty:
-                pass
+                if command == "get_info":
+                    print("[firmware] Sent get_device_info (queued)", file=sys.stderr)
+
+            if not state.firmware_recognized:
+                now = time.monotonic()
+                if now - last_get_info_mono >= GET_INFO_RESEND_S:
+                    send_get_info("retry until DeviceInfo received")
 
             dev_msg = link.recv_device_message()
             which = dev_msg.WhichOneof("payload")
@@ -360,6 +441,10 @@ def receiver_loop(
         except Exception as exc:  # Broad catch keeps GUI alive while cable reconnects.
             state.last_error = str(exc)
             state.firmware_connected = False
+            state.firmware_port_path = ""
+            state.firmware_baud = 0
+            state.firmware_recognized = False
+            state.host_introduced = False
             print(f"[firmware] Error: {exc}", file=sys.stderr)
             if link is not None:
                 try:
@@ -693,6 +778,8 @@ def create_gui(
         class_labels = ", ".join(state.class_labels) or "-"
         recog_host_fw = "yes" if state.host_introduced else "no"
         recog_fw_host = "yes" if state.firmware_recognized else "no"
+        fw_path = state.firmware_port_path or "-"
+        fw_baud = f"{state.firmware_baud}" if state.firmware_baud else "-"
         detections_text = state.detections_text or "  -"
         last_pp = state.post_hist[-1] if state.post_hist else 0.0
         npu_delta = (
@@ -711,7 +798,9 @@ def create_gui(
             "",
             f" Connection",
             SEP,
-            f"  STM32   {'connected' if state.firmware_connected else 'disconnected'}   H\u2192D: {recog_host_fw}  D\u2192H: {recog_fw_host}",
+            f"  STM32   port {fw_path} @ {fw_baud} bps",
+            f"          serial open: {'yes' if state.firmware_connected else 'no'}   "
+            f"H\u2192D: {recog_host_fw}   D\u2192H: {recog_fw_host}  (need yes/yes for traffic)",
             f"  Display {'on' if state.display_enabled else 'off'}",
             "",
             f" Sensors",
@@ -849,7 +938,13 @@ def resolve_port(port: Optional[str]) -> str:
     return selected.device
 
 
-def resolve_power_port(port: Optional[str]) -> Optional[str]:
+def resolve_power_port(
+    port: Optional[str],
+    *,
+    exclude: Optional[str] = None,
+    baud: int = 921600,
+    handshake_timeout_s: float = 2.0,
+) -> Optional[str]:
     if port:
         return port
 
@@ -857,18 +952,19 @@ def resolve_power_port(port: Optional[str]) -> Optional[str]:
     if not ports:
         return None
 
-    _ESPRESSIF_VIDS = {0x303A}
-    _POWER_KEYWORDS = {"esp32c6": 8, "c6": 7, "esp32": 6, "espressif": 6, "esp": 4, "jtag": 2}
-    scorer = lambda info: _score_port(info, _POWER_KEYWORDS, preferred_vids=_ESPRESSIF_VIDS)
-    ranked = _rank_ports(ports, scorer)
-
-    best, best_score = ranked[0]
-    if best_score <= 0:
-        return None
-    print(
-        f"[visualizer] Auto-selected power monitor port: {best.device} (score={best_score})"
-    )
-    return best.device
+    for info in sorted(ports, key=lambda p: p.device):
+        if exclude is not None and info.device == exclude:
+            continue
+        try:
+            if probe_power_monitor_pm_ping(info.device, baud, handshake_timeout_s):
+                print(f"[visualizer] Auto-selected power monitor port: {info.device} (PM_PING)")
+                return info.device
+        except Exception as exc:
+            print(
+                f"[visualizer] PM_PING probe skipped {info.device}: {exc}",
+                file=sys.stderr,
+            )
+    return None
 
 
 def main() -> int:
@@ -877,13 +973,19 @@ def main() -> int:
     cmd_queue: Queue[tuple[str, Optional[bool]]] = Queue()
     stop_evt = threading.Event()
 
+    firmware_port_for_power_exclude = resolve_port(args.port)
     rx_thread = threading.Thread(
         target=receiver_loop,
         args=(args.port, args.baud, args.timeout, state, cmd_queue, stop_evt),
         daemon=True,
     )
     rx_thread.start()
-    power_port = resolve_power_port(args.power_port)
+    power_port = resolve_power_port(
+        args.power_port,
+        exclude=firmware_port_for_power_exclude,
+        baud=args.power_baud,
+        handshake_timeout_s=args.timeout,
+    )
     power_thread = threading.Thread(
         target=power_receiver_loop,
         args=(power_port, args.power_baud, args.timeout, state, stop_evt),

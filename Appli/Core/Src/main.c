@@ -27,11 +27,8 @@
 #include "stm32n6570_discovery.h"
 #include "stm32n6570_discovery_bus.h"
 #include "tof.h"
-#include "ui.h"
-
-#ifdef POWER_MEASURE_MODE
 #include "power_measurement_sync.h"
-#endif
+#include "ui.h"
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -98,9 +95,7 @@ int main(void) {
 
   TOF_Init();
 
-#ifdef POWER_MEASURE_MODE
   PWR_SyncInit();
-#endif
 
   ThreadX_Init();
 

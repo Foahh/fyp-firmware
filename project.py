@@ -108,7 +108,7 @@ def main():
         help="Re-sign firmware even if unchanged (ignore sign cache)",
     )
     build_parser.add_argument(
-        "--power-mode",
+        "--mode",
         choices=["underdrive", "nominal", "overdrive"],
         default="nominal",
         help="Power/clock mode (default: nominal)",
@@ -126,9 +126,9 @@ def main():
         help="Build in Debug mode",
     )
     build_parser.add_argument(
-        "--power-measure",
+        "--snapshot",
         action="store_true",
-        help="Power measurement mode: single-frame camera capture with idle gaps between inferences",
+        help="NN uses single-frame camera snapshots instead of continuous capture",
     )
     build_parser.add_argument(
         "--appli",
@@ -263,8 +263,8 @@ def main():
             fsbl=build_fsbl,
             sign=args.flash,
             force=args.force,
-            power_measure=args.power_measure,
-            power_mode=args.power_mode,
+            snapshot=args.snapshot,
+            power_mode=args.mode,
             camera_fps=args.fps,
             tracex=args.tracex,
         )

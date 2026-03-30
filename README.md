@@ -42,8 +42,9 @@ python project.py ui /dev/ttyACM0      # Launch visualizer with explicit serial 
 
 `build` also accepts:
 
-- `--fps N` (camera frame rate, default 30; `--fps 0` enables snapshot mode)
-- `--power-mode {underdrive,nominal,overdrive}` (clock/voltage profile, default: nominal)
+- `--fps N` (camera frame rate, default 30)
+- `--snapshot` (NN pipe uses single-frame camera snapshots instead of continuous capture)
+- `--mode {underdrive,nominal,overdrive}` (clock/voltage profile, default: nominal)
 - `--force` (re-sign even if unchanged)
 - `--debug` (Debug mode, no sign/HEX)
 - `--appli` (build Appli only)

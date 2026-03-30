@@ -100,7 +100,7 @@ void CAM_DisplayPipe_Resume(void) {
   CMW_CAMERA_Resume(DCMIPP_PIPE1);
 }
 
-#ifdef POWER_MEASURE_MODE
+#ifdef SNAPSHOT_MODE
 /**
  * @brief  Request a single snapshot from the NN pipe
  * @param  nn_buffer: Pointer to the NN buffer to capture into
@@ -151,7 +151,7 @@ static void cam_nn_pipe_frame_event(void) {
     return;
   }
 
-#ifdef POWER_MEASURE_MODE
+#ifdef SNAPSHOT_MODE
   NN_SignalSnapshotReady();
 #else
   bqueue_t *nn_input_queue;

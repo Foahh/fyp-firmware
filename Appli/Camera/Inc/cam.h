@@ -161,7 +161,7 @@ void CAM_LCDReloadThreadSuspend(void);
  */
 void CAM_LCDReloadThreadResume(void);
 
-#ifdef POWER_MEASURE_MODE
+#ifdef SNAPSHOT_MODE
 /**
  * @brief  Request a single snapshot from the NN pipe
  * @param  nn_buffer: Pointer to the NN buffer to capture into

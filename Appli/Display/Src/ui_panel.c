@@ -267,8 +267,8 @@ void UI_DrawBuildOptions(void) {
   UTIL_LCD_DisplayStringAt(x0, y, (uint8_t *)line, LEFT_MODE);
 
   y += UI_FONT_HEIGHT + UI_LINE_SPACING;
-#ifdef POWER_MEASURE_MODE
-  snprintf(line, sizeof(line), "POWER MEASURE");
+#ifdef SNAPSHOT_MODE
+  snprintf(line, sizeof(line), "SNAPSHOT");
 #else
   snprintf(line, sizeof(line), "CAMERA %d FPS", CAMERA_FPS);
 #endif

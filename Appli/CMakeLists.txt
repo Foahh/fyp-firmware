@@ -143,9 +143,9 @@ endif()
 # App-only definitions
 set(APP_DEFINITIONS "")
 
-option(POWER_MEASURE_MODE "Power measurement mode: snapshot camera, idle gaps between inferences" OFF)
-if(POWER_MEASURE_MODE)
-  list(APPEND APP_DEFINITIONS POWER_MEASURE_MODE)
+option(SNAPSHOT_MODE "NN pipe: single-frame snapshots instead of continuous capture" OFF)
+if(SNAPSHOT_MODE)
+  list(APPEND APP_DEFINITIONS SNAPSHOT_MODE)
 endif()
 
 set(POWER_MODE
