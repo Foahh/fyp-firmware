@@ -134,10 +134,14 @@ void COM_Config(void) {
   hdma_usart1_tx.Init.Priority = DMA_LOW_PRIORITY_LOW_WEIGHT;
   hdma_usart1_tx.Init.SrcBurstLength = 1;
   hdma_usart1_tx.Init.DestBurstLength = 1;
-  hdma_usart1_tx.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT1 | DMA_DEST_ALLOCATED_PORT1;
+  hdma_usart1_tx.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0 | DMA_DEST_ALLOCATED_PORT0;
   hdma_usart1_tx.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
   hdma_usart1_tx.Init.Mode = DMA_NORMAL;
   APP_REQUIRE(HAL_DMA_Init(&hdma_usart1_tx) == HAL_OK);
+
+  /* Configure DMA channel security attributes */
+  APP_REQUIRE(HAL_DMA_ConfigChannelAttributes(&hdma_usart1_tx,
+    DMA_CHANNEL_SEC | DMA_CHANNEL_PRIV | DMA_CHANNEL_SRC_SEC | DMA_CHANNEL_DEST_SEC) == HAL_OK);
 
   __HAL_LINKDMA(&hcom_uart[COM1], hdmatx, hdma_usart1_tx);
 
