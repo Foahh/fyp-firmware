@@ -35,7 +35,7 @@
 
 /* TX frame double buffer */
 #define TX_FRAME_BUF_SIZE (4 + DeviceMessage_size)
-static uint8_t tx_frame_bufs[2][TX_FRAME_BUF_SIZE];
+static __NON_CACHEABLE uint8_t tx_frame_bufs[2][TX_FRAME_BUF_SIZE];
 static uint8_t tx_buf_idx = 0;
 
 /* TX mutex for shared send helper */
@@ -75,7 +75,7 @@ void COM_TX_Send(const DeviceMessage *msg) {
   buf[3] = (uint8_t)(len >> 24);
 
   APP_REQUIRE(4 + len <= UINT16_MAX);
-  HAL_UART_Transmit_IT(&hcom_uart[COM1], buf, (uint16_t)(4 + len));
+  HAL_UART_Transmit_DMA(&hcom_uart[COM1], buf, (uint16_t)(4 + len));
   tx_semaphore_get(&tx_done_sem, TX_WAIT_FOREVER);
 
   tx_buf_idx ^= 1;

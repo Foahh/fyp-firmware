@@ -28,6 +28,9 @@
 #include "init_peripherals.h"
 #include "npu_cache.h"
 
+/* GPDMA1 handle for USART1 TX DMA (referenced by GPDMA1_Channel0_IRQHandler) */
+DMA_HandleTypeDef hdma_usart1_tx;
+
 void SystemIsolation_Config(void) {
   /* set all required IPs as secure privileged */
   __HAL_RCC_RIFSC_CLK_ENABLE();
@@ -112,9 +115,33 @@ void COM_Config(void) {
   ret = BSP_COM_Init(COM1, &COM_Init);
   APP_REQUIRE(ret == BSP_ERROR_NONE);
 
-  /* Enable NVIC for IT mode */
+  /* USART1 interrupt (needed for DMA completion callbacks) */
   HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(USART1_IRQn);
+
+  /* GPDMA1 Channel 0 → USART1 TX */
+  __HAL_RCC_GPDMA1_CLK_ENABLE();
+
+  hdma_usart1_tx.Instance = GPDMA1_Channel0;
+  hdma_usart1_tx.Init.Request = GPDMA1_REQUEST_USART1_TX;
+  hdma_usart1_tx.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
+  hdma_usart1_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+  hdma_usart1_tx.Init.SrcInc = DMA_SINC_INCREMENTED;
+  hdma_usart1_tx.Init.DestInc = DMA_DINC_FIXED;
+  hdma_usart1_tx.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_BYTE;
+  hdma_usart1_tx.Init.DestDataWidth = DMA_DEST_DATAWIDTH_BYTE;
+  hdma_usart1_tx.Init.Priority = DMA_LOW_PRIORITY_LOW_WEIGHT;
+  hdma_usart1_tx.Init.SrcBurstLength = 1;
+  hdma_usart1_tx.Init.DestBurstLength = 1;
+  hdma_usart1_tx.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT1 | DMA_DEST_ALLOCATED_PORT1;
+  hdma_usart1_tx.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+  hdma_usart1_tx.Init.Mode = DMA_NORMAL;
+  APP_REQUIRE(HAL_DMA_Init(&hdma_usart1_tx) == HAL_OK);
+
+  __HAL_LINKDMA(&hcom_uart[COM1], hdmatx, hdma_usart1_tx);
+
+  HAL_NVIC_SetPriority(GPDMA1_Channel0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(GPDMA1_Channel0_IRQn);
 
 #if (USE_COM_LOG > 0)
   /* Select COM1 as the logging port */

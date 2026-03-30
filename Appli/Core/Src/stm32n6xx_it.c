@@ -31,6 +31,7 @@
 /* Private function prototypes -----------------------------------------------*/
 /* External variables --------------------------------------------------------*/
 extern TIM_HandleTypeDef htim2;
+extern DMA_HandleTypeDef hdma_usart1_tx;
 
 /******************************************************************************/
 /*           Cortex Processor Interruption and Exception Handlers          */
@@ -136,6 +137,13 @@ void IAC_IRQHandler(void) {
  */
 void USART1_IRQHandler(void) {
   HAL_UART_IRQHandler(&hcom_uart[COM1]);
+}
+
+/**
+ * @brief This function handles GPDMA1 Channel 0 interrupt (USART1 TX DMA).
+ */
+void GPDMA1_Channel0_IRQHandler(void) {
+  HAL_DMA_IRQHandler(&hdma_usart1_tx);
 }
 
 /**
