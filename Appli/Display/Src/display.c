@@ -140,6 +140,8 @@ void LCD_Init(void) {
 void LCD_DeInit(void) {
   if (lcd_initialized) {
     BSP_LCD_DisplayOff(0);
+    HAL_GPIO_WritePin(LCD_DISP_BL_GPIO_PORT, LCD_DISP_BL_PIN, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOQ, GPIO_PIN_3, GPIO_PIN_RESET);
     BSP_LCD_DeInit(0);
     lcd_initialized = 0;
   }

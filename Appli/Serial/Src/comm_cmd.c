@@ -40,7 +40,10 @@ static volatile uint32_t host_last_seen_tick = 0;
 static void handle_set_display_enabled(uint32_t cmd_id,
                                        const SetDisplayEnabled *cmd) {
   if (cmd->enabled && !display_enabled) {
-    /* Re-enable clock sleep before init */
+    __HAL_RCC_PLL4_ENABLE();
+    while (!__HAL_RCC_GET_FLAG(RCC_FLAG_PLL4RDY)) {
+    }
+
     __HAL_RCC_LTDC_CLK_SLEEP_ENABLE();
     __HAL_RCC_DMA2D_CLK_SLEEP_ENABLE();
 
@@ -62,6 +65,8 @@ static void handle_set_display_enabled(uint32_t cmd_id,
 
     __HAL_RCC_DMA2D_CLK_SLEEP_DISABLE();
     __HAL_RCC_LTDC_CLK_SLEEP_DISABLE();
+
+    __HAL_RCC_PLL4_DISABLE();
 
     display_enabled = false;
   }
