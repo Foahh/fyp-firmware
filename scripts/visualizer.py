@@ -390,19 +390,21 @@ def power_receiver_loop(
                 state.last_power_error = ""
 
             sample = power_link.recv_power_sample()
-            avg_mw = float(sample.avg_mw)
+            energy_j = float(sample.energy_j)
             duration_us = float(sample.duration_us)
             is_inference = bool(sample.is_inference)
 
             state.power_in_inference = is_inference
             now = time.time()
+            duration_s = duration_us * 1e-6
+            avg_mw = (energy_j / duration_s) * 1000.0 if duration_s > 0.0 else 0.0
 
             if is_inference:
                 state.power_infer_hist_mw.append(avg_mw)
                 state.power_infer_time_hist.append(now)
                 state.power_infer_avg_mw = avg_mw
                 state.power_infer_duration_ms = duration_us / 1000.0
-                state.power_infer_energy_uj = avg_mw * duration_us / 1000.0
+                state.power_infer_energy_uj = energy_j * 1e6
             else:
                 state.power_idle_hist_mw.append(avg_mw)
                 state.power_idle_time_hist.append(now)
