@@ -23,6 +23,7 @@
 #include "init_clock.h"
 #include "lcd_config.h"
 #include "model_config.h"
+#include "power_mode.h"
 #include "stm32_lcd.h"
 #include "stm32n6xx_hal.h"
 #include "tx_user.h"
@@ -235,10 +236,12 @@ void UI_DrawBuildOptions(void) {
   uint32_t tw;
   uint32_t x0;
 
-#ifdef OVERDRIVE_MODE
-  perf_label = "OVERDRIVE MODE";
+#if POWER_MODE == POWER_MODE_OVERDRIVE
+  perf_label = "OVERDRIVE";
+#elif POWER_MODE == POWER_MODE_UNDERDRIVE
+  perf_label = "UNDERDRIVE";
 #else
-  perf_label = "NOMINAL MODE";
+  perf_label = "NOMINAL";
 #endif
 
   UTIL_LCD_SetTextColor(UI_COLOR_METADATA);

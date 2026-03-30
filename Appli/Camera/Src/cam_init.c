@@ -21,6 +21,7 @@
 #include "error.h"
 #include "lcd_config.h"
 #include "nn_config.h"
+#include "power_mode.h"
 #include "utils.h"
 
 /* ============================================================================
@@ -123,7 +124,12 @@ HAL_StatusTypeDef MX_DCMIPP_ClockConfig(DCMIPP_HandleTypeDef *hdcmipp) {
 
   clk.PeriphClockSelection = RCC_PERIPHCLK_DCMIPP;
   clk.DcmippClockSelection = RCC_DCMIPPCLKSOURCE_IC17;
+#if POWER_MODE == POWER_MODE_UNDERDRIVE
+  /* PLL2 is off; use PLL1 (800 MHz) / 3 ≈ 267 MHz */
+  clk.ICSelection[RCC_IC17].ClockSelection = RCC_ICCLKSOURCE_PLL1;
+#else
   clk.ICSelection[RCC_IC17].ClockSelection = RCC_ICCLKSOURCE_PLL2;
+#endif
   clk.ICSelection[RCC_IC17].ClockDivider = 3;
   if (HAL_RCCEx_PeriphCLKConfig(&clk) != HAL_OK) {
     return HAL_ERROR;

@@ -50,7 +50,6 @@ class VisualizerState:
     nn_width: int = 0
     nn_height: int = 0
     nn_input_size_bytes: int = 0
-    overdrive_mode: bool = False
     camera_fps: int = 0
     mcu_freq_mhz: int = 0
     npu_freq_mhz: int = 0
@@ -328,7 +327,6 @@ def receiver_loop(
                 state.nn_width = int(info.nn_width)
                 state.nn_height = int(info.nn_height)
                 state.nn_input_size_bytes = int(info.nn_input_size_bytes)
-                state.overdrive_mode = bool(info.overdrive_mode)
                 state.camera_fps = int(info.camera_fps)
                 state.mcu_freq_mhz = int(info.mcu_freq_mhz)
                 state.npu_freq_mhz = int(info.npu_freq_mhz)
@@ -336,9 +334,12 @@ def receiver_loop(
                     state.nn_size_text = f"{info.nn_width}x{info.nn_height} ({info.nn_input_size_bytes} B)"
                 else:
                     state.nn_size_text = "unknown"
-                state.build_mode_text = (
-                    "overdrive" if info.overdrive_mode else "nominal"
-                )
+                if info.mcu_freq_mhz >= 800:
+                    state.build_mode_text = "overdrive"
+                elif info.mcu_freq_mhz <= 400:
+                    state.build_mode_text = "underdrive"
+                else:
+                    state.build_mode_text = "nominal"
                 if info.camera_fps <= 0:
                     state.camera_mode_text = "snapshot"
                 else:

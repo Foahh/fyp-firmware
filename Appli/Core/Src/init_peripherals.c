@@ -27,6 +27,7 @@
 #include "error.h"
 #include "init_peripherals.h"
 #include "npu_cache.h"
+#include "power_mode.h"
 
 /* GPDMA1 handle for USART1 TX DMA (referenced by GPDMA1_Channel0_IRQHandler) */
 DMA_HandleTypeDef hdma_usart1_tx;
@@ -59,7 +60,7 @@ void SystemIsolation_Config(void) {
 }
 
 void SMPS_Config(void) {
-#ifdef OVERDRIVE_MODE
+#if POWER_MODE == POWER_MODE_OVERDRIVE
   BSP_SMPS_Init(SMPS_VOLTAGE_OVERDRIVE);
 #else
   BSP_SMPS_Init(SMPS_VOLTAGE_NOMINAL);

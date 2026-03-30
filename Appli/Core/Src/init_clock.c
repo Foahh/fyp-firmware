@@ -19,6 +19,7 @@
 
 #include "error.h"
 #include "init_clock.h"
+#include "power_mode.h"
 
 static uint32_t g_app_cpu_mhz;
 static uint32_t g_app_npu_mhz;
@@ -31,56 +32,78 @@ uint32_t AppClock_GetNpuFreqMHz(void) {
   return g_app_npu_mhz;
 }
 
+/*
+ * Clock summary per power mode
+ * -----------------------------------------------------------------------
+ *                    Underdrive        Nominal           Overdrive
+ * -----------------------------------------------------------------------
+ * SMPS voltage       NOMINAL           NOMINAL           OVERDRIVE
+ * VDDCORE scale      SCALE1 (0.81V)    SCALE1 (0.81V)    SCALE0 (0.89V)
+ * PLL1               800 MHz           600 MHz           800 MHz
+ * PLL2               OFF               800 MHz           1000 MHz
+ * PLL3               OFF               900 MHz           900 MHz
+ * PLL4               50 MHz (LTDC)     50 MHz            50 MHz
+ * IC1  (CPU)         400 MHz           600 MHz           800 MHz
+ * IC2  (AXI/NIC)     400 MHz           400 MHz           400 MHz
+ * IC6  (NPU)         400 MHz           800 MHz           1000 MHz
+ * IC11 (SRAM3-6)     400 MHz           800 MHz           900 MHz
+ * HCLK               200 MHz           200 MHz           200 MHz
+ */
 void SystemClock_Config(void) {
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_PeriphCLKInitTypeDef RCC_PeriphCLKInitStruct = {0};
 
-#ifdef OVERDRIVE_MODE
+  /* --- Power supply / voltage scaling --- */
+#if POWER_MODE == POWER_MODE_OVERDRIVE
   __HAL_RCC_PWR_CLK_ENABLE();
   APP_REQUIRE(HAL_PWREx_ConfigSupply(PWR_EXTERNAL_SOURCE_SUPPLY) == HAL_OK);
-
-  /* Performance mode: ensure VDDCORE at 0.89V (SCALE0) before high clocks. */
   APP_REQUIRE(HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE0) == HAL_OK);
 #else
-  /* Nominal mode: lower VDDCORE to 0.81V before nominal clock programming. */
   APP_REQUIRE(HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) == HAL_OK);
 #endif
 
-  // Oscillator config already done in bootrom
+  /* --- Oscillators / PLLs --- */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_NONE;
 
-  /* PLL1: performance = 800 MHz, nominal = 600 MHz */
+#if POWER_MODE == POWER_MODE_UNDERDRIVE
+  /* PLL1 = 64 x 25 / 2 = 800 MHz (divided down to 400 MHz for all domains) */
   RCC_OscInitStruct.PLL1.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL1.PLLSource = RCC_PLLSOURCE_HSI;
-#ifdef OVERDRIVE_MODE
-  /* PLL1 = 64 x 25 / 2 = 800MHz */
   RCC_OscInitStruct.PLL1.PLLM = 2;
   RCC_OscInitStruct.PLL1.PLLN = 25;
-#else
-  /* PLL1 = 64 x 75 / 8 = 600MHz */
-  RCC_OscInitStruct.PLL1.PLLM = 8;
-  RCC_OscInitStruct.PLL1.PLLN = 75;
-#endif
   RCC_OscInitStruct.PLL1.PLLFractional = 0;
   RCC_OscInitStruct.PLL1.PLLP1 = 1;
   RCC_OscInitStruct.PLL1.PLLP2 = 1;
+  RCC_OscInitStruct.PLL2.PLLState = RCC_PLL_OFF;
+  RCC_OscInitStruct.PLL3.PLLState = RCC_PLL_OFF;
+  /* PLL4 kept on: BSP LTDC pixel clock (IC16 = PLL4/2 = 25 MHz) requires it */
+  RCC_OscInitStruct.PLL4.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL4.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL4.PLLM = 8;
+  RCC_OscInitStruct.PLL4.PLLN = 225;
+  RCC_OscInitStruct.PLL4.PLLFractional = 0;
+  RCC_OscInitStruct.PLL4.PLLP1 = 6;
+  RCC_OscInitStruct.PLL4.PLLP2 = 6;
 
+#elif POWER_MODE == POWER_MODE_OVERDRIVE
+  /* PLL1 = 64 x 25 / 2 = 800 MHz */
+  RCC_OscInitStruct.PLL1.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL1.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL1.PLLM = 2;
+  RCC_OscInitStruct.PLL1.PLLN = 25;
+  RCC_OscInitStruct.PLL1.PLLFractional = 0;
+  RCC_OscInitStruct.PLL1.PLLP1 = 1;
+  RCC_OscInitStruct.PLL1.PLLP2 = 1;
+  /* PLL2 = 64 x 125 / 8 = 1000 MHz */
   RCC_OscInitStruct.PLL2.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL2.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL2.PLLM = 8;
-  RCC_OscInitStruct.PLL2.PLLFractional = 0;
-#ifdef OVERDRIVE_MODE
-  /* PLL2 = 64 x 125 / 8 = 1000MHz */
   RCC_OscInitStruct.PLL2.PLLN = 125;
-#else
-  /* PLL2 = 64 x 100 / 8 = 800MHz */
-  RCC_OscInitStruct.PLL2.PLLN = 100;
-#endif
+  RCC_OscInitStruct.PLL2.PLLFractional = 0;
   RCC_OscInitStruct.PLL2.PLLP1 = 1;
   RCC_OscInitStruct.PLL2.PLLP2 = 1;
-
-  /* PLL3 = (64 x 225 / 8) / (1 * 2) = 900MHz */
+  /* PLL3 = (64 x 225 / 8) / (1 * 2) = 900 MHz */
   RCC_OscInitStruct.PLL3.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL3.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL3.PLLM = 8;
@@ -88,73 +111,113 @@ void SystemClock_Config(void) {
   RCC_OscInitStruct.PLL3.PLLFractional = 0;
   RCC_OscInitStruct.PLL3.PLLP1 = 1;
   RCC_OscInitStruct.PLL3.PLLP2 = 2;
-
   /* PLL4 = (64 x 225 / 8) / (6 * 6) = 50 MHz */
   RCC_OscInitStruct.PLL4.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL4.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL4.PLLM = 8;
-  RCC_OscInitStruct.PLL4.PLLFractional = 0;
   RCC_OscInitStruct.PLL4.PLLN = 225;
+  RCC_OscInitStruct.PLL4.PLLFractional = 0;
   RCC_OscInitStruct.PLL4.PLLP1 = 6;
   RCC_OscInitStruct.PLL4.PLLP2 = 6;
 
+#else /* NOMINAL */
+  /* PLL1 = 64 x 75 / 8 = 600 MHz */
+  RCC_OscInitStruct.PLL1.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL1.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL1.PLLM = 8;
+  RCC_OscInitStruct.PLL1.PLLN = 75;
+  RCC_OscInitStruct.PLL1.PLLFractional = 0;
+  RCC_OscInitStruct.PLL1.PLLP1 = 1;
+  RCC_OscInitStruct.PLL1.PLLP2 = 1;
+  /* PLL2 = 64 x 100 / 8 = 800 MHz */
+  RCC_OscInitStruct.PLL2.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL2.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL2.PLLM = 8;
+  RCC_OscInitStruct.PLL2.PLLN = 100;
+  RCC_OscInitStruct.PLL2.PLLFractional = 0;
+  RCC_OscInitStruct.PLL2.PLLP1 = 1;
+  RCC_OscInitStruct.PLL2.PLLP2 = 1;
+  /* PLL3 = (64 x 225 / 8) / (1 * 2) = 900 MHz */
+  RCC_OscInitStruct.PLL3.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL3.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL3.PLLM = 8;
+  RCC_OscInitStruct.PLL3.PLLN = 225;
+  RCC_OscInitStruct.PLL3.PLLFractional = 0;
+  RCC_OscInitStruct.PLL3.PLLP1 = 1;
+  RCC_OscInitStruct.PLL3.PLLP2 = 2;
+  /* PLL4 = (64 x 225 / 8) / (6 * 6) = 50 MHz */
+  RCC_OscInitStruct.PLL4.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL4.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL4.PLLM = 8;
+  RCC_OscInitStruct.PLL4.PLLN = 225;
+  RCC_OscInitStruct.PLL4.PLLFractional = 0;
+  RCC_OscInitStruct.PLL4.PLLP1 = 6;
+  RCC_OscInitStruct.PLL4.PLLP2 = 6;
+#endif
+
   APP_REQUIRE(HAL_RCC_OscConfig(&RCC_OscInitStruct) == HAL_OK);
 
+  /* --- Peripheral clocks --- */
   RCC_PeriphCLKInitStruct.PeriphClockSelection = 0;
 
-  /* XSPI1 kernel clock (ck_ker_xspi1) = HCLK = 200MHz */
+  /* XSPI1 kernel clock = HCLK = 200 MHz */
   RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_XSPI1;
   RCC_PeriphCLKInitStruct.Xspi1ClockSelection = RCC_XSPI1CLKSOURCE_HCLK;
 
-  /* XSPI2 kernel clock (ck_ker_xspi1) = HCLK =  200MHz */
+  /* XSPI2 kernel clock = HCLK = 200 MHz */
   RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_XSPI2;
   RCC_PeriphCLKInitStruct.Xspi2ClockSelection = RCC_XSPI2CLKSOURCE_HCLK;
 
-  /* Initializes TIMPRE as TIM is used as Systick Clock Source */
+  /* TIM prescaler (TIM used as systick source) */
   RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_TIM;
   RCC_PeriphCLKInitStruct.TIMPresSelection = RCC_TIMPRES_DIV1;
 
   APP_REQUIRE(HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct) == HAL_OK);
 
+  /* --- System / bus / NPU / SRAM clocks --- */
   RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_CPUCLK | RCC_CLOCKTYPE_SYSCLK |
                                  RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 |
                                  RCC_CLOCKTYPE_PCLK2 | RCC_CLOCKTYPE_PCLK4 |
                                  RCC_CLOCKTYPE_PCLK5);
 
-  /* CPU Clock (sysa_ck) = ic1_ck = PLL1 output/ic1_divider */
   RCC_ClkInitStruct.CPUCLKSource = RCC_CPUCLKSOURCE_IC1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_IC2_IC6_IC11;
+
+#if POWER_MODE == POWER_MODE_UNDERDRIVE
+  /* Everything from PLL1 / 2 = 400 MHz */
+  RCC_ClkInitStruct.IC1Selection.ClockSelection = RCC_ICCLKSOURCE_PLL1;
+  RCC_ClkInitStruct.IC1Selection.ClockDivider = 2;
+  RCC_ClkInitStruct.IC2Selection.ClockSelection = RCC_ICCLKSOURCE_PLL1;
+  RCC_ClkInitStruct.IC2Selection.ClockDivider = 2;
+  RCC_ClkInitStruct.IC6Selection.ClockSelection = RCC_ICCLKSOURCE_PLL1;
+  RCC_ClkInitStruct.IC6Selection.ClockDivider = 2;
+  RCC_ClkInitStruct.IC11Selection.ClockSelection = RCC_ICCLKSOURCE_PLL1;
+  RCC_ClkInitStruct.IC11Selection.ClockDivider = 2;
+
+#elif POWER_MODE == POWER_MODE_OVERDRIVE
+  /* CPU 800 (PLL1/1), AXI 400 (PLL1/2), NPU 1000 (PLL2/1), SRAM 900 (PLL3/1) */
   RCC_ClkInitStruct.IC1Selection.ClockSelection = RCC_ICCLKSOURCE_PLL1;
   RCC_ClkInitStruct.IC1Selection.ClockDivider = 1;
-
-  /* AXI Clock (sysb_ck) = ic2_ck = 400 MHz in both modes */
-#ifdef OVERDRIVE_MODE
-  /* PLL1 output/ic2_divider = 800 / 2 = 400 MHz */
   RCC_ClkInitStruct.IC2Selection.ClockSelection = RCC_ICCLKSOURCE_PLL1;
-#else
-  /* PLL2 output/ic2_divider = 800 / 2 = 400 MHz */
-  RCC_ClkInitStruct.IC2Selection.ClockSelection = RCC_ICCLKSOURCE_PLL2;
-#endif
   RCC_ClkInitStruct.IC2Selection.ClockDivider = 2;
-
-  /* NPU Clock (sysc_ck) = ic6_ck = PLL2 output/ic6_divider */
   RCC_ClkInitStruct.IC6Selection.ClockSelection = RCC_ICCLKSOURCE_PLL2;
   RCC_ClkInitStruct.IC6Selection.ClockDivider = 1;
-
-  /* AXISRAM3/4/5/6 Clock (sysd_ck) = ic11_ck */
-#ifdef OVERDRIVE_MODE
-  /* PLL3 output/ic11_divider = 900 MHz */
   RCC_ClkInitStruct.IC11Selection.ClockSelection = RCC_ICCLKSOURCE_PLL3;
-#else
-  /* PLL2 output/ic11_divider = 800 MHz */
-  RCC_ClkInitStruct.IC11Selection.ClockSelection = RCC_ICCLKSOURCE_PLL2;
-#endif
   RCC_ClkInitStruct.IC11Selection.ClockDivider = 1;
 
-  /* HCLK = sysb_ck / HCLK divider = 200 MHz */
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
+#else /* NOMINAL: CPU 600 (PLL1/1), AXI 400 (PLL2/2), NPU 800 (PLL2/1), SRAM 800 (PLL2/1) */
+  RCC_ClkInitStruct.IC1Selection.ClockSelection = RCC_ICCLKSOURCE_PLL1;
+  RCC_ClkInitStruct.IC1Selection.ClockDivider = 1;
+  RCC_ClkInitStruct.IC2Selection.ClockSelection = RCC_ICCLKSOURCE_PLL2;
+  RCC_ClkInitStruct.IC2Selection.ClockDivider = 2;
+  RCC_ClkInitStruct.IC6Selection.ClockSelection = RCC_ICCLKSOURCE_PLL2;
+  RCC_ClkInitStruct.IC6Selection.ClockDivider = 1;
+  RCC_ClkInitStruct.IC11Selection.ClockSelection = RCC_ICCLKSOURCE_PLL2;
+  RCC_ClkInitStruct.IC11Selection.ClockDivider = 1;
+#endif
 
-  /* PCLKx = HCLK / PCLKx divider = 200 MHz */
+  /* HCLK = AXI / 2 = 200 MHz (all modes) */
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV1;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV1;

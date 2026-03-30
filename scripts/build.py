@@ -95,7 +95,7 @@ def cmd_build(
     sign=True,
     force=False,
     power_measure=False,
-    overdrive=False,
+    power_mode="nominal",
     camera_fps=30,
     tracex=False,
 ):
@@ -110,9 +110,7 @@ def cmd_build(
         "-DPOWER_MEASURE_MODE=ON" if power_measure else "-DPOWER_MEASURE_MODE=OFF"
     )
 
-    appli_cmake_args.append(
-        "-DOVERDRIVE_MODE=ON" if overdrive else "-DOVERDRIVE_MODE=OFF"
-    )
+    appli_cmake_args.append(f"-DPOWER_MODE={power_mode}")
 
     appli_cmake_args.append(f"-DCAMERA_FPS={camera_fps}")
     appli_cmake_args.append("-DTRACEX_ENABLE=ON" if tracex else "-DTRACEX_ENABLE=OFF")

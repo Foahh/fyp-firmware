@@ -22,7 +22,7 @@ python project.py build --debug --fsbl        # Build FSBL only (Debug, no sign/
 python project.py format                      # clang-format all .c/.h/.cpp/.hpp in Appli/ and FSBL/
 ```
 
-`model` and `build` accept `--name / -n` to select a model (default: `yolox_nano`). `build` also accepts `--flash` (flash to device after building), `--fps N` (camera frame rate, default 30), `--power-measure` (power measurement mode: single-frame capture with idle gaps between inferences), `--overdrive` (NPU at 1000 MHz vs 800 MHz), `--force` (re-sign and re-flash even if unchanged), `--debug` (Debug mode, no sign/HEX), `--appli` (build Appli only), and `--fsbl` (build FSBL only). Default without `--appli`/`--fsbl` builds both.
+`model` and `build` accept `--name / -n` to select a model (default: `yolox_nano`). `build` also accepts `--flash` (flash to device after building), `--fps N` (camera frame rate, default 30), `--power-measure` (power measurement mode: single-frame capture with idle gaps between inferences), `--power-mode {underdrive,nominal,overdrive}` (clock/voltage profile, default: nominal), `--force` (re-sign and re-flash even if unchanged), `--debug` (Debug mode, no sign/HEX), `--appli` (build Appli only), and `--fsbl` (build FSBL only). Default without `--appli`/`--fsbl` builds both. `--power-mode underdrive` sets all clocks at 400 MHz (lowest power), `--power-mode overdrive` sets NPU at 1000 MHz and CPU at 800 MHz.
 
 ## Formatting
 

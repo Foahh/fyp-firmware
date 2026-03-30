@@ -108,9 +108,10 @@ def main():
         help="Re-sign firmware even if unchanged (ignore sign cache)",
     )
     build_parser.add_argument(
-        "--overdrive",
-        action="store_true",
-        help="Run NPU at 1000 MHz instead of 800 MHz",
+        "--power-mode",
+        choices=["underdrive", "nominal", "overdrive"],
+        default="nominal",
+        help="Power/clock mode (default: nominal)",
     )
     build_parser.add_argument(
         "--fps",
@@ -263,7 +264,7 @@ def main():
             sign=args.flash,
             force=args.force,
             power_measure=args.power_measure,
-            overdrive=args.overdrive,
+            power_mode=args.power_mode,
             camera_fps=args.fps,
             tracex=args.tracex,
         )

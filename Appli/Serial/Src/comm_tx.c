@@ -20,10 +20,12 @@
 #include "build_timestamp.h"
 #include "cam_config.h"
 #include "error.h"
+#include "init_clock.h"
 #include "lcd_config.h"
 #include "model_config.h"
 #include "nn_config.h"
 #include "pb_encode.h"
+#include "power_mode.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6xx_hal.h"
 #include "tx_api.h"
@@ -97,15 +99,9 @@ void COM_Send_DeviceInfo(uint32_t command_id) {
   di->nn_input_size_bytes = (uint32_t)(NN_WIDTH * NN_HEIGHT * NN_BPP);
   di->command_id = command_id;
 
-#ifdef OVERDRIVE_MODE
-  di->overdrive_mode = true;
-  di->mcu_freq_mhz = 800U;
-  di->npu_freq_mhz = 1000U;
-#else
-  di->overdrive_mode = false;
-  di->mcu_freq_mhz = 600U;
-  di->npu_freq_mhz = 800U;
-#endif
+  di->overdrive_mode = (POWER_MODE == POWER_MODE_OVERDRIVE);
+  di->mcu_freq_mhz = AppClock_GetCpuFreqMHz();
+  di->npu_freq_mhz = AppClock_GetNpuFreqMHz();
 
 #ifdef POWER_MEASURE_MODE
   di->camera_fps = 0;
