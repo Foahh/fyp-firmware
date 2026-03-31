@@ -26,6 +26,10 @@ for _dir in (PROTO_DIR, POWER_PROTO_DIR):
 import messages_pb2  # noqa: E402
 import power_sample_pb2  # noqa: E402
 
+# TofAlert.flags (protobuf); keep in sync with Appli/Proto/messages.proto
+TOF_PB_FLAG_ALERT = 1 << 0
+TOF_PB_FLAG_STALE = 1 << 1
+
 try:
     from .visualizer_gui import create_gui  # noqa: E402
     from .visualizer_ports import resolve_port, resolve_power_port  # noqa: E402
@@ -122,13 +126,13 @@ def build_detection_text(
 
     lines = []
     for idx, det in enumerate(result.detections):
-        class_name = str(det.class_index)
-        if 0 <= det.class_index < len(class_labels):
-            class_name = class_labels[det.class_index]
+        cid = int(det.class_id)
+        class_name = str(cid)
+        if 0 <= cid < len(class_labels):
+            class_name = class_labels[cid]
         lines.append(
-            f"#{idx} {class_name:>10}  conf={det.confidence_ratio:0.2f}  "
-            f"xywh=({det.x_center_norm:0.2f}, {det.y_center_norm:0.2f}, "
-            f"{det.width_norm:0.2f}, {det.height_norm:0.2f})"
+            f"#{idx} {class_name:>10}  conf={det.score:0.2f}  "
+            f"xywh=({det.x:0.2f}, {det.y:0.2f}, {det.w:0.2f}, {det.h:0.2f})"
         )
     return "\n".join(lines)
 
@@ -187,12 +191,16 @@ def receiver_loop(
                 command_id += 1
                 if command == "get_info":
                     msg.get_device_info.SetInParent()
-                    msg.get_device_info.timestamp_ms = int(time.time() * 1000) & 0xFFFFFFFF
+                    msg.get_device_info.timestamp_ms = (
+                        int(time.time() * 1000) & 0xFFFFFFFF
+                    )
                     state.host_introduced = True
                     last_get_info_mono = time.monotonic()
                 elif command == "set_display":
                     msg.set_display_enabled.enabled = bool(value)
-                    msg.set_display_enabled.timestamp_ms = int(time.time() * 1000) & 0xFFFFFFFF
+                    msg.set_display_enabled.timestamp_ms = (
+                        int(time.time() * 1000) & 0xFFFFFFFF
+                    )
                     state.host_introduced = True
                     pending_display_cmds[msg.command_id] = bool(value)
                 link.send_host_message(msg)
@@ -211,39 +219,38 @@ def receiver_loop(
             if which == "detection_result":
                 result = dev_msg.detection_result
                 state.frame_count += 1
-                state.last_timestamp = result.timestamp_ms
-                state.detection_timestamp = result.detection_timestamp_ms
+                state.last_timestamp = int(result.sent_timestamp_ms)
+                state.detection_timestamp = int(result.frame_timestamp_ms)
                 state.detection_count = len(result.detections)
-                state.tracked_box_count = len(result.tracked_boxes)
+                state.tracked_box_count = len(result.tracks)
                 state.detections_text = build_detection_text(result, state.class_labels)
 
-                if result.HasField("timing"):
-                    period_us = float(result.timing.nn_period_us)
-                    fps = (1000000.0 / period_us) if period_us > 0.0 else 0.0
-                    now = time.time()
-                    state.infer_hist.append(float(result.timing.inference_us))
-                    state.post_hist.append(float(result.timing.postprocess_us))
-                    state.tracker_hist.append(float(result.timing.tracker_us))
-                    state.period_hist.append(period_us)
-                    state.fps_hist.append(fps)
-                    state.timing_time_hist.append(now)
-                    state.frame_drops = int(result.timing.frame_drop_count)
+                period_us = float(result.nn_period_us)
+                fps = (1000000.0 / period_us) if period_us > 0.0 else 0.0
+                now = time.time()
+                state.infer_hist.append(float(result.inference_us))
+                state.post_hist.append(float(result.postprocess_us))
+                state.tracker_hist.append(float(result.tracker_us))
+                state.period_hist.append(period_us)
+                state.fps_hist.append(fps)
+                state.timing_time_hist.append(now)
+                state.frame_drops = int(result.frame_drop_count)
 
-                if result.HasField("cpu"):
-                    state.cpu_usage_percent = float(result.cpu_usage_percent)
-                    state.cpu_hist.append(state.cpu_usage_percent)
-                    state.cpu_time_hist.append(time.time())
+                state.cpu_usage_percent = float(result.cpu_usage_percent)
+                state.cpu_hist.append(state.cpu_usage_percent)
+                state.cpu_time_hist.append(now)
 
                 if result.HasField("tof"):
                     tof = result.tof
-                    state.hand_mm = int(tof.hand_distance_mm)
-                    state.hazard_mm = int(tof.hazard_distance_mm)
+                    state.hand_mm = int(tof.hand_mm)
+                    state.hazard_mm = int(tof.hazard_mm)
                     state.distance_3d_mm = float(tof.distance_3d_mm)
-                    state.tof_alert = bool(tof.alert)
-                    state.tof_stale = bool(tof.stale)
-                    if len(tof.depth_grid_mm) == 64:
+                    fl = int(tof.flags)
+                    state.tof_alert = bool(fl & TOF_PB_FLAG_ALERT)
+                    state.tof_stale = bool(fl & TOF_PB_FLAG_STALE)
+                    if len(tof.depth_mm) == 64:
                         state.tof_grid = np.array(
-                            tof.depth_grid_mm, dtype=np.float32
+                            tof.depth_mm, dtype=np.float32
                         ).reshape(8, 8)
                     else:
                         state.tof_grid = np.full((8, 8), np.nan, dtype=np.float32)
@@ -442,5 +449,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

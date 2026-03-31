@@ -10,73 +10,73 @@
 #endif
 
 /* Struct definitions */
-typedef struct _Timing {
+/* Normalized box in [0,1]; class_id is the model class index. */
+typedef struct _Detection {
+    float x;
+    float y;
+    float w;
+    float h;
+    float score;
+    uint32_t class_id;
+} Detection;
+
+typedef struct _TrackedBox {
+    float x;
+    float y;
+    float w;
+    float h;
+    uint32_t track_id;
+} TrackedBox;
+
+/* flags: bit0 = proximity alert, bit1 = measurement stale.
+ depth_mm: row-major 8x8, millimeters (sensor-native range). */
+typedef struct _TofAlert {
+    uint32_t hand_mm;
+    uint32_t hazard_mm;
+    uint32_t flags;
+    float distance_3d_mm;
+    pb_size_t depth_mm_count;
+    int32_t depth_mm[64];
+} TofAlert;
+
+/* Timing fields are inlined (no submessage) to avoid extra protobuf length
+ delimiters and nanopb has_* submessage flags on the hot path. */
+typedef struct _DetectionResult {
+    uint32_t sent_timestamp_ms;
+    uint32_t frame_timestamp_ms;
     uint32_t inference_us;
     uint32_t postprocess_us;
     uint32_t nn_period_us;
     uint32_t frame_drop_count;
     uint32_t tracker_us;
-} Timing;
-
-typedef struct _Detection {
-    float x_center_norm;
-    float y_center_norm;
-    float width_norm;
-    float height_norm;
-    float confidence_ratio;
-    int32_t class_index;
-} Detection;
-
-typedef struct _TrackedBox {
-    float x_center_norm;
-    float y_center_norm;
-    float width_norm;
-    float height_norm;
-    uint32_t track_id;
-} TrackedBox;
-
-typedef struct _TofAlert {
-    uint32_t hand_distance_mm;
-    uint32_t hazard_distance_mm;
-    bool alert;
-    float distance_3d_mm;
-    bool stale;
-    pb_size_t depth_grid_mm_count;
-    int32_t depth_grid_mm[64];
-} TofAlert;
-
-typedef struct _DetectionResult {
-    uint32_t timestamp_ms;
-    bool has_timing;
-    Timing timing;
+    float cpu_usage_percent;
     pb_size_t detections_count;
     Detection detections[10];
-    uint32_t detection_timestamp_ms;
+    pb_size_t tracks_count;
+    TrackedBox tracks[10];
     bool has_tof;
     TofAlert tof;
-    float cpu_usage_percent;
-    pb_size_t tracked_boxes_count;
-    TrackedBox tracked_boxes[10];
 } DetectionResult;
 
+/* Scalar fields first for compact C struct layout; strings last. */
 typedef struct _DeviceInfo {
+    uint32_t command_id;
+    uint32_t timestamp_ms;
     uint32_t display_width_px;
     uint32_t display_height_px;
     uint32_t letterbox_width_px;
     uint32_t letterbox_height_px;
     uint32_t nn_width_px;
     uint32_t nn_height_px;
-    char model_name[64];
-    pb_size_t class_labels_count;
-    char class_labels[10][32];
-    uint32_t command_id;
     uint32_t nn_input_size_bytes;
     uint32_t power_mode;
     uint32_t camera_fps;
     uint32_t mcu_freq_mhz;
     uint32_t npu_freq_mhz;
+    char model_name[64];
+    pb_size_t class_labels_count;
+    char class_labels[10][32];
     char build_timestamp[24];
-    uint32_t timestamp_ms;
 } DeviceInfo;
 
 typedef struct _Ack {
@@ -134,12 +134,11 @@ extern "C" {
 #endif
 
 /* Initializer values for message structs */
-#define Timing_init_default                      {0, 0, 0, 0, 0}
 #define Detection_init_default                   {0, 0, 0, 0, 0, 0}
 #define TrackedBox_init_default                  {0, 0, 0, 0, 0}
-#define TofAlert_init_default                    {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
-#define DetectionResult_init_default             {0, false, Timing_init_default, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, 0, false, TofAlert_init_default, 0, 0, {TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default}}
-#define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0, "", 0}
+#define TofAlert_init_default                    {0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
+#define DetectionResult_init_default             {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, 0, {TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default}, false, TofAlert_init_default}
+#define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, ""}
 #define Ack_init_default                         {0, 0, 0}
 #define TraceXChunk_init_default                 {0, 0, {0, {0}}, 0, 0}
 #define SetDisplayEnabled_init_default           {0, 0}
@@ -147,12 +146,11 @@ extern "C" {
 #define GetTraceXDump_init_default               {0, 0}
 #define DeviceMessage_init_default               {0, {DetectionResult_init_default}}
 #define HostMessage_init_default                 {0, 0, {SetDisplayEnabled_init_default}}
-#define Timing_init_zero                         {0, 0, 0, 0, 0}
 #define Detection_init_zero                      {0, 0, 0, 0, 0, 0}
 #define TrackedBox_init_zero                     {0, 0, 0, 0, 0}
-#define TofAlert_init_zero                       {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
-#define DetectionResult_init_zero                {0, false, Timing_init_zero, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, 0, false, TofAlert_init_zero, 0, 0, {TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero}}
-#define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0, "", 0}
+#define TofAlert_init_zero                       {0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
+#define DetectionResult_init_zero                {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, 0, {TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero}, false, TofAlert_init_zero}
+#define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, ""}
 #define Ack_init_zero                            {0, 0, 0}
 #define TraceXChunk_init_zero                    {0, 0, {0, {0}}, 0, 0}
 #define SetDisplayEnabled_init_zero              {0, 0}
@@ -162,51 +160,49 @@ extern "C" {
 #define HostMessage_init_zero                    {0, 0, {SetDisplayEnabled_init_zero}}
 
 /* Field tags (for use in manual encoding/decoding) */
-#define Timing_inference_us_tag                  1
-#define Timing_postprocess_us_tag                2
-#define Timing_nn_period_us_tag                  3
-#define Timing_frame_drop_count_tag              4
-#define Timing_tracker_us_tag                    5
-#define Detection_x_center_norm_tag              1
-#define Detection_y_center_norm_tag              2
-#define Detection_width_norm_tag                 3
-#define Detection_height_norm_tag                4
-#define Detection_confidence_ratio_tag           5
-#define Detection_class_index_tag                6
-#define TrackedBox_x_center_norm_tag             1
-#define TrackedBox_y_center_norm_tag             2
-#define TrackedBox_width_norm_tag                3
-#define TrackedBox_height_norm_tag               4
+#define Detection_x_tag                          1
+#define Detection_y_tag                          2
+#define Detection_w_tag                          3
+#define Detection_h_tag                          4
+#define Detection_score_tag                      5
+#define Detection_class_id_tag                   6
+#define TrackedBox_x_tag                         1
+#define TrackedBox_y_tag                         2
+#define TrackedBox_w_tag                         3
+#define TrackedBox_h_tag                         4
 #define TrackedBox_track_id_tag                  5
-#define TofAlert_hand_distance_mm_tag            1
-#define TofAlert_hazard_distance_mm_tag          2
-#define TofAlert_alert_tag                       3
+#define TofAlert_hand_mm_tag                     1
+#define TofAlert_hazard_mm_tag                   2
+#define TofAlert_flags_tag                       3
 #define TofAlert_distance_3d_mm_tag              4
-#define TofAlert_stale_tag                       5
-#define TofAlert_depth_grid_mm_tag               6
-#define DetectionResult_timestamp_ms_tag         1
-#define DetectionResult_timing_tag               2
-#define DetectionResult_detections_tag           3
-#define DetectionResult_detection_timestamp_ms_tag 4
-#define DetectionResult_tof_tag                  5
-#define DetectionResult_cpu_usage_percent_tag    6
-#define DetectionResult_tracked_boxes_tag        7
-#define DeviceInfo_display_width_px_tag          1
-#define DeviceInfo_display_height_px_tag         2
-#define DeviceInfo_letterbox_width_px_tag        3
-#define DeviceInfo_letterbox_height_px_tag       4
-#define DeviceInfo_nn_width_px_tag               5
-#define DeviceInfo_nn_height_px_tag              6
-#define DeviceInfo_model_name_tag                7
-#define DeviceInfo_class_labels_tag              8
-#define DeviceInfo_command_id_tag                9
-#define DeviceInfo_nn_input_size_bytes_tag       10
-#define DeviceInfo_power_mode_tag                11
-#define DeviceInfo_camera_fps_tag                12
-#define DeviceInfo_mcu_freq_mhz_tag              13
-#define DeviceInfo_npu_freq_mhz_tag              14
-#define DeviceInfo_build_timestamp_tag           15
-#define DeviceInfo_timestamp_ms_tag              16
+#define TofAlert_depth_mm_tag                    5
+#define DetectionResult_sent_timestamp_ms_tag    1
+#define DetectionResult_frame_timestamp_ms_tag   2
+#define DetectionResult_inference_us_tag         3
+#define DetectionResult_postprocess_us_tag       4
+#define DetectionResult_nn_period_us_tag         5
+#define DetectionResult_frame_drop_count_tag     6
+#define DetectionResult_tracker_us_tag           7
+#define DetectionResult_cpu_usage_percent_tag    8
+#define DetectionResult_detections_tag           9
+#define DetectionResult_tracks_tag               10
+#define DetectionResult_tof_tag                  11
+#define DeviceInfo_command_id_tag                1
+#define DeviceInfo_timestamp_ms_tag              2
+#define DeviceInfo_display_width_px_tag          3
+#define DeviceInfo_display_height_px_tag         4
+#define DeviceInfo_letterbox_width_px_tag        5
+#define DeviceInfo_letterbox_height_px_tag       6
+#define DeviceInfo_nn_width_px_tag               7
+#define DeviceInfo_nn_height_px_tag              8
+#define DeviceInfo_nn_input_size_bytes_tag       9
+#define DeviceInfo_power_mode_tag                10
+#define DeviceInfo_camera_fps_tag                11
+#define DeviceInfo_mcu_freq_mhz_tag              12
+#define DeviceInfo_npu_freq_mhz_tag              13
+#define DeviceInfo_model_name_tag                14
+#define DeviceInfo_class_labels_tag              15
+#define DeviceInfo_build_timestamp_tag           16
 #define Ack_command_id_tag                       1
 #define Ack_success_tag                          2
 #define Ack_timestamp_ms_tag                     3
@@ -227,79 +223,72 @@ extern "C" {
 #define HostMessage_command_id_tag               1
 #define HostMessage_set_display_enabled_tag      2
 #define HostMessage_get_device_info_tag          3
-#define HostMessage_get_tracex_dump_tag          5
+#define HostMessage_get_tracex_dump_tag          4
 
 /* Struct field encoding specification for nanopb */
-#define Timing_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   inference_us,      1) \
-X(a, STATIC,   SINGULAR, UINT32,   postprocess_us,    2) \
-X(a, STATIC,   SINGULAR, UINT32,   nn_period_us,      3) \
-X(a, STATIC,   SINGULAR, UINT32,   frame_drop_count,   4) \
-X(a, STATIC,   SINGULAR, UINT32,   tracker_us,        5)
-#define Timing_CALLBACK NULL
-#define Timing_DEFAULT NULL
-
 #define Detection_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, FLOAT,    x_center_norm,     1) \
-X(a, STATIC,   SINGULAR, FLOAT,    y_center_norm,     2) \
-X(a, STATIC,   SINGULAR, FLOAT,    width_norm,        3) \
-X(a, STATIC,   SINGULAR, FLOAT,    height_norm,       4) \
-X(a, STATIC,   SINGULAR, FLOAT,    confidence_ratio,   5) \
-X(a, STATIC,   SINGULAR, INT32,    class_index,       6)
+X(a, STATIC,   SINGULAR, FLOAT,    x,                 1) \
+X(a, STATIC,   SINGULAR, FLOAT,    y,                 2) \
+X(a, STATIC,   SINGULAR, FLOAT,    w,                 3) \
+X(a, STATIC,   SINGULAR, FLOAT,    h,                 4) \
+X(a, STATIC,   SINGULAR, FLOAT,    score,             5) \
+X(a, STATIC,   SINGULAR, UINT32,   class_id,          6)
 #define Detection_CALLBACK NULL
 #define Detection_DEFAULT NULL
 
 #define TrackedBox_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, FLOAT,    x_center_norm,     1) \
-X(a, STATIC,   SINGULAR, FLOAT,    y_center_norm,     2) \
-X(a, STATIC,   SINGULAR, FLOAT,    width_norm,        3) \
-X(a, STATIC,   SINGULAR, FLOAT,    height_norm,       4) \
+X(a, STATIC,   SINGULAR, FLOAT,    x,                 1) \
+X(a, STATIC,   SINGULAR, FLOAT,    y,                 2) \
+X(a, STATIC,   SINGULAR, FLOAT,    w,                 3) \
+X(a, STATIC,   SINGULAR, FLOAT,    h,                 4) \
 X(a, STATIC,   SINGULAR, UINT32,   track_id,          5)
 #define TrackedBox_CALLBACK NULL
 #define TrackedBox_DEFAULT NULL
 
 #define TofAlert_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   hand_distance_mm,   1) \
-X(a, STATIC,   SINGULAR, UINT32,   hazard_distance_mm,   2) \
-X(a, STATIC,   SINGULAR, BOOL,     alert,             3) \
+X(a, STATIC,   SINGULAR, UINT32,   hand_mm,           1) \
+X(a, STATIC,   SINGULAR, UINT32,   hazard_mm,         2) \
+X(a, STATIC,   SINGULAR, UINT32,   flags,             3) \
 X(a, STATIC,   SINGULAR, FLOAT,    distance_3d_mm,    4) \
-X(a, STATIC,   SINGULAR, BOOL,     stale,             5) \
-X(a, STATIC,   REPEATED, INT32,    depth_grid_mm,     6)
+X(a, STATIC,   REPEATED, INT32,    depth_mm,          5)
 #define TofAlert_CALLBACK NULL
 #define TofAlert_DEFAULT NULL
 
 #define DetectionResult_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      1) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  timing,            2) \
-X(a, STATIC,   REPEATED, MESSAGE,  detections,        3) \
-X(a, STATIC,   SINGULAR, UINT32,   detection_timestamp_ms,   4) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  tof,               5) \
-X(a, STATIC,   SINGULAR, FLOAT,    cpu_usage_percent,   6) \
-X(a, STATIC,   REPEATED, MESSAGE,  tracked_boxes,     7)
+X(a, STATIC,   SINGULAR, UINT32,   sent_timestamp_ms,   1) \
+X(a, STATIC,   SINGULAR, UINT32,   frame_timestamp_ms,   2) \
+X(a, STATIC,   SINGULAR, UINT32,   inference_us,      3) \
+X(a, STATIC,   SINGULAR, UINT32,   postprocess_us,    4) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_period_us,      5) \
+X(a, STATIC,   SINGULAR, UINT32,   frame_drop_count,   6) \
+X(a, STATIC,   SINGULAR, UINT32,   tracker_us,        7) \
+X(a, STATIC,   SINGULAR, FLOAT,    cpu_usage_percent,   8) \
+X(a, STATIC,   REPEATED, MESSAGE,  detections,        9) \
+X(a, STATIC,   REPEATED, MESSAGE,  tracks,           10) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  tof,              11)
 #define DetectionResult_CALLBACK NULL
 #define DetectionResult_DEFAULT NULL
-#define DetectionResult_timing_MSGTYPE Timing
 #define DetectionResult_detections_MSGTYPE Detection
+#define DetectionResult_tracks_MSGTYPE TrackedBox
 #define DetectionResult_tof_MSGTYPE TofAlert
-#define DetectionResult_tracked_boxes_MSGTYPE TrackedBox
 
 #define DeviceInfo_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   display_width_px,   1) \
-X(a, STATIC,   SINGULAR, UINT32,   display_height_px,   2) \
-X(a, STATIC,   SINGULAR, UINT32,   letterbox_width_px,   3) \
-X(a, STATIC,   SINGULAR, UINT32,   letterbox_height_px,   4) \
-X(a, STATIC,   SINGULAR, UINT32,   nn_width_px,       5) \
-X(a, STATIC,   SINGULAR, UINT32,   nn_height_px,      6) \
-X(a, STATIC,   SINGULAR, STRING,   model_name,        7) \
-X(a, STATIC,   REPEATED, STRING,   class_labels,      8) \
-X(a, STATIC,   SINGULAR, UINT32,   command_id,        9) \
-X(a, STATIC,   SINGULAR, UINT32,   nn_input_size_bytes,  10) \
-X(a, STATIC,   SINGULAR, UINT32,   power_mode,       11) \
-X(a, STATIC,   SINGULAR, UINT32,   camera_fps,       12) \
-X(a, STATIC,   SINGULAR, UINT32,   mcu_freq_mhz,     13) \
-X(a, STATIC,   SINGULAR, UINT32,   npu_freq_mhz,     14) \
-X(a, STATIC,   SINGULAR, STRING,   build_timestamp,  15) \
-X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,     16)
+X(a, STATIC,   SINGULAR, UINT32,   command_id,        1) \
+X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      2) \
+X(a, STATIC,   SINGULAR, UINT32,   display_width_px,   3) \
+X(a, STATIC,   SINGULAR, UINT32,   display_height_px,   4) \
+X(a, STATIC,   SINGULAR, UINT32,   letterbox_width_px,   5) \
+X(a, STATIC,   SINGULAR, UINT32,   letterbox_height_px,   6) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_width_px,       7) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_height_px,      8) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_input_size_bytes,   9) \
+X(a, STATIC,   SINGULAR, UINT32,   power_mode,       10) \
+X(a, STATIC,   SINGULAR, UINT32,   camera_fps,       11) \
+X(a, STATIC,   SINGULAR, UINT32,   mcu_freq_mhz,     12) \
+X(a, STATIC,   SINGULAR, UINT32,   npu_freq_mhz,     13) \
+X(a, STATIC,   SINGULAR, STRING,   model_name,       14) \
+X(a, STATIC,   REPEATED, STRING,   class_labels,     15) \
+X(a, STATIC,   SINGULAR, STRING,   build_timestamp,  16)
 #define DeviceInfo_CALLBACK NULL
 #define DeviceInfo_DEFAULT NULL
 
@@ -352,14 +341,13 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (payload,tracex_chunk,payload.tracex_chunk), 
 X(a, STATIC,   SINGULAR, UINT32,   command_id,        1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (command,set_display_enabled,command.set_display_enabled),   2) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (command,get_device_info,command.get_device_info),   3) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (command,get_tracex_dump,command.get_tracex_dump),   5)
+X(a, STATIC,   ONEOF,    MESSAGE,  (command,get_tracex_dump,command.get_tracex_dump),   4)
 #define HostMessage_CALLBACK NULL
 #define HostMessage_DEFAULT NULL
 #define HostMessage_command_set_display_enabled_MSGTYPE SetDisplayEnabled
 #define HostMessage_command_get_device_info_MSGTYPE GetDeviceInfo
 #define HostMessage_command_get_tracex_dump_MSGTYPE GetTraceXDump
 
-extern const pb_msgdesc_t Timing_msg;
 extern const pb_msgdesc_t Detection_msg;
 extern const pb_msgdesc_t TrackedBox_msg;
 extern const pb_msgdesc_t TofAlert_msg;
@@ -374,7 +362,6 @@ extern const pb_msgdesc_t DeviceMessage_msg;
 extern const pb_msgdesc_t HostMessage_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
-#define Timing_fields &Timing_msg
 #define Detection_fields &Detection_msg
 #define TrackedBox_fields &TrackedBox_msg
 #define TofAlert_fields &TofAlert_msg
@@ -390,17 +377,16 @@ extern const pb_msgdesc_t HostMessage_msg;
 
 /* Maximum encoded size of messages (where known) */
 #define Ack_size                                 14
-#define DetectionResult_size                     1437
-#define Detection_size                           36
+#define DetectionResult_size                     1387
+#define Detection_size                           31
 #define DeviceInfo_size                          499
-#define DeviceMessage_size                       1440
+#define DeviceMessage_size                       1390
 #define GetDeviceInfo_size                       6
 #define GetTraceXDump_size                       12
 #define HostMessage_size                         20
 #define MESSAGES_PB_H_MAX_SIZE                   DeviceMessage_size
 #define SetDisplayEnabled_size                   8
-#define Timing_size                              30
-#define TofAlert_size                            725
+#define TofAlert_size                            727
 #define TraceXChunk_size                         279
 #define TrackedBox_size                          26
 

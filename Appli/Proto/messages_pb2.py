@@ -14,19 +14,19 @@ _sym_db = _symbol_database.Default()
 import nanopb_pb2 as nanopb__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0emessages.proto\x1a\x0cnanopb.proto\"z\n\x06Timing\x12\x14\n\x0cinference_us\x18\x01 \x01(\r\x12\x16\n\x0epostprocess_us\x18\x02 \x01(\r\x12\x14\n\x0cnn_period_us\x18\x03 \x01(\r\x12\x18\n\x10\x66rame_drop_count\x18\x04 \x01(\r\x12\x12\n\ntracker_us\x18\x05 \x01(\r\"\x91\x01\n\tDetection\x12\x15\n\rx_center_norm\x18\x01 \x01(\x02\x12\x15\n\ry_center_norm\x18\x02 \x01(\x02\x12\x12\n\nwidth_norm\x18\x03 \x01(\x02\x12\x13\n\x0bheight_norm\x18\x04 \x01(\x02\x12\x18\n\x10\x63onfidence_ratio\x18\x05 \x01(\x02\x12\x13\n\x0b\x63lass_index\x18\x06 \x01(\x05\"u\n\nTrackedBox\x12\x15\n\rx_center_norm\x18\x01 \x01(\x02\x12\x15\n\ry_center_norm\x18\x02 \x01(\x02\x12\x12\n\nwidth_norm\x18\x03 \x01(\x02\x12\x13\n\x0bheight_norm\x18\x04 \x01(\x02\x12\x10\n\x08track_id\x18\x05 \x01(\r\"\x94\x01\n\x08TofAlert\x12\x18\n\x10hand_distance_mm\x18\x01 \x01(\r\x12\x1a\n\x12hazard_distance_mm\x18\x02 \x01(\r\x12\r\n\x05\x61lert\x18\x03 \x01(\x08\x12\x16\n\x0e\x64istance_3d_mm\x18\x04 \x01(\x02\x12\r\n\x05stale\x18\x05 \x01(\x08\x12\x1c\n\rdepth_grid_mm\x18\x06 \x03(\x05\x42\x05\x92?\x02\x10@\"\xe5\x01\n\x0f\x44\x65tectionResult\x12\x14\n\x0ctimestamp_ms\x18\x01 \x01(\r\x12\x17\n\x06timing\x18\x02 \x01(\x0b\x32\x07.Timing\x12%\n\ndetections\x18\x03 \x03(\x0b\x32\n.DetectionB\x05\x92?\x02\x10\n\x12\x1e\n\x16\x64\x65tection_timestamp_ms\x18\x04 \x01(\r\x12\x16\n\x03tof\x18\x05 \x01(\x0b\x32\t.TofAlert\x12\x19\n\x11\x63pu_usage_percent\x18\x06 \x01(\x02\x12)\n\rtracked_boxes\x18\x07 \x03(\x0b\x32\x0b.TrackedBoxB\x05\x92?\x02\x10\n\"\x9d\x03\n\nDeviceInfo\x12\x18\n\x10\x64isplay_width_px\x18\x01 \x01(\r\x12\x19\n\x11\x64isplay_height_px\x18\x02 \x01(\r\x12\x1a\n\x12letterbox_width_px\x18\x03 \x01(\r\x12\x1b\n\x13letterbox_height_px\x18\x04 \x01(\r\x12\x13\n\x0bnn_width_px\x18\x05 \x01(\r\x12\x14\n\x0cnn_height_px\x18\x06 \x01(\r\x12\x19\n\nmodel_name\x18\x07 \x01(\tB\x05\x92?\x02\x08@\x12 \n\x0c\x63lass_labels\x18\x08 \x03(\tB\n\x92?\x02\x08 \x92?\x02\x10\n\x12\x12\n\ncommand_id\x18\t \x01(\r\x12\x1b\n\x13nn_input_size_bytes\x18\n \x01(\r\x12\x12\n\npower_mode\x18\x0b \x01(\r\x12\x12\n\ncamera_fps\x18\x0c \x01(\r\x12\x14\n\x0cmcu_freq_mhz\x18\r \x01(\r\x12\x14\n\x0cnpu_freq_mhz\x18\x0e \x01(\r\x12\x1e\n\x0f\x62uild_timestamp\x18\x0f \x01(\tB\x05\x92?\x02\x08\x18\x12\x14\n\x0ctimestamp_ms\x18\x10 \x01(\r\"@\n\x03\x41\x63k\x12\x12\n\ncommand_id\x18\x01 \x01(\r\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x14\n\x0ctimestamp_ms\x18\x03 \x01(\r\"w\n\x0bTraceXChunk\x12\x14\n\x0coffset_bytes\x18\x01 \x01(\r\x12\x18\n\x10total_size_bytes\x18\x02 \x01(\r\x12\x14\n\x04\x64\x61ta\x18\x03 \x01(\x0c\x42\x06\x92?\x03\x08\x80\x02\x12\x0c\n\x04\x64one\x18\x04 \x01(\x08\x12\x14\n\x0ctimestamp_ms\x18\x05 \x01(\r\":\n\x11SetDisplayEnabled\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\x12\x14\n\x0ctimestamp_ms\x18\x02 \x01(\r\"%\n\rGetDeviceInfo\x12\x14\n\x0ctimestamp_ms\x18\x01 \x01(\r\"?\n\rGetTraceXDump\x12\x18\n\x10\x63hunk_size_bytes\x18\x01 \x01(\r\x12\x14\n\x0ctimestamp_ms\x18\x02 \x01(\r\"\xa7\x01\n\rDeviceMessage\x12,\n\x10\x64\x65tection_result\x18\x01 \x01(\x0b\x32\x10.DetectionResultH\x00\x12\"\n\x0b\x64\x65vice_info\x18\x02 \x01(\x0b\x32\x0b.DeviceInfoH\x00\x12\x13\n\x03\x61\x63k\x18\x03 \x01(\x0b\x32\x04.AckH\x00\x12$\n\x0ctracex_chunk\x18\x04 \x01(\x0b\x32\x0c.TraceXChunkH\x00\x42\t\n\x07payload\"\xb5\x01\n\x0bHostMessage\x12\x12\n\ncommand_id\x18\x01 \x01(\r\x12\x31\n\x13set_display_enabled\x18\x02 \x01(\x0b\x32\x12.SetDisplayEnabledH\x00\x12)\n\x0fget_device_info\x18\x03 \x01(\x0b\x32\x0e.GetDeviceInfoH\x00\x12)\n\x0fget_tracex_dump\x18\x05 \x01(\x0b\x32\x0e.GetTraceXDumpH\x00\x42\t\n\x07\x63ommandb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0emessages.proto\x1a\x0cnanopb.proto\"X\n\tDetection\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01w\x18\x03 \x01(\x02\x12\t\n\x01h\x18\x04 \x01(\x02\x12\r\n\x05score\x18\x05 \x01(\x02\x12\x10\n\x08\x63lass_id\x18\x06 \x01(\r\"J\n\nTrackedBox\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01w\x18\x03 \x01(\x02\x12\t\n\x01h\x18\x04 \x01(\x02\x12\x10\n\x08track_id\x18\x05 \x01(\r\"n\n\x08TofAlert\x12\x0f\n\x07hand_mm\x18\x01 \x01(\r\x12\x11\n\thazard_mm\x18\x02 \x01(\r\x12\r\n\x05\x66lags\x18\x03 \x01(\r\x12\x16\n\x0e\x64istance_3d_mm\x18\x04 \x01(\x02\x12\x17\n\x08\x64\x65pth_mm\x18\x05 \x03(\x05\x42\x05\x92?\x02\x10@\"\xb8\x02\n\x0f\x44\x65tectionResult\x12\x19\n\x11sent_timestamp_ms\x18\x01 \x01(\r\x12\x1a\n\x12\x66rame_timestamp_ms\x18\x02 \x01(\r\x12\x14\n\x0cinference_us\x18\x03 \x01(\r\x12\x16\n\x0epostprocess_us\x18\x04 \x01(\r\x12\x14\n\x0cnn_period_us\x18\x05 \x01(\r\x12\x18\n\x10\x66rame_drop_count\x18\x06 \x01(\r\x12\x12\n\ntracker_us\x18\x07 \x01(\r\x12\x19\n\x11\x63pu_usage_percent\x18\x08 \x01(\x02\x12%\n\ndetections\x18\t \x03(\x0b\x32\n.DetectionB\x05\x92?\x02\x10\n\x12\"\n\x06tracks\x18\n \x03(\x0b\x32\x0b.TrackedBoxB\x05\x92?\x02\x10\n\x12\x16\n\x03tof\x18\x0b \x01(\x0b\x32\t.TofAlert\"\x9d\x03\n\nDeviceInfo\x12\x12\n\ncommand_id\x18\x01 \x01(\r\x12\x14\n\x0ctimestamp_ms\x18\x02 \x01(\r\x12\x18\n\x10\x64isplay_width_px\x18\x03 \x01(\r\x12\x19\n\x11\x64isplay_height_px\x18\x04 \x01(\r\x12\x1a\n\x12letterbox_width_px\x18\x05 \x01(\r\x12\x1b\n\x13letterbox_height_px\x18\x06 \x01(\r\x12\x13\n\x0bnn_width_px\x18\x07 \x01(\r\x12\x14\n\x0cnn_height_px\x18\x08 \x01(\r\x12\x1b\n\x13nn_input_size_bytes\x18\t \x01(\r\x12\x12\n\npower_mode\x18\n \x01(\r\x12\x12\n\ncamera_fps\x18\x0b \x01(\r\x12\x14\n\x0cmcu_freq_mhz\x18\x0c \x01(\r\x12\x14\n\x0cnpu_freq_mhz\x18\r \x01(\r\x12\x19\n\nmodel_name\x18\x0e \x01(\tB\x05\x92?\x02\x08@\x12 \n\x0c\x63lass_labels\x18\x0f \x03(\tB\n\x92?\x02\x08 \x92?\x02\x10\n\x12\x1e\n\x0f\x62uild_timestamp\x18\x10 \x01(\tB\x05\x92?\x02\x08\x18\"@\n\x03\x41\x63k\x12\x12\n\ncommand_id\x18\x01 \x01(\r\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x14\n\x0ctimestamp_ms\x18\x03 \x01(\r\"w\n\x0bTraceXChunk\x12\x14\n\x0coffset_bytes\x18\x01 \x01(\r\x12\x18\n\x10total_size_bytes\x18\x02 \x01(\r\x12\x14\n\x04\x64\x61ta\x18\x03 \x01(\x0c\x42\x06\x92?\x03\x08\x80\x02\x12\x0c\n\x04\x64one\x18\x04 \x01(\x08\x12\x14\n\x0ctimestamp_ms\x18\x05 \x01(\r\":\n\x11SetDisplayEnabled\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\x12\x14\n\x0ctimestamp_ms\x18\x02 \x01(\r\"%\n\rGetDeviceInfo\x12\x14\n\x0ctimestamp_ms\x18\x01 \x01(\r\"?\n\rGetTraceXDump\x12\x18\n\x10\x63hunk_size_bytes\x18\x01 \x01(\r\x12\x14\n\x0ctimestamp_ms\x18\x02 \x01(\r\"\xa7\x01\n\rDeviceMessage\x12,\n\x10\x64\x65tection_result\x18\x01 \x01(\x0b\x32\x10.DetectionResultH\x00\x12\"\n\x0b\x64\x65vice_info\x18\x02 \x01(\x0b\x32\x0b.DeviceInfoH\x00\x12\x13\n\x03\x61\x63k\x18\x03 \x01(\x0b\x32\x04.AckH\x00\x12$\n\x0ctracex_chunk\x18\x04 \x01(\x0b\x32\x0c.TraceXChunkH\x00\x42\t\n\x07payload\"\xb5\x01\n\x0bHostMessage\x12\x12\n\ncommand_id\x18\x01 \x01(\r\x12\x31\n\x13set_display_enabled\x18\x02 \x01(\x0b\x32\x12.SetDisplayEnabledH\x00\x12)\n\x0fget_device_info\x18\x03 \x01(\x0b\x32\x0e.GetDeviceInfoH\x00\x12)\n\x0fget_tracex_dump\x18\x04 \x01(\x0b\x32\x0e.GetTraceXDumpH\x00\x42\t\n\x07\x63ommandb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'messages_pb2', globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _TOFALERT.fields_by_name['depth_grid_mm']._options = None
-  _TOFALERT.fields_by_name['depth_grid_mm']._serialized_options = b'\222?\002\020@'
+  _TOFALERT.fields_by_name['depth_mm']._options = None
+  _TOFALERT.fields_by_name['depth_mm']._serialized_options = b'\222?\002\020@'
   _DETECTIONRESULT.fields_by_name['detections']._options = None
   _DETECTIONRESULT.fields_by_name['detections']._serialized_options = b'\222?\002\020\n'
-  _DETECTIONRESULT.fields_by_name['tracked_boxes']._options = None
-  _DETECTIONRESULT.fields_by_name['tracked_boxes']._serialized_options = b'\222?\002\020\n'
+  _DETECTIONRESULT.fields_by_name['tracks']._options = None
+  _DETECTIONRESULT.fields_by_name['tracks']._serialized_options = b'\222?\002\020\n'
   _DEVICEINFO.fields_by_name['model_name']._options = None
   _DEVICEINFO.fields_by_name['model_name']._serialized_options = b'\222?\002\010@'
   _DEVICEINFO.fields_by_name['class_labels']._options = None
@@ -35,30 +35,28 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _DEVICEINFO.fields_by_name['build_timestamp']._serialized_options = b'\222?\002\010\030'
   _TRACEXCHUNK.fields_by_name['data']._options = None
   _TRACEXCHUNK.fields_by_name['data']._serialized_options = b'\222?\003\010\200\002'
-  _TIMING._serialized_start=32
-  _TIMING._serialized_end=154
-  _DETECTION._serialized_start=157
-  _DETECTION._serialized_end=302
-  _TRACKEDBOX._serialized_start=304
-  _TRACKEDBOX._serialized_end=421
-  _TOFALERT._serialized_start=424
-  _TOFALERT._serialized_end=572
-  _DETECTIONRESULT._serialized_start=575
-  _DETECTIONRESULT._serialized_end=804
-  _DEVICEINFO._serialized_start=807
-  _DEVICEINFO._serialized_end=1220
-  _ACK._serialized_start=1222
-  _ACK._serialized_end=1286
-  _TRACEXCHUNK._serialized_start=1288
-  _TRACEXCHUNK._serialized_end=1407
-  _SETDISPLAYENABLED._serialized_start=1409
-  _SETDISPLAYENABLED._serialized_end=1467
-  _GETDEVICEINFO._serialized_start=1469
-  _GETDEVICEINFO._serialized_end=1506
-  _GETTRACEXDUMP._serialized_start=1508
-  _GETTRACEXDUMP._serialized_end=1571
-  _DEVICEMESSAGE._serialized_start=1574
-  _DEVICEMESSAGE._serialized_end=1741
-  _HOSTMESSAGE._serialized_start=1744
-  _HOSTMESSAGE._serialized_end=1925
+  _DETECTION._serialized_start=32
+  _DETECTION._serialized_end=120
+  _TRACKEDBOX._serialized_start=122
+  _TRACKEDBOX._serialized_end=196
+  _TOFALERT._serialized_start=198
+  _TOFALERT._serialized_end=308
+  _DETECTIONRESULT._serialized_start=311
+  _DETECTIONRESULT._serialized_end=623
+  _DEVICEINFO._serialized_start=626
+  _DEVICEINFO._serialized_end=1039
+  _ACK._serialized_start=1041
+  _ACK._serialized_end=1105
+  _TRACEXCHUNK._serialized_start=1107
+  _TRACEXCHUNK._serialized_end=1226
+  _SETDISPLAYENABLED._serialized_start=1228
+  _SETDISPLAYENABLED._serialized_end=1286
+  _GETDEVICEINFO._serialized_start=1288
+  _GETDEVICEINFO._serialized_end=1325
+  _GETTRACEXDUMP._serialized_start=1327
+  _GETTRACEXDUMP._serialized_end=1390
+  _DEVICEMESSAGE._serialized_start=1393
+  _DEVICEMESSAGE._serialized_end=1560
+  _HOSTMESSAGE._serialized_start=1563
+  _HOSTMESSAGE._serialized_end=1744
 # @@protoc_insertion_point(module_scope)

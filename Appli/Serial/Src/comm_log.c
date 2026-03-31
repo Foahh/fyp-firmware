@@ -26,6 +26,10 @@
 #include "tof.h"
 #include "tx_api.h"
 
+/* ToFAlert.flags (protobuf); keep in sync with messages.proto */
+#define TOF_PB_FLAG_ALERT (1u << 0)
+#define TOF_PB_FLAG_STALE (1u << 1)
+
 /* ============================================================================
  * Configuration
  * ============================================================================ */
@@ -53,15 +57,14 @@ static void comm_send_detection_result(const detection_info_t *info) {
   msg.which_payload = DeviceMessage_detection_result_tag;
 
   DetectionResult *df = &msg.payload.detection_result;
-  df->timestamp_ms = HAL_GetTick();
-  df->detection_timestamp_ms = info->timestamp_ms;
+  df->sent_timestamp_ms = HAL_GetTick();
+  df->frame_timestamp_ms = info->timestamp_ms;
 
-  df->has_timing = true;
-  df->timing.inference_us = info->inference_us;
-  df->timing.postprocess_us = info->postprocess_us;
-  df->timing.tracker_us = info->tracker_us;
-  df->timing.nn_period_us = info->nn_period_us;
-  df->timing.frame_drop_count = info->frame_drops;
+  df->inference_us = info->inference_us;
+  df->postprocess_us = info->postprocess_us;
+  df->tracker_us = info->tracker_us;
+  df->nn_period_us = info->nn_period_us;
+  df->frame_drop_count = info->frame_drops;
 
   df->cpu_usage_percent = CPU_LoadGetUsageRatio() * 100.0f;
 
@@ -72,43 +75,49 @@ static void comm_send_detection_result(const detection_info_t *info) {
   df->detections_count = (pb_size_t)n;
   for (int i = 0; i < n; i++) {
     const od_pp_outBuffer_t *d = &info->detects[i];
-    df->detections[i].x_center_norm = d->x_center;
-    df->detections[i].y_center_norm = d->y_center;
-    df->detections[i].width_norm = d->width;
-    df->detections[i].height_norm = d->height;
-    df->detections[i].confidence_ratio = d->conf;
-    df->detections[i].class_index = d->class_index;
+    df->detections[i].x = d->x_center;
+    df->detections[i].y = d->y_center;
+    df->detections[i].w = d->width;
+    df->detections[i].h = d->height;
+    df->detections[i].score = d->conf;
+    df->detections[i].class_id = (uint32_t)d->class_index;
   }
 
   int nt = info->nb_tracked;
   if (nt > DETECTION_MAX_BOXES) {
     nt = DETECTION_MAX_BOXES;
   }
-  df->tracked_boxes_count = (pb_size_t)nt;
+  df->tracks_count = (pb_size_t)nt;
   for (int i = 0; i < nt; i++) {
     const tracked_box_t *tb = &info->tracked[i];
-    df->tracked_boxes[i].x_center_norm = tb->x_center;
-    df->tracked_boxes[i].y_center_norm = tb->y_center;
-    df->tracked_boxes[i].width_norm = tb->width;
-    df->tracked_boxes[i].height_norm = tb->height;
-    df->tracked_boxes[i].track_id = tb->id;
+    df->tracks[i].x = tb->x_center;
+    df->tracks[i].y = tb->y_center;
+    df->tracks[i].w = tb->width;
+    df->tracks[i].h = tb->height;
+    df->tracks[i].track_id = tb->id;
   }
 
   const tof_alert_t *alert = TOF_GetAlert();
   const tof_depth_grid_t *grid = TOF_GetDepthGrid();
   df->has_tof = true;
+  uint32_t tof_flags = 0;
   if (alert != NULL) {
-    df->tof.hand_distance_mm = alert->hand_distance_mm;
-    df->tof.hazard_distance_mm = alert->hazard_distance_mm;
-    df->tof.alert = alert->alert;
+    df->tof.hand_mm = alert->hand_distance_mm;
+    df->tof.hazard_mm = alert->hazard_distance_mm;
     df->tof.distance_3d_mm = alert->distance_3d_mm;
-    df->tof.stale = alert->stale;
+    if (alert->alert) {
+      tof_flags |= TOF_PB_FLAG_ALERT;
+    }
+    if (alert->stale) {
+      tof_flags |= TOF_PB_FLAG_STALE;
+    }
   }
+  df->tof.flags = tof_flags;
   if (grid != NULL && grid->valid) {
-    df->tof.depth_grid_mm_count = TOF_GRID_SIZE * TOF_GRID_SIZE;
+    df->tof.depth_mm_count = TOF_GRID_SIZE * TOF_GRID_SIZE;
     for (int r = 0; r < TOF_GRID_SIZE; r++) {
       for (int c = 0; c < TOF_GRID_SIZE; c++) {
-        df->tof.depth_grid_mm[r * TOF_GRID_SIZE + c] = grid->distance_mm[r][c];
+        df->tof.depth_mm[r * TOF_GRID_SIZE + c] = (int32_t)grid->distance_mm[r][c];
       }
     }
   }
