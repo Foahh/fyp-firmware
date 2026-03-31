@@ -191,6 +191,7 @@ static void kf_mat_sub(double *result, double *m1, double *m2, int row_nb, int c
   }
 }
 
+#if 0
 static void kf_cho_decomposition(double *lower, double *A, int row_col_nb)
 {
   const int n = row_col_nb;
@@ -251,6 +252,7 @@ static void kf_cho_solve(double *x, double *A, double *B, double *cho, double *c
   kf_mat_dot_product(cho, cho_inv_t, cho_inv, row_nb, row_nb, row_nb);
   kf_mat_dot_product(x, cho, B, row_nb, col_nb, row_nb);
 }
+#endif
 
 static void kf_project(struct kf_state *state, double projected_mean[KF_DIM], double projected_cov[KF_DIM][KF_DIM])
 {
@@ -347,26 +349,26 @@ void kf_update(struct kf_state *state, struct kf_box *measure)
   double kalman_gain_T[KF_DIM][2 * KF_DIM];
   double kalman_gain[2 * KF_DIM][KF_DIM];
   double B[KF_DIM][2 * KF_DIM];
-  double cho_inv_t[KF_DIM][KF_DIM];
-  double cho_inv[KF_DIM][KF_DIM];
-  double cho[KF_DIM][KF_DIM];
   double innovation[KF_DIM];
   double mean_temp[2 * KF_DIM];
   int i;
 
   kf_project(state, projected_mean, projected_cov);
 
-  /* B is (covariance * update_mat_t)^t */
+  /* B = (P * H^T)^T = H * P  (KF_DIM x 2*KF_DIM) */
   kf_mat_dot_product_transpose((double *) B, (double *) state->covariance, (double *) update_mat_t,
                                KF_DIM, 2 * KF_DIM, 2 * KF_DIM);
 
-  /* kalman_gain is transpose(cho_solve(projected_cov, B)) */
-  /* FIXME : it seems state->covariance[KF_DIM][KF_DIM] (upper right part of state->covariance) is always
-   *         diagonal. In that case projected_cov is also diagonal. If this is case then we can replace
-             kf_cho_solve with a faster version.
+  /*
+   * kalman_gain_T = S^{-1} * B.  S (projected_cov) is always diagonal because
+   * all four axes evolve independently (diagonal noise, diagonal-structured
+   * motion and measurement matrices), so a per-row scalar division suffices.
    */
-  kf_cho_solve((double *) kalman_gain_T, (double *) projected_cov, (double *) B, (double *) cho, (double *) cho_inv,
-               (double *) cho_inv_t, KF_DIM, 2 * KF_DIM);
+  for (i = 0; i < KF_DIM; i++) {
+    double inv_diag = 1.0 / projected_cov[i][i];
+    for (int j = 0; j < 2 * KF_DIM; j++)
+      kalman_gain_T[i][j] = B[i][j] * inv_diag;
+  }
   kf_mat_transpose((double *) kalman_gain, (double *) kalman_gain_T, 2 * KF_DIM, KF_DIM);
 
   innovation[0] = measure->cx - projected_mean[0];
