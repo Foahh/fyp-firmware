@@ -22,15 +22,15 @@
 #define KF_DIM 4
 
 struct kf_state {
-  double mean[2 * KF_DIM];
-  double covariance[2 * KF_DIM][2 * KF_DIM];
+  float mean[2 * KF_DIM];
+  float covariance[2 * KF_DIM][2 * KF_DIM];
 };
 
 struct kf_box {
-  double cx;
-  double cy;
-  double a;
-  double h;
+  float cx;
+  float cy;
+  float a;
+  float h;
 };
 
 void kf_init(struct kf_state *state, struct kf_box *measure);

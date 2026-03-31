@@ -23,49 +23,49 @@
 #include <stdio.h>
 
 typedef struct {
-  double cx;
-  double cy;
-  double w;
-  double h;
+  float cx;
+  float cy;
+  float w;
+  float h;
 } trk_box_t;
 
-static double trk_overlap(double x1, double w1, double x2, double w2)
+static float trk_overlap(float x1, float w1, float x2, float w2)
 {
-  double l1 = x1 - w1 / 2;
-  double l2 = x2 - w2 / 2;
-  double r1 = x1 + w1 / 2;
-  double r2 = x2 + w2 / 2;
-  double left = l1 > l2 ? l1 : l2;
-  double right = r1 < r2 ? r1 : r2;
+  float l1 = x1 - w1 / 2.f;
+  float l2 = x2 - w2 / 2.f;
+  float r1 = x1 + w1 / 2.f;
+  float r2 = x2 + w2 / 2.f;
+  float left = l1 > l2 ? l1 : l2;
+  float right = r1 < r2 ? r1 : r2;
 
   return right - left;
 }
 
-static double trk_box_intersection(trk_box_t *a, trk_box_t *b)
+static float trk_box_intersection(trk_box_t *a, trk_box_t *b)
 {
-  double w = trk_overlap(a->cx, a->w, b->cx, b->w);
-  double h = trk_overlap(a->cy, a->h, b->cy, b->h);
+  float w = trk_overlap(a->cx, a->w, b->cx, b->w);
+  float h = trk_overlap(a->cy, a->h, b->cy, b->h);
 
-  return w < 0 || h < 0 ? 0 : w * h;
+  return w < 0.f || h < 0.f ? 0.f : w * h;
 }
 
-static double trk_box_union(trk_box_t *a, trk_box_t *b)
+static float trk_box_union(trk_box_t *a, trk_box_t *b)
 {
-  double I = trk_box_intersection(a, b);
+  float I = trk_box_intersection(a, b);
 
   return a->w * a->h + b->w * b->h - I;
 }
 
-static double trk_compute_iou(trk_tbox_t *tbox, trk_dbox_t *dbox)
+static float trk_compute_iou(trk_tbox_t *tbox, trk_dbox_t *dbox)
 {
   trk_box_t boxa = {dbox->cx, dbox->cy, dbox->w, dbox->h};
   trk_box_t boxb = {tbox->cx, tbox->cy, tbox->w, tbox->h};
-  double I, U;
+  float I, U;
 
   I = trk_box_intersection(&boxa, &boxb);
   U = trk_box_union(&boxa, &boxb);
 
-  return I == 0 || U == 0 ? 0 : I / U;
+  return I == 0.f || U == 0.f ? 0.f : I / U;
 }
 
 static void trk_kalman_init(trk_tbox_t *tbox, trk_dbox_t *dbox)
@@ -84,7 +84,7 @@ static void trk_kalman_pred(trk_tbox_t *tbox)
   struct kf_box predicted;
 
   if (tbox->tlost_cnt)
-    tbox->kf_state.mean[7] = 0;
+    tbox->kf_state.mean[7] = 0.f;
   kf_predict(&tbox->kf_state, &predicted);
   tbox->cx = predicted.cx;
   tbox->cy = predicted.cy;
@@ -180,8 +180,8 @@ static void trk_matching_step1(trk_ctx_t *ctx)
 {
   trk_tbox_t *tbox, *ttmp, *tboxhigh;
   trk_dbox_t *dbox, *dtmp;
-  double max_score;
-  double score;
+  float max_score;
+  float score;
 
   /* move tracked box from ttracking/tlost to tremain */
   ulist_for_each_entry_safe(tbox, ttmp, &ctx->ttracking, list)
@@ -191,7 +191,7 @@ static void trk_matching_step1(trk_ctx_t *ctx)
 
   /* match tbox into tremain with dbox in dhigh */
   ulist_for_each_entry_safe(dbox, dtmp, &ctx->dhigh, list) {
-    max_score = -1;
+    max_score = -1.f;
     tboxhigh = NULL;
     ulist_for_each_entry_safe(tbox, ttmp, &ctx->tremain, list) {
       score = trk_compute_iou(tbox, dbox) * dbox->conf;
@@ -200,7 +200,7 @@ static void trk_matching_step1(trk_ctx_t *ctx)
       max_score = score;
       tboxhigh = tbox;
     }
-    if (max_score < 1 - ctx->cfg.sim1_thresh)
+    if (max_score < 1.f - ctx->cfg.sim1_thresh)
       continue;
     trk_tbox_continue_tracking(ctx, tboxhigh, dbox);
     ulist_del(&dbox->list);
@@ -211,12 +211,12 @@ static void trk_matching_step2(trk_ctx_t *ctx)
 {
   trk_tbox_t *tbox, *ttmp, *tboxhigh;
   trk_dbox_t *dbox, *dtmp;
-  double max_score;
-  double score;
+  float max_score;
+  float score;
 
   /* match tbox into tremain with dbox in dlow */
   ulist_for_each_entry_safe(dbox, dtmp, &ctx->dlow, list) {
-    max_score = -1;
+    max_score = -1.f;
     tboxhigh = NULL;
     ulist_for_each_entry_safe(tbox, ttmp, &ctx->tremain, list) {
       score = trk_compute_iou(tbox, dbox);

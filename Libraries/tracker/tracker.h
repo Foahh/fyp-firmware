@@ -25,11 +25,11 @@
 #include "ulist.h"
 
 typedef struct {
-  double track_thresh;
-  double det_thresh;
-  double sim1_thresh;
-  double sim2_thresh;
-  int tlost_cnt;
+  float track_thresh;
+  float det_thresh;
+  float sim1_thresh;
+  float sim2_thresh;
+  uint32_t tlost_cnt;
 } trk_conf_t;
 
 typedef struct {
@@ -37,10 +37,10 @@ typedef struct {
   int is_tracking;
   uint32_t id;
   uint32_t tlost_cnt;
-  double cx;
-  double cy;
-  double w;
-  double h;
+  float cx;
+  float cy;
+  float w;
+  float h;
   void *userdata;
   void *dbox_userdata;
   /* private data */
@@ -50,11 +50,11 @@ typedef struct {
 
 typedef struct {
   /* public field */
-  double cx;
-  double cy;
-  double w;
-  double h;
-  double conf;
+  float cx;
+  float cy;
+  float w;
+  float h;
+  float conf;
   void *userdata;
   /* private data */
   struct ulist list;
