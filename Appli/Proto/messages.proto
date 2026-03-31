@@ -40,10 +40,6 @@ message TofAlert {
   repeated int32 depth_grid_mm = 6 [(nanopb).max_count = 64];
 }
 
-message CpuLoad {
-  float usage_percent = 1;
-}
-
 /* ============================================================================
  * Device payloads
  * ============================================================================ */
@@ -54,7 +50,7 @@ message DetectionResult {
   repeated Detection detections = 3 [(nanopb).max_count = 10];
   uint32 detection_timestamp_ms = 4;
   TofAlert tof = 5;
-  CpuLoad cpu = 6;
+  float cpu_usage_percent = 6;
   repeated TrackedBox tracked_boxes = 7 [(nanopb).max_count = 10];
 }
 

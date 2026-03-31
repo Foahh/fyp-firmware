@@ -230,7 +230,7 @@ def receiver_loop(
                     state.frame_drops = int(result.timing.frame_drop_count)
 
                 if result.HasField("cpu"):
-                    state.cpu_usage_percent = float(result.cpu.usage_percent)
+                    state.cpu_usage_percent = float(result.cpu_usage_percent)
                     state.cpu_hist.append(state.cpu_usage_percent)
                     state.cpu_time_hist.append(time.time())
 
@@ -264,7 +264,7 @@ def receiver_loop(
                 state.camera_fps = int(info.camera_fps)
                 state.mcu_freq_mhz = int(info.mcu_freq_mhz)
                 state.npu_freq_mhz = int(info.npu_freq_mhz)
-                state.power_mode = int(info.overdrive_mode)
+                state.power_mode = int(info.power_mode)
                 if info.nn_width_px and info.nn_height_px:
                     state.nn_size_text = (
                         f"{info.nn_width_px}x{info.nn_height_px} "

@@ -18,9 +18,6 @@ PB_BIND(TrackedBox, TrackedBox, AUTO)
 PB_BIND(TofAlert, TofAlert, 2)
 
 
-PB_BIND(CpuLoad, CpuLoad, AUTO)
-
-
 PB_BIND(DetectionResult, DetectionResult, 2)
 
 

@@ -63,8 +63,7 @@ static void comm_send_detection_result(const detection_info_t *info) {
   df->timing.nn_period_us = info->nn_period_us;
   df->timing.frame_drop_count = info->frame_drops;
 
-  df->has_cpu = true;
-  df->cpu.usage_percent = CPU_LoadGetUsageRatio() * 100.0f;
+  df->cpu_usage_percent = CPU_LoadGetUsageRatio() * 100.0f;
 
   int n = info->nb_detect;
   if (n > DETECTION_MAX_BOXES) {

@@ -294,6 +294,7 @@ def create_gui(
         detections_text = state.detections_text or "  -"
         last_pp = state.post_hist[-1] if state.post_hist else 0.0
         last_trk = state.tracker_hist[-1] if state.tracker_hist else 0.0
+        last_fps = state.fps_hist[-1] if state.fps_hist else 0.0
         npu_delta = (
             f"{int(state.power_infer_avg_mw - state.power_idle_avg_mw)} mW"
             if state.power_idle_avg_mw > 0
@@ -324,14 +325,15 @@ def create_gui(
             "",
             f" Stats",
             SEP,
-            f"  Frames  {state.frame_count}   Drops: {state.frame_drops}   "
-            f"PP: {last_pp:.0f} us   Trk: {last_trk:.0f} us",
+            f"  Frames  {state.frame_count}   Drops: {state.frame_drops}   FPS: {last_fps:.1f}",
+            f"  Timing  PP: {last_pp:.0f} us   Trk: {last_trk:.0f} us",
+            f"  Timestamp  msg: {state.last_timestamp} ms   detection: {state.detection_timestamp} ms   info: {state.device_info_timestamp} ms   ack: {state.last_ack_timestamp} ms",
             f"  Labels  {class_labels}",
             f"  ACK     {state.last_ack}",
             f"  Err     {state.last_error or '-'}",
             f"  PwrErr  {state.last_power_error or '-'}",
             "",
-            f" Detections ({state.detection_count})",
+            f" Detections ({state.detection_count})   Tracked ({state.tracked_box_count})",
             SEP,
             f"  {detections_text}",
         ]
