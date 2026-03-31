@@ -43,6 +43,7 @@ message DetectionResult {
   uint32 timestamp_ms = 1;
   Timing timing = 2;
   repeated Detection detections = 3 [(nanopb).max_count = 10];
+  uint32 detection_timestamp_ms = 4;
   TofAlert tof = 5;
   CpuLoad cpu = 6;
 }
@@ -66,11 +67,13 @@ message DeviceInfo {
   uint32 mcu_freq_mhz = 13;
   uint32 npu_freq_mhz = 14;
   string build_timestamp = 15 [(nanopb).max_size = 24];
+  uint32 timestamp_ms = 16;
 }
 
 message Ack {
   uint32 command_id = 1;
   bool success = 2;
+  uint32 timestamp_ms = 3;
 }
 
 message TraceXChunk {
@@ -78,6 +81,7 @@ message TraceXChunk {
   uint32 total_size_bytes = 2;
   bytes data = 3 [(nanopb).max_size = 256];
   bool done = 4;
+  uint32 timestamp_ms = 5;
 }
 
 /* ============================================================================
@@ -86,12 +90,16 @@ message TraceXChunk {
 
 message SetDisplayEnabled {
   bool enabled = 1;
+  uint32 timestamp_ms = 2;
 }
 
-message GetDeviceInfo {}
+message GetDeviceInfo {
+  uint32 timestamp_ms = 1;
+}
 
 message GetTraceXDump {
   uint32 chunk_size_bytes = 1;
+  uint32 timestamp_ms = 2;
 }
 
 /* ============================================================================

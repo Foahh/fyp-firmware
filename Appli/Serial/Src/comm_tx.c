@@ -128,6 +128,8 @@ void COM_Send_DeviceInfo(uint32_t command_id) {
   strncpy(di->build_timestamp, BUILD_TIMESTAMP, sizeof(di->build_timestamp) - 1);
   di->build_timestamp[sizeof(di->build_timestamp) - 1] = '\0';
 
+  di->timestamp_ms = HAL_GetTick();
+
   COM_TX_Send(&msg);
 }
 
@@ -136,6 +138,7 @@ void COM_Send_Ack(uint32_t command_id, bool success) {
   msg.which_payload = DeviceMessage_ack_tag;
   msg.payload.ack.command_id = command_id;
   msg.payload.ack.success = success;
+  msg.payload.ack.timestamp_ms = HAL_GetTick();
 
   COM_TX_Send(&msg);
 }
@@ -155,6 +158,7 @@ void COM_Send_TraceXChunk(uint32_t offset, uint32_t total_size, const uint8_t *d
   chunk->data.size = (pb_size_t)data_len;
   memcpy(chunk->data.bytes, data, data_len);
   chunk->done = done;
+  chunk->timestamp_ms = HAL_GetTick();
 
   COM_TX_Send(&msg);
 }

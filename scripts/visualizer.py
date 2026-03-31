@@ -314,6 +314,7 @@ def receiver_loop(
         msg.command_id = command_id
         command_id += 1
         msg.get_device_info.SetInParent()
+        msg.get_device_info.timestamp_ms = int(time.time() * 1000) & 0xFFFFFFFF
         link.send_host_message(msg)
         state.host_introduced = True
         last_get_info_mono = time.monotonic()
@@ -347,10 +348,12 @@ def receiver_loop(
                 command_id += 1
                 if command == "get_info":
                     msg.get_device_info.SetInParent()
+                    msg.get_device_info.timestamp_ms = int(time.time() * 1000) & 0xFFFFFFFF
                     state.host_introduced = True
                     last_get_info_mono = time.monotonic()
                 elif command == "set_display":
                     msg.set_display_enabled.enabled = bool(value)
+                    msg.set_display_enabled.timestamp_ms = int(time.time() * 1000) & 0xFFFFFFFF
                     state.host_introduced = True
                     pending_display_cmds[msg.command_id] = bool(value)
                 link.send_host_message(msg)

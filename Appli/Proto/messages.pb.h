@@ -46,6 +46,7 @@ typedef struct _DetectionResult {
     Timing timing;
     pb_size_t detections_count;
     Detection detections[10];
+    uint32_t detection_timestamp_ms;
     bool has_tof;
     TofAlert tof;
     bool has_cpu;
@@ -69,11 +70,13 @@ typedef struct _DeviceInfo {
     uint32_t mcu_freq_mhz;
     uint32_t npu_freq_mhz;
     char build_timestamp[24];
+    uint32_t timestamp_ms;
 } DeviceInfo;
 
 typedef struct _Ack {
     uint32_t command_id;
     bool success;
+    uint32_t timestamp_ms;
 } Ack;
 
 typedef PB_BYTES_ARRAY_T(256) TraceXChunk_data_t;
@@ -82,18 +85,21 @@ typedef struct _TraceXChunk {
     uint32_t total_size_bytes;
     TraceXChunk_data_t data;
     bool done;
+    uint32_t timestamp_ms;
 } TraceXChunk;
 
 typedef struct _SetDisplayEnabled {
     bool enabled;
+    uint32_t timestamp_ms;
 } SetDisplayEnabled;
 
 typedef struct _GetDeviceInfo {
-    char dummy_field;
+    uint32_t timestamp_ms;
 } GetDeviceInfo;
 
 typedef struct _GetTraceXDump {
     uint32_t chunk_size_bytes;
+    uint32_t timestamp_ms;
 } GetTraceXDump;
 
 typedef struct _DeviceMessage {
@@ -126,26 +132,26 @@ extern "C" {
 #define Detection_init_default                   {0, 0, 0, 0, 0, 0}
 #define TofAlert_init_default                    {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
 #define CpuLoad_init_default                     {0}
-#define DetectionResult_init_default             {0, false, Timing_init_default, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, false, TofAlert_init_default, false, CpuLoad_init_default}
-#define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0, ""}
-#define Ack_init_default                         {0, 0}
-#define TraceXChunk_init_default                 {0, 0, {0, {0}}, 0}
-#define SetDisplayEnabled_init_default           {0}
+#define DetectionResult_init_default             {0, false, Timing_init_default, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, 0, false, TofAlert_init_default, false, CpuLoad_init_default}
+#define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0, "", 0}
+#define Ack_init_default                         {0, 0, 0}
+#define TraceXChunk_init_default                 {0, 0, {0, {0}}, 0, 0}
+#define SetDisplayEnabled_init_default           {0, 0}
 #define GetDeviceInfo_init_default               {0}
-#define GetTraceXDump_init_default               {0}
+#define GetTraceXDump_init_default               {0, 0}
 #define DeviceMessage_init_default               {0, {DetectionResult_init_default}}
 #define HostMessage_init_default                 {0, 0, {SetDisplayEnabled_init_default}}
 #define Timing_init_zero                         {0, 0, 0, 0}
 #define Detection_init_zero                      {0, 0, 0, 0, 0, 0}
 #define TofAlert_init_zero                       {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
 #define CpuLoad_init_zero                        {0}
-#define DetectionResult_init_zero                {0, false, Timing_init_zero, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, false, TofAlert_init_zero, false, CpuLoad_init_zero}
-#define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0, ""}
-#define Ack_init_zero                            {0, 0}
-#define TraceXChunk_init_zero                    {0, 0, {0, {0}}, 0}
-#define SetDisplayEnabled_init_zero              {0}
+#define DetectionResult_init_zero                {0, false, Timing_init_zero, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, 0, false, TofAlert_init_zero, false, CpuLoad_init_zero}
+#define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, 0, 0, 0, 0, 0, 0, "", 0}
+#define Ack_init_zero                            {0, 0, 0}
+#define TraceXChunk_init_zero                    {0, 0, {0, {0}}, 0, 0}
+#define SetDisplayEnabled_init_zero              {0, 0}
 #define GetDeviceInfo_init_zero                  {0}
-#define GetTraceXDump_init_zero                  {0}
+#define GetTraceXDump_init_zero                  {0, 0}
 #define DeviceMessage_init_zero                  {0, {DetectionResult_init_zero}}
 #define HostMessage_init_zero                    {0, 0, {SetDisplayEnabled_init_zero}}
 
@@ -170,6 +176,7 @@ extern "C" {
 #define DetectionResult_timestamp_ms_tag         1
 #define DetectionResult_timing_tag               2
 #define DetectionResult_detections_tag           3
+#define DetectionResult_detection_timestamp_ms_tag 4
 #define DetectionResult_tof_tag                  5
 #define DetectionResult_cpu_tag                  6
 #define DeviceInfo_display_width_px_tag          1
@@ -187,14 +194,20 @@ extern "C" {
 #define DeviceInfo_mcu_freq_mhz_tag              13
 #define DeviceInfo_npu_freq_mhz_tag              14
 #define DeviceInfo_build_timestamp_tag           15
+#define DeviceInfo_timestamp_ms_tag              16
 #define Ack_command_id_tag                       1
 #define Ack_success_tag                          2
+#define Ack_timestamp_ms_tag                     3
 #define TraceXChunk_offset_bytes_tag             1
 #define TraceXChunk_total_size_bytes_tag         2
 #define TraceXChunk_data_tag                     3
 #define TraceXChunk_done_tag                     4
+#define TraceXChunk_timestamp_ms_tag             5
 #define SetDisplayEnabled_enabled_tag            1
+#define SetDisplayEnabled_timestamp_ms_tag       2
+#define GetDeviceInfo_timestamp_ms_tag           1
 #define GetTraceXDump_chunk_size_bytes_tag       1
+#define GetTraceXDump_timestamp_ms_tag           2
 #define DeviceMessage_detection_result_tag       1
 #define DeviceMessage_device_info_tag            2
 #define DeviceMessage_ack_tag                    3
@@ -242,6 +255,7 @@ X(a, STATIC,   SINGULAR, FLOAT,    usage_percent,     1)
 X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      1) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  timing,            2) \
 X(a, STATIC,   REPEATED, MESSAGE,  detections,        3) \
+X(a, STATIC,   SINGULAR, UINT32,   detection_timestamp_ms,   4) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  tof,               5) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  cpu,               6)
 #define DetectionResult_CALLBACK NULL
@@ -266,13 +280,15 @@ X(a, STATIC,   SINGULAR, BOOL,     overdrive_mode,   11) \
 X(a, STATIC,   SINGULAR, UINT32,   camera_fps,       12) \
 X(a, STATIC,   SINGULAR, UINT32,   mcu_freq_mhz,     13) \
 X(a, STATIC,   SINGULAR, UINT32,   npu_freq_mhz,     14) \
-X(a, STATIC,   SINGULAR, STRING,   build_timestamp,  15)
+X(a, STATIC,   SINGULAR, STRING,   build_timestamp,  15) \
+X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,     16)
 #define DeviceInfo_CALLBACK NULL
 #define DeviceInfo_DEFAULT NULL
 
 #define Ack_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   command_id,        1) \
-X(a, STATIC,   SINGULAR, BOOL,     success,           2)
+X(a, STATIC,   SINGULAR, BOOL,     success,           2) \
+X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      3)
 #define Ack_CALLBACK NULL
 #define Ack_DEFAULT NULL
 
@@ -280,22 +296,25 @@ X(a, STATIC,   SINGULAR, BOOL,     success,           2)
 X(a, STATIC,   SINGULAR, UINT32,   offset_bytes,      1) \
 X(a, STATIC,   SINGULAR, UINT32,   total_size_bytes,   2) \
 X(a, STATIC,   SINGULAR, BYTES,    data,              3) \
-X(a, STATIC,   SINGULAR, BOOL,     done,              4)
+X(a, STATIC,   SINGULAR, BOOL,     done,              4) \
+X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      5)
 #define TraceXChunk_CALLBACK NULL
 #define TraceXChunk_DEFAULT NULL
 
 #define SetDisplayEnabled_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, BOOL,     enabled,           1)
+X(a, STATIC,   SINGULAR, BOOL,     enabled,           1) \
+X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      2)
 #define SetDisplayEnabled_CALLBACK NULL
 #define SetDisplayEnabled_DEFAULT NULL
 
 #define GetDeviceInfo_FIELDLIST(X, a) \
-
+X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      1)
 #define GetDeviceInfo_CALLBACK NULL
 #define GetDeviceInfo_DEFAULT NULL
 
 #define GetTraceXDump_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   chunk_size_bytes,   1)
+X(a, STATIC,   SINGULAR, UINT32,   chunk_size_bytes,   1) \
+X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      2)
 #define GetTraceXDump_CALLBACK NULL
 #define GetTraceXDump_DEFAULT NULL
 
@@ -352,20 +371,20 @@ extern const pb_msgdesc_t HostMessage_msg;
 #define HostMessage_fields &HostMessage_msg
 
 /* Maximum encoded size of messages (where known) */
-#define Ack_size                                 8
+#define Ack_size                                 14
 #define CpuLoad_size                             5
-#define DetectionResult_size                     1147
+#define DetectionResult_size                     1153
 #define Detection_size                           36
-#define DeviceInfo_size                          488
-#define DeviceMessage_size                       1150
-#define GetDeviceInfo_size                       0
-#define GetTraceXDump_size                       6
-#define HostMessage_size                         14
+#define DeviceInfo_size                          495
+#define DeviceMessage_size                       1156
+#define GetDeviceInfo_size                       6
+#define GetTraceXDump_size                       12
+#define HostMessage_size                         20
 #define MESSAGES_PB_H_MAX_SIZE                   DeviceMessage_size
-#define SetDisplayEnabled_size                   2
+#define SetDisplayEnabled_size                   8
 #define Timing_size                              24
 #define TofAlert_size                            725
-#define TraceXChunk_size                         273
+#define TraceXChunk_size                         279
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -54,6 +54,7 @@ static void comm_send_detection_result(const detection_info_t *info) {
 
   DetectionResult *df = &msg.payload.detection_result;
   df->timestamp_ms = HAL_GetTick();
+  df->detection_timestamp_ms = info->timestamp_ms;
 
   df->has_timing = true;
   df->timing.inference_us = info->inference_us;

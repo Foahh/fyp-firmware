@@ -84,6 +84,7 @@ def cmd_tracex_dump(
         req = messages_pb2.HostMessage()
         req.command_id = 1
         req.get_tracex_dump.chunk_size_bytes = int(chunk_size)
+        req.get_tracex_dump.timestamp_ms = int(time.time() * 1000) & 0xFFFFFFFF
         link.send_host_message(req)
 
         total_size = None
