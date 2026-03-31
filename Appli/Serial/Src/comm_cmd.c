@@ -89,7 +89,7 @@ static void handle_get_tracex_dump(uint32_t cmd_id, const GetTraceXDump *cmd) {
   }
 
   total_size = TraceX_GetBufferSize();
-  chunk_size = cmd->chunk_size;
+  chunk_size = cmd->chunk_size_bytes;
   if (chunk_size == 0U || chunk_size > sizeof(chunk)) {
     chunk_size = sizeof(chunk);
   }

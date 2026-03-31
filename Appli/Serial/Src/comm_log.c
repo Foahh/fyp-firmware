@@ -53,13 +53,13 @@ static void comm_send_detection_result(const detection_info_t *info) {
   msg.which_payload = DeviceMessage_detection_result_tag;
 
   DetectionResult *df = &msg.payload.detection_result;
-  df->timestamp = HAL_GetTick();
+  df->timestamp_ms = HAL_GetTick();
 
   df->has_timing = true;
   df->timing.inference_us = info->inference_us;
   df->timing.postprocess_us = info->postprocess_us;
   df->timing.nn_period_us = info->nn_period_us;
-  df->timing.frame_drops = info->frame_drops;
+  df->timing.frame_drop_count = info->frame_drops;
 
   df->has_cpu = true;
   df->cpu.usage_percent = CPU_LoadGetUsageRatio() * 100.0f;
@@ -71,11 +71,11 @@ static void comm_send_detection_result(const detection_info_t *info) {
   df->detections_count = (pb_size_t)n;
   for (int i = 0; i < n; i++) {
     const od_pp_outBuffer_t *d = &info->detects[i];
-    df->detections[i].x_center = d->x_center;
-    df->detections[i].y_center = d->y_center;
-    df->detections[i].width = d->width;
-    df->detections[i].height = d->height;
-    df->detections[i].conf = d->conf;
+    df->detections[i].x_center_norm = d->x_center;
+    df->detections[i].y_center_norm = d->y_center;
+    df->detections[i].width_norm = d->width;
+    df->detections[i].height_norm = d->height;
+    df->detections[i].confidence_ratio = d->conf;
     df->detections[i].class_index = d->class_index;
   }
 
@@ -90,10 +90,10 @@ static void comm_send_detection_result(const detection_info_t *info) {
     df->tof.stale = alert->stale;
   }
   if (grid != NULL && grid->valid) {
-    df->tof.depth_grid_count = TOF_GRID_SIZE * TOF_GRID_SIZE;
+    df->tof.depth_grid_mm_count = TOF_GRID_SIZE * TOF_GRID_SIZE;
     for (int r = 0; r < TOF_GRID_SIZE; r++) {
       for (int c = 0; c < TOF_GRID_SIZE; c++) {
-        df->tof.depth_grid[r * TOF_GRID_SIZE + c] = grid->distance_mm[r][c];
+        df->tof.depth_grid_mm[r * TOF_GRID_SIZE + c] = grid->distance_mm[r][c];
       }
     }
   }

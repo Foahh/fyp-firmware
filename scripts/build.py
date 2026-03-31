@@ -106,9 +106,7 @@ def cmd_build(
         f"-DNETWORK_NAME={model['network_name']}",
     ]
 
-    appli_cmake_args.append(
-        "-DSNAPSHOT_MODE=ON" if snapshot else "-DSNAPSHOT_MODE=OFF"
-    )
+    appli_cmake_args.append("-DSNAPSHOT_MODE=ON" if snapshot else "-DSNAPSHOT_MODE=OFF")
 
     appli_cmake_args.append(f"-DPOWER_MODE={power_mode}")
 

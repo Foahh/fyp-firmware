@@ -120,9 +120,13 @@ class VisualizerState:
     power_infer_energy_uj: float = 0.0
     power_infer_duration_ms: float = 0.0
     power_infer_hist_mw: deque[float] = field(default_factory=lambda: deque(maxlen=240))
-    power_infer_time_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
+    power_infer_time_hist: deque[float] = field(
+        default_factory=lambda: deque(maxlen=240)
+    )
     power_idle_hist_mw: deque[float] = field(default_factory=lambda: deque(maxlen=240))
-    power_idle_time_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
+    power_idle_time_hist: deque[float] = field(
+        default_factory=lambda: deque(maxlen=240)
+    )
 
 
 class SerialLink:
@@ -247,7 +251,9 @@ class PowerLink:
             return sample
 
 
-def probe_power_monitor_pm_ping(port: str, baud: int, handshake_timeout_s: float) -> bool:
+def probe_power_monitor_pm_ping(
+    port: str, baud: int, handshake_timeout_s: float
+) -> bool:
     """Return True if the port responds to PM_PING with a PM_ACK line (ESP32 monitor)."""
     ser = open_serial_binary(port, baud, 0.1)
     try:
@@ -280,8 +286,9 @@ def build_detection_text(
         if 0 <= det.class_index < len(class_labels):
             class_name = class_labels[det.class_index]
         lines.append(
-            f"#{idx} {class_name:>10}  conf={det.conf:0.2f}  "
-            f"xywh=({det.x_center:0.2f}, {det.y_center:0.2f}, {det.width:0.2f}, {det.height:0.2f})"
+            f"#{idx} {class_name:>10}  conf={det.confidence_ratio:0.2f}  "
+            f"xywh=({det.x_center_norm:0.2f}, {det.y_center_norm:0.2f}, "
+            f"{det.width_norm:0.2f}, {det.height_norm:0.2f})"
         )
     return "\n".join(lines)
 
@@ -362,7 +369,7 @@ def receiver_loop(
             if which == "detection_result":
                 result = dev_msg.detection_result
                 state.frame_count += 1
-                state.last_timestamp = result.timestamp
+                state.last_timestamp = result.timestamp_ms
                 state.detection_count = len(result.detections)
                 state.detections_text = build_detection_text(result, state.class_labels)
 
@@ -375,7 +382,7 @@ def receiver_loop(
                     state.period_hist.append(period_us)
                     state.fps_hist.append(fps)
                     state.timing_time_hist.append(now)
-                    state.frame_drops = int(result.timing.frame_drops)
+                    state.frame_drops = int(result.timing.frame_drop_count)
 
                 if result.HasField("cpu"):
                     state.cpu_usage_percent = float(result.cpu.usage_percent)
@@ -389,9 +396,9 @@ def receiver_loop(
                     state.distance_3d_mm = float(tof.distance_3d_mm)
                     state.tof_alert = bool(tof.alert)
                     state.tof_stale = bool(tof.stale)
-                    if len(tof.depth_grid) == 64:
+                    if len(tof.depth_grid_mm) == 64:
                         state.tof_grid = np.array(
-                            tof.depth_grid, dtype=np.float32
+                            tof.depth_grid_mm, dtype=np.float32
                         ).reshape(8, 8)
                     else:
                         state.tof_grid = np.full((8, 8), np.nan, dtype=np.float32)
@@ -401,18 +408,21 @@ def receiver_loop(
                 state.model_name = info.model_name or "unknown"
                 state.class_labels = list(info.class_labels)
                 state.device_info_command_id = int(info.command_id)
-                state.display_width = int(info.display_width)
-                state.display_height = int(info.display_height)
-                state.letterbox_width = int(info.letterbox_width)
-                state.letterbox_height = int(info.letterbox_height)
-                state.nn_width = int(info.nn_width)
-                state.nn_height = int(info.nn_height)
+                state.display_width = int(info.display_width_px)
+                state.display_height = int(info.display_height_px)
+                state.letterbox_width = int(info.letterbox_width_px)
+                state.letterbox_height = int(info.letterbox_height_px)
+                state.nn_width = int(info.nn_width_px)
+                state.nn_height = int(info.nn_height_px)
                 state.nn_input_size_bytes = int(info.nn_input_size_bytes)
                 state.camera_fps = int(info.camera_fps)
                 state.mcu_freq_mhz = int(info.mcu_freq_mhz)
                 state.npu_freq_mhz = int(info.npu_freq_mhz)
-                if info.nn_width and info.nn_height:
-                    state.nn_size_text = f"{info.nn_width}x{info.nn_height} ({info.nn_input_size_bytes} B)"
+                if info.nn_width_px and info.nn_height_px:
+                    state.nn_size_text = (
+                        f"{info.nn_width_px}x{info.nn_height_px} "
+                        f"({info.nn_input_size_bytes} B)"
+                    )
                 else:
                     state.nn_size_text = "unknown"
                 if info.mcu_freq_mhz >= 800:
@@ -521,7 +531,9 @@ def _style_axis(ax, bg: str) -> None:
 
 def _legend(ax, bg: str) -> None:
     """Add a clean legend to an axes."""
-    leg = ax.legend(loc="upper left", fontsize=9, framealpha=0.85, edgecolor="none", facecolor=bg)
+    leg = ax.legend(
+        loc="upper left", fontsize=9, framealpha=0.85, edgecolor="none", facecolor=bg
+    )
     for text in leg.get_texts():
         text.set_color("#d0d0e0")
 
@@ -544,18 +556,20 @@ def create_gui(
     LW = 2.2
 
     plt.style.use("dark_background")
-    plt.rcParams.update({
-        "font.size": 10,
-        "axes.titlesize": 13,
-        "axes.titleweight": "semibold",
-        "axes.labelsize": 10,
-        "figure.facecolor": C_FIG_BG,
-        "axes.facecolor": C_AX_BG,
-        "text.color": C_TEXT,
-        "axes.labelcolor": C_TEXT,
-        "xtick.color": "#b0b0c8",
-        "ytick.color": "#b0b0c8",
-    })
+    plt.rcParams.update(
+        {
+            "font.size": 10,
+            "axes.titlesize": 13,
+            "axes.titleweight": "semibold",
+            "axes.labelsize": 10,
+            "figure.facecolor": C_FIG_BG,
+            "axes.facecolor": C_AX_BG,
+            "text.color": C_TEXT,
+            "axes.labelcolor": C_TEXT,
+            "xtick.color": "#b0b0c8",
+            "ytick.color": "#b0b0c8",
+        }
+    )
 
     # --- Timing figure ---
     fig_timing = plt.figure("Performance Timing", figsize=(8, 5))
@@ -591,16 +605,16 @@ def create_gui(
     btn_ax1 = plt.axes([0.25, 0.02, 0.2, 0.04])
     btn_ax2 = plt.axes([0.55, 0.02, 0.2, 0.04])
     btn_info = Button(btn_ax1, "Get Device Info", color="#252545", hovercolor="#35355a")
-    btn_toggle = Button(btn_ax2, "Toggle Display", color="#252545", hovercolor="#35355a")
+    btn_toggle = Button(
+        btn_ax2, "Toggle Display", color="#252545", hovercolor="#35355a"
+    )
     for btn in (btn_info, btn_toggle):
         btn.label.set_color(C_TEXT)
         btn.label.set_fontsize(10)
 
     # --- Timing plot ---
     _style_axis(ax_timing, C_AX_BG)
-    (line_inf,) = ax_timing.plot(
-        [], [], label="Inference", color=C_INFER, linewidth=LW
-    )
+    (line_inf,) = ax_timing.plot([], [], label="Inference", color=C_INFER, linewidth=LW)
     (line_period,) = ax_timing.plot(
         [], [], label="NN Period", color=C_PERIOD, linewidth=LW
     )
@@ -656,9 +670,7 @@ def create_gui(
 
     # --- CPU line chart ---
     _style_axis(ax_cpu, C_AX_BG)
-    (line_cpu,) = ax_cpu.plot(
-        [], [], label="CPU %", color=C_CPU, linewidth=LW
-    )
+    (line_cpu,) = ax_cpu.plot([], [], label="CPU %", color=C_CPU, linewidth=LW)
     ax_cpu.set_ylim(auto=True)
     ax_cpu.set_title("CPU Utilisation", color=C_TITLE, pad=10)
     ax_cpu.set_xlabel("Time (s)")
@@ -743,7 +755,9 @@ def create_gui(
         cpu_percent_text.set_text(f"{pct:.1f}%")
         npu = int(state.npu_freq_mhz)
         if mcu_mhz > 0:
-            cpu_freq_text.set_text(f"{cpu_usage_mhz:.0f} MHz  |  CPU {mcu_mhz} MHz / NPU {npu} MHz")
+            cpu_freq_text.set_text(
+                f"{cpu_usage_mhz:.0f} MHz  |  CPU {mcu_mhz} MHz / NPU {npu} MHz"
+            )
         else:
             cpu_freq_text.set_text(f"CPU {mcu_mhz} MHz / NPU {npu} MHz")
         return (line_cpu, cpu_percent_text, cpu_freq_text)
@@ -754,8 +768,12 @@ def create_gui(
 
     def update_power(_frame_idx):
         t0_power = min(
-            state.power_infer_time_hist[0] if state.power_infer_time_hist else float("inf"),
-            state.power_idle_time_hist[0] if state.power_idle_time_hist else float("inf"),
+            state.power_infer_time_hist[0]
+            if state.power_infer_time_hist
+            else float("inf"),
+            state.power_idle_time_hist[0]
+            if state.power_idle_time_hist
+            else float("inf"),
         )
         if state.power_infer_time_hist:
             x_inf = np.array([t - t0_power for t in state.power_infer_time_hist])
@@ -767,7 +785,9 @@ def create_gui(
             x_idle = np.array([])
         line_power_inf.set_data(x_inf, np.array(state.power_infer_hist_mw))
         line_power_idle.set_data(x_idle, np.array(state.power_idle_hist_mw))
-        power_peak_text.set_text(f"infer: {state.power_infer_avg_mw:.0f} mW   idle: {state.power_idle_avg_mw:.0f} mW")
+        power_peak_text.set_text(
+            f"infer: {state.power_infer_avg_mw:.0f} mW   idle: {state.power_idle_avg_mw:.0f} mW"
+        )
         ax_power.relim()
         ax_power.autoscale_view()
         return (line_power_inf, line_power_idle, power_peak_text)
@@ -825,11 +845,21 @@ def create_gui(
         text_box.set_text("\n".join(lines))
         return (text_box,)
 
-    anim_timing = FuncAnimation(fig_timing, update_timing, interval=120, blit=False, cache_frame_data=False)
-    anim_cpu = FuncAnimation(fig_cpu, update_cpu, interval=120, blit=False, cache_frame_data=False)
-    anim_tof = FuncAnimation(fig_tof, update_tof, interval=120, blit=False, cache_frame_data=False)
-    anim_power = FuncAnimation(fig_power, update_power, interval=120, blit=False, cache_frame_data=False)
-    anim_info = FuncAnimation(fig_info, update_info, interval=120, blit=False, cache_frame_data=False)
+    anim_timing = FuncAnimation(
+        fig_timing, update_timing, interval=120, blit=False, cache_frame_data=False
+    )
+    anim_cpu = FuncAnimation(
+        fig_cpu, update_cpu, interval=120, blit=False, cache_frame_data=False
+    )
+    anim_tof = FuncAnimation(
+        fig_tof, update_tof, interval=120, blit=False, cache_frame_data=False
+    )
+    anim_power = FuncAnimation(
+        fig_power, update_power, interval=120, blit=False, cache_frame_data=False
+    )
+    anim_info = FuncAnimation(
+        fig_info, update_info, interval=120, blit=False, cache_frame_data=False
+    )
 
     figures = [fig_timing, fig_cpu, fig_tof, fig_power, fig_info]
     animations = [anim_timing, anim_cpu, anim_tof, anim_power, anim_info]
@@ -919,10 +949,18 @@ def resolve_port(port: Optional[str]) -> str:
     _ESPRESSIF_VIDS = {0x303A}
     _ST_VIDS = {0x0483}
     _FW_KEYWORDS = {
-        "stm32": 6, "stmicro": 6, "stlink": 5,
-        "nucleo": 4, "discovery": 4, "virtual com": 3, "vcp": 3, "usb serial": 1,
+        "stm32": 6,
+        "stmicro": 6,
+        "stlink": 5,
+        "nucleo": 4,
+        "discovery": 4,
+        "virtual com": 3,
+        "vcp": 3,
+        "usb serial": 1,
     }
-    scorer = lambda info: _score_port(info, _FW_KEYWORDS, preferred_vids=_ST_VIDS, rejected_vids=_ESPRESSIF_VIDS)
+    scorer = lambda info: _score_port(
+        info, _FW_KEYWORDS, preferred_vids=_ST_VIDS, rejected_vids=_ESPRESSIF_VIDS
+    )
     ranked = _rank_ports(ports, scorer)
 
     selected, selected_score = ranked[0]
@@ -957,7 +995,9 @@ def resolve_power_port(
             continue
         try:
             if probe_power_monitor_pm_ping(info.device, baud, handshake_timeout_s):
-                print(f"[visualizer] Auto-selected power monitor port: {info.device} (PM_PING)")
+                print(
+                    f"[visualizer] Auto-selected power monitor port: {info.device} (PM_PING)"
+                )
                 return info.device
         except Exception as exc:
             print(

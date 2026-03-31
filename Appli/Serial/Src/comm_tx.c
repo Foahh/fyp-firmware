@@ -90,12 +90,12 @@ void COM_Send_DeviceInfo(uint32_t command_id) {
   msg.which_payload = DeviceMessage_device_info_tag;
 
   DeviceInfo *di = &msg.payload.device_info;
-  di->display_width = LCD_WIDTH;
-  di->display_height = LCD_HEIGHT;
-  di->letterbox_width = DISPLAY_LETTERBOX_WIDTH;
-  di->letterbox_height = DISPLAY_LETTERBOX_HEIGHT;
-  di->nn_width = NN_WIDTH;
-  di->nn_height = NN_HEIGHT;
+  di->display_width_px = LCD_WIDTH;
+  di->display_height_px = LCD_HEIGHT;
+  di->letterbox_width_px = DISPLAY_LETTERBOX_WIDTH;
+  di->letterbox_height_px = DISPLAY_LETTERBOX_HEIGHT;
+  di->nn_width_px = NN_WIDTH;
+  di->nn_height_px = NN_HEIGHT;
   di->nn_input_size_bytes = (uint32_t)(NN_WIDTH * NN_HEIGHT * NN_BPP);
   di->command_id = command_id;
 
@@ -150,8 +150,8 @@ void COM_Send_TraceXChunk(uint32_t offset, uint32_t total_size, const uint8_t *d
 
   msg.which_payload = DeviceMessage_tracex_chunk_tag;
   chunk = &msg.payload.tracex_chunk;
-  chunk->offset = offset;
-  chunk->total_size = total_size;
+  chunk->offset_bytes = offset;
+  chunk->total_size_bytes = total_size;
   chunk->data.size = (pb_size_t)data_len;
   memcpy(chunk->data.bytes, data, data_len);
   chunk->done = done;

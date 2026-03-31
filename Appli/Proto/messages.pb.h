@@ -14,15 +14,15 @@ typedef struct _Timing {
     uint32_t inference_us;
     uint32_t postprocess_us;
     uint32_t nn_period_us;
-    uint32_t frame_drops;
+    uint32_t frame_drop_count;
 } Timing;
 
 typedef struct _Detection {
-    float x_center;
-    float y_center;
-    float width;
-    float height;
-    float conf;
+    float x_center_norm;
+    float y_center_norm;
+    float width_norm;
+    float height_norm;
+    float confidence_ratio;
     int32_t class_index;
 } Detection;
 
@@ -32,8 +32,8 @@ typedef struct _TofAlert {
     bool alert;
     float distance_3d_mm;
     bool stale;
-    pb_size_t depth_grid_count;
-    int32_t depth_grid[64];
+    pb_size_t depth_grid_mm_count;
+    int32_t depth_grid_mm[64];
 } TofAlert;
 
 typedef struct _CpuLoad {
@@ -41,7 +41,7 @@ typedef struct _CpuLoad {
 } CpuLoad;
 
 typedef struct _DetectionResult {
-    uint32_t timestamp;
+    uint32_t timestamp_ms;
     bool has_timing;
     Timing timing;
     pb_size_t detections_count;
@@ -53,12 +53,12 @@ typedef struct _DetectionResult {
 } DetectionResult;
 
 typedef struct _DeviceInfo {
-    uint32_t display_width;
-    uint32_t display_height;
-    uint32_t letterbox_width;
-    uint32_t letterbox_height;
-    uint32_t nn_width;
-    uint32_t nn_height;
+    uint32_t display_width_px;
+    uint32_t display_height_px;
+    uint32_t letterbox_width_px;
+    uint32_t letterbox_height_px;
+    uint32_t nn_width_px;
+    uint32_t nn_height_px;
     char model_name[64];
     pb_size_t class_labels_count;
     char class_labels[10][32];
@@ -78,8 +78,8 @@ typedef struct _Ack {
 
 typedef PB_BYTES_ARRAY_T(256) TraceXChunk_data_t;
 typedef struct _TraceXChunk {
-    uint32_t offset;
-    uint32_t total_size;
+    uint32_t offset_bytes;
+    uint32_t total_size_bytes;
     TraceXChunk_data_t data;
     bool done;
 } TraceXChunk;
@@ -93,7 +93,7 @@ typedef struct _GetDeviceInfo {
 } GetDeviceInfo;
 
 typedef struct _GetTraceXDump {
-    uint32_t chunk_size;
+    uint32_t chunk_size_bytes;
 } GetTraceXDump;
 
 typedef struct _DeviceMessage {
@@ -153,31 +153,31 @@ extern "C" {
 #define Timing_inference_us_tag                  1
 #define Timing_postprocess_us_tag                2
 #define Timing_nn_period_us_tag                  3
-#define Timing_frame_drops_tag                   4
-#define Detection_x_center_tag                   1
-#define Detection_y_center_tag                   2
-#define Detection_width_tag                      3
-#define Detection_height_tag                     4
-#define Detection_conf_tag                       5
+#define Timing_frame_drop_count_tag              4
+#define Detection_x_center_norm_tag              1
+#define Detection_y_center_norm_tag              2
+#define Detection_width_norm_tag                 3
+#define Detection_height_norm_tag                4
+#define Detection_confidence_ratio_tag           5
 #define Detection_class_index_tag                6
 #define TofAlert_hand_distance_mm_tag            1
 #define TofAlert_hazard_distance_mm_tag          2
 #define TofAlert_alert_tag                       3
 #define TofAlert_distance_3d_mm_tag              4
 #define TofAlert_stale_tag                       5
-#define TofAlert_depth_grid_tag                  6
+#define TofAlert_depth_grid_mm_tag               6
 #define CpuLoad_usage_percent_tag                1
-#define DetectionResult_timestamp_tag            1
+#define DetectionResult_timestamp_ms_tag         1
 #define DetectionResult_timing_tag               2
 #define DetectionResult_detections_tag           3
 #define DetectionResult_tof_tag                  5
 #define DetectionResult_cpu_tag                  6
-#define DeviceInfo_display_width_tag             1
-#define DeviceInfo_display_height_tag            2
-#define DeviceInfo_letterbox_width_tag           3
-#define DeviceInfo_letterbox_height_tag          4
-#define DeviceInfo_nn_width_tag                  5
-#define DeviceInfo_nn_height_tag                 6
+#define DeviceInfo_display_width_px_tag          1
+#define DeviceInfo_display_height_px_tag         2
+#define DeviceInfo_letterbox_width_px_tag        3
+#define DeviceInfo_letterbox_height_px_tag       4
+#define DeviceInfo_nn_width_px_tag               5
+#define DeviceInfo_nn_height_px_tag              6
 #define DeviceInfo_model_name_tag                7
 #define DeviceInfo_class_labels_tag              8
 #define DeviceInfo_command_id_tag                9
@@ -189,12 +189,12 @@ extern "C" {
 #define DeviceInfo_build_timestamp_tag           15
 #define Ack_command_id_tag                       1
 #define Ack_success_tag                          2
-#define TraceXChunk_offset_tag                   1
-#define TraceXChunk_total_size_tag               2
+#define TraceXChunk_offset_bytes_tag             1
+#define TraceXChunk_total_size_bytes_tag         2
 #define TraceXChunk_data_tag                     3
 #define TraceXChunk_done_tag                     4
 #define SetDisplayEnabled_enabled_tag            1
-#define GetTraceXDump_chunk_size_tag             1
+#define GetTraceXDump_chunk_size_bytes_tag       1
 #define DeviceMessage_detection_result_tag       1
 #define DeviceMessage_device_info_tag            2
 #define DeviceMessage_ack_tag                    3
@@ -209,16 +209,16 @@ extern "C" {
 X(a, STATIC,   SINGULAR, UINT32,   inference_us,      1) \
 X(a, STATIC,   SINGULAR, UINT32,   postprocess_us,    2) \
 X(a, STATIC,   SINGULAR, UINT32,   nn_period_us,      3) \
-X(a, STATIC,   SINGULAR, UINT32,   frame_drops,       4)
+X(a, STATIC,   SINGULAR, UINT32,   frame_drop_count,   4)
 #define Timing_CALLBACK NULL
 #define Timing_DEFAULT NULL
 
 #define Detection_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, FLOAT,    x_center,          1) \
-X(a, STATIC,   SINGULAR, FLOAT,    y_center,          2) \
-X(a, STATIC,   SINGULAR, FLOAT,    width,             3) \
-X(a, STATIC,   SINGULAR, FLOAT,    height,            4) \
-X(a, STATIC,   SINGULAR, FLOAT,    conf,              5) \
+X(a, STATIC,   SINGULAR, FLOAT,    x_center_norm,     1) \
+X(a, STATIC,   SINGULAR, FLOAT,    y_center_norm,     2) \
+X(a, STATIC,   SINGULAR, FLOAT,    width_norm,        3) \
+X(a, STATIC,   SINGULAR, FLOAT,    height_norm,       4) \
+X(a, STATIC,   SINGULAR, FLOAT,    confidence_ratio,   5) \
 X(a, STATIC,   SINGULAR, INT32,    class_index,       6)
 #define Detection_CALLBACK NULL
 #define Detection_DEFAULT NULL
@@ -229,7 +229,7 @@ X(a, STATIC,   SINGULAR, UINT32,   hazard_distance_mm,   2) \
 X(a, STATIC,   SINGULAR, BOOL,     alert,             3) \
 X(a, STATIC,   SINGULAR, FLOAT,    distance_3d_mm,    4) \
 X(a, STATIC,   SINGULAR, BOOL,     stale,             5) \
-X(a, STATIC,   REPEATED, INT32,    depth_grid,        6)
+X(a, STATIC,   REPEATED, INT32,    depth_grid_mm,     6)
 #define TofAlert_CALLBACK NULL
 #define TofAlert_DEFAULT NULL
 
@@ -239,7 +239,7 @@ X(a, STATIC,   SINGULAR, FLOAT,    usage_percent,     1)
 #define CpuLoad_DEFAULT NULL
 
 #define DetectionResult_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   timestamp,         1) \
+X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      1) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  timing,            2) \
 X(a, STATIC,   REPEATED, MESSAGE,  detections,        3) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  tof,               5) \
@@ -252,12 +252,12 @@ X(a, STATIC,   OPTIONAL, MESSAGE,  cpu,               6)
 #define DetectionResult_cpu_MSGTYPE CpuLoad
 
 #define DeviceInfo_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   display_width,     1) \
-X(a, STATIC,   SINGULAR, UINT32,   display_height,    2) \
-X(a, STATIC,   SINGULAR, UINT32,   letterbox_width,   3) \
-X(a, STATIC,   SINGULAR, UINT32,   letterbox_height,   4) \
-X(a, STATIC,   SINGULAR, UINT32,   nn_width,          5) \
-X(a, STATIC,   SINGULAR, UINT32,   nn_height,         6) \
+X(a, STATIC,   SINGULAR, UINT32,   display_width_px,   1) \
+X(a, STATIC,   SINGULAR, UINT32,   display_height_px,   2) \
+X(a, STATIC,   SINGULAR, UINT32,   letterbox_width_px,   3) \
+X(a, STATIC,   SINGULAR, UINT32,   letterbox_height_px,   4) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_width_px,       5) \
+X(a, STATIC,   SINGULAR, UINT32,   nn_height_px,      6) \
 X(a, STATIC,   SINGULAR, STRING,   model_name,        7) \
 X(a, STATIC,   REPEATED, STRING,   class_labels,      8) \
 X(a, STATIC,   SINGULAR, UINT32,   command_id,        9) \
@@ -277,8 +277,8 @@ X(a, STATIC,   SINGULAR, BOOL,     success,           2)
 #define Ack_DEFAULT NULL
 
 #define TraceXChunk_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   offset,            1) \
-X(a, STATIC,   SINGULAR, UINT32,   total_size,        2) \
+X(a, STATIC,   SINGULAR, UINT32,   offset_bytes,      1) \
+X(a, STATIC,   SINGULAR, UINT32,   total_size_bytes,   2) \
 X(a, STATIC,   SINGULAR, BYTES,    data,              3) \
 X(a, STATIC,   SINGULAR, BOOL,     done,              4)
 #define TraceXChunk_CALLBACK NULL
@@ -295,7 +295,7 @@ X(a, STATIC,   SINGULAR, BOOL,     enabled,           1)
 #define GetDeviceInfo_DEFAULT NULL
 
 #define GetTraceXDump_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   chunk_size,        1)
+X(a, STATIC,   SINGULAR, UINT32,   chunk_size_bytes,   1)
 #define GetTraceXDump_CALLBACK NULL
 #define GetTraceXDump_DEFAULT NULL
 
