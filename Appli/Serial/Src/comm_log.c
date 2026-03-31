@@ -80,6 +80,20 @@ static void comm_send_detection_result(const detection_info_t *info) {
     df->detections[i].class_index = d->class_index;
   }
 
+  int nt = info->nb_tracked;
+  if (nt > DETECTION_MAX_BOXES) {
+    nt = DETECTION_MAX_BOXES;
+  }
+  df->tracked_boxes_count = (pb_size_t)nt;
+  for (int i = 0; i < nt; i++) {
+    const tracked_box_t *tb = &info->tracked[i];
+    df->tracked_boxes[i].x_center_norm = tb->x_center;
+    df->tracked_boxes[i].y_center_norm = tb->y_center;
+    df->tracked_boxes[i].width_norm = tb->width;
+    df->tracked_boxes[i].height_norm = tb->height;
+    df->tracked_boxes[i].track_id = tb->id;
+  }
+
   const tof_alert_t *alert = TOF_GetAlert();
   const tof_depth_grid_t *grid = TOF_GetDepthGrid();
   df->has_tof = true;

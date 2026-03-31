@@ -12,6 +12,9 @@ PB_BIND(Timing, Timing, AUTO)
 PB_BIND(Detection, Detection, AUTO)
 
 
+PB_BIND(TrackedBox, TrackedBox, AUTO)
+
+
 PB_BIND(TofAlert, TofAlert, 2)
 
 

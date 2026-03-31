@@ -22,6 +22,14 @@ message Detection {
   int32 class_index = 6;
 }
 
+message TrackedBox {
+  float x_center_norm = 1;
+  float y_center_norm = 2;
+  float width_norm = 3;
+  float height_norm = 4;
+  uint32 track_id = 5;
+}
+
 message TofAlert {
   uint32 hand_distance_mm = 1;
   uint32 hazard_distance_mm = 2;
@@ -46,6 +54,7 @@ message DetectionResult {
   uint32 detection_timestamp_ms = 4;
   TofAlert tof = 5;
   CpuLoad cpu = 6;
+  repeated TrackedBox tracked_boxes = 7 [(nanopb).max_count = 10];
 }
 
 message DeviceInfo {
