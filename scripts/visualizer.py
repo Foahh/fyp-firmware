@@ -870,6 +870,18 @@ def create_gui(
 
     figures = [fig_timing, fig_cpu, fig_tof, fig_power, fig_info]
     animations = [anim_timing, anim_cpu, anim_tof, anim_power, anim_info]
+
+    _closing_all = [False]
+
+    def on_any_figure_close(_event) -> None:
+        if _closing_all[0]:
+            return
+        _closing_all[0] = True
+        plt.close("all")
+
+    for fig in figures:
+        fig.canvas.mpl_connect("close_event", on_any_figure_close)
+
     return figures, animations
 
 
