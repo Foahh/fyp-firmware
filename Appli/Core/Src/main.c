@@ -24,10 +24,10 @@
 #include "init_mpu.h"
 #include "init_peripherals.h"
 #include "npu_cache.h"
+#include "power_measurement_sync.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6570_discovery_bus.h"
 #include "tof.h"
-#include "power_measurement_sync.h"
 #include "ui.h"
 
 /* Private variables ---------------------------------------------------------*/

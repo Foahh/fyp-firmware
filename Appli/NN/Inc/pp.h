@@ -33,6 +33,14 @@ extern "C" {
 /* Maximum detections to display */
 #define DETECTION_MAX_BOXES MDL_PP_MAX_BOXES
 
+typedef struct {
+  float x_center;
+  float y_center;
+  float width;
+  float height;
+  uint32_t id;
+} tracked_box_t;
+
 /**
  * @brief  Detection info shared between postprocess and display threads
  */
@@ -44,6 +52,8 @@ typedef struct {
   uint32_t postprocess_us;                        /**< Postprocess time */
   uint32_t frame_drops;                           /**< Cumulative frame drop count */
   uint32_t timestamp_ms;                          /**< HAL_GetTick() at postprocess completion */
+  int32_t nb_tracked;                             /**< Number of active tracked boxes */
+  tracked_box_t tracked[DETECTION_MAX_BOXES];     /**< Kalman-smoothed tracked detections */
 } detection_info_t;
 
 /**

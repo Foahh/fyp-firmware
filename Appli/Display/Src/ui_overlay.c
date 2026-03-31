@@ -122,6 +122,48 @@ static void draw_detection(const od_pp_outBuffer_t *det,
   UTIL_LCD_DisplayStringAt(x1 - 40, y0 + 2, (uint8_t *)conf_str, LEFT_MODE);
 }
 
+/**
+ * @brief  Draw a single tracked bounding box (Kalman-smoothed, normalized coords)
+ * @param  tb: Tracked box (normalized center/size, track id)
+ * @param  roi_x0: ROI top-left X
+ * @param  roi_y0: ROI top-left Y
+ * @param  roi_w: ROI width
+ * @param  roi_h: ROI height
+ */
+static void draw_tracked(const tracked_box_t *tb, int roi_x0, int roi_y0,
+                         int roi_w, int roi_h) {
+  int xc, yc, x0, y0, x1, y1, w, h;
+  uint32_t color;
+  char id_str[16];
+
+  xc = (int)(tb->x_center * roi_w) + roi_x0 + DISPLAY_LETTERBOX_X0;
+  yc = (int)(tb->y_center * roi_h) + roi_y0;
+  w = (int)(tb->width * roi_w);
+  h = (int)(tb->height * roi_h);
+
+  x0 = xc - (w + 1) / 2;
+  y0 = yc - (h + 1) / 2;
+  x1 = xc + (w + 1) / 2;
+  y1 = yc + (h + 1) / 2;
+
+  x0 -= DISPLAY_LETTERBOX_X0;
+  x1 -= DISPLAY_LETTERBOX_X0;
+
+  clamp_point(&x0, &y0);
+  clamp_point(&x1, &y1);
+
+  x0 += DISPLAY_LETTERBOX_X0;
+  x1 += DISPLAY_LETTERBOX_X0;
+
+  color = detection_colors[tb->id % NUMBER_COLORS];
+
+  UTIL_LCD_DrawRect(x0, y0, x1 - x0, y1 - y0, color);
+
+  UTIL_LCD_SetTextColor(color);
+  snprintf(id_str, sizeof(id_str), "%u", (unsigned)tb->id);
+  UTIL_LCD_DisplayStringAt(x0 + 2, y0 + 2, (uint8_t *)id_str, LEFT_MODE);
+}
+
 /* ============================================================================
  * Public Functions
  * ============================================================================ */
@@ -131,11 +173,25 @@ static void draw_detection(const od_pp_outBuffer_t *det,
  */
 void UI_DrawDetectionOverlays(const detection_info_t *info,
                               const nn_crop_info_display_t *roi_info) {
-  /* Draw bounding boxes */
-  UTIL_LCD_SetTextColor(0xFF00FF00); /* Green for boxes */
-  for (int i = 0; i < info->nb_detect; i++) {
-    draw_detection(&info->detects[i], roi_info->roi_x0, roi_info->roi_y0,
+  int32_t n_tracked = info->nb_tracked;
+  if (n_tracked < 0) {
+    n_tracked = 0;
+  }
+  if (n_tracked > (int32_t)DETECTION_MAX_BOXES) {
+    n_tracked = (int32_t)DETECTION_MAX_BOXES;
+  }
+
+  if (n_tracked > 0) {
+    for (int32_t i = 0; i < n_tracked; i++) {
+      draw_tracked(&info->tracked[i], roi_info->roi_x0, roi_info->roi_y0,
                    roi_info->roi_w, roi_info->roi_h);
+    }
+  } else {
+    UTIL_LCD_SetTextColor(0xFF00FF00); /* Green for boxes */
+    for (int i = 0; i < info->nb_detect; i++) {
+      draw_detection(&info->detects[i], roi_info->roi_x0, roi_info->roi_y0,
+                     roi_info->roi_w, roi_info->roi_h);
+    }
   }
 
   /* Draw NN crop ROI rectangle */

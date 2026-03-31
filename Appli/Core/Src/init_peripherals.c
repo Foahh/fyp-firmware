@@ -141,7 +141,7 @@ void COM_Config(void) {
 
   /* Configure DMA channel security attributes */
   APP_REQUIRE(HAL_DMA_ConfigChannelAttributes(&hdma_usart1_tx,
-    DMA_CHANNEL_SEC | DMA_CHANNEL_PRIV | DMA_CHANNEL_SRC_SEC | DMA_CHANNEL_DEST_SEC) == HAL_OK);
+                                              DMA_CHANNEL_SEC | DMA_CHANNEL_PRIV | DMA_CHANNEL_SRC_SEC | DMA_CHANNEL_DEST_SEC) == HAL_OK);
 
   __HAL_LINKDMA(&hcom_uart[COM1], hdmatx, hdma_usart1_tx);
 

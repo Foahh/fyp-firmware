@@ -196,6 +196,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/ai_postprocessing.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/ai_npu.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/vl53l5cx.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/network.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/tracker.cmake)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/nanopb.cmake)
 
@@ -236,6 +237,7 @@ target_link_libraries(
           AI_NPU
           VL53L5CX
           Network
+          Tracker
           Nanopb
           m
           ${TOOLCHAIN_LINK_LIBRARIES})

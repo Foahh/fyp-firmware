@@ -236,6 +236,27 @@ static void tof_run_fusion(const tof_depth_grid_t *grid, tof_alert_t *out) {
     }
   }
 
+  /* --- Extract depth for tracked objects (Kalman-smoothed) --- */
+  if (pp_info != NULL) {
+    for (int i = 0; i < pp_info->nb_tracked; i++) {
+      tof_bbox_t bbox = {
+          .x_center = pp_info->tracked[i].x_center,
+          .y_center = pp_info->tracked[i].y_center,
+          .width = pp_info->tracked[i].width,
+          .height = pp_info->tracked[i].height,
+      };
+      uint32_t d;
+      tof_point3d_t pt;
+      if (tof_extract_depth(grid, &bbox, &d, &pt)) {
+        if (!out->has_hazard_depth || d < out->hazard_distance_mm) {
+          out->has_hazard_depth = 1;
+          out->hazard_distance_mm = d;
+          out->hazard_xyz_mm = pt;
+        }
+      }
+    }
+  }
+
   /* --- Extract closest hand depth + 3D point --- */
   uint32_t hand_min = UINT32_MAX;
   tof_point3d_t hand_pt = {0};
@@ -256,8 +277,10 @@ static void tof_run_fusion(const tof_depth_grid_t *grid, tof_alert_t *out) {
   }
 
   /* --- Extract closest hazard depth + 3D point --- */
-  uint32_t hazard_min = UINT32_MAX;
-  tof_point3d_t hazard_pt = {0};
+  uint32_t hazard_min =
+      out->has_hazard_depth ? out->hazard_distance_mm : UINT32_MAX;
+  tof_point3d_t hazard_pt =
+      out->has_hazard_depth ? out->hazard_xyz_mm : (tof_point3d_t){0};
   for (int i = 0; i < det->nb_hazards; i++) {
     uint32_t d;
     tof_point3d_t pt;

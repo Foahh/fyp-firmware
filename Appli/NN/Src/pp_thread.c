@@ -25,6 +25,7 @@
 #include "pp.h"
 #include "stm32n6xx_hal.h"
 #include "timebase.h"
+#include "tracker.h"
 #include "utils.h"
 #include <stdbool.h>
 #include <string.h>
@@ -81,6 +82,10 @@ static od_st_yolox_pp_static_param_t pp_params;
 static od_yolov8_pp_static_param_t pp_params;
 #endif
 
+static trk_ctx_t trk_ctx;
+static trk_tbox_t trk_tboxes[2 * DETECTION_MAX_BOXES];
+static trk_dbox_t trk_dboxes[DETECTION_MAX_BOXES];
+
 /* ============================================================================
  * Thread Entry Points
  * ============================================================================ */
@@ -109,6 +114,16 @@ static void pp_thread_entry(ULONG arg) {
   ret = app_postprocess_init(&pp_params, nn_info);
   APP_REQUIRE(ret == 0);
 
+  const trk_conf_t trk_cfg = {
+      .track_thresh = 0.25,
+      .det_thresh = 0.8,
+      .sim1_thresh = 0.8,
+      .sim2_thresh = 0.5,
+      .tlost_cnt = 30,
+  };
+  trk_init(&trk_ctx, (trk_conf_t *)&trk_cfg,
+           2 * DETECTION_MAX_BOXES, trk_tboxes);
+
   while (1) {
     uint8_t *output_buffer;
 
@@ -130,6 +145,15 @@ static void pp_thread_entry(ULONG arg) {
     APP_REQUIRE(ret == 0);
     pp_end_cycles = DWT->CYCCNT;
 
+    for (int i = 0; i < pp_output.nb_detect; i++) {
+      trk_dboxes[i].cx = pp_output.pOutBuff[i].x_center;
+      trk_dboxes[i].cy = pp_output.pOutBuff[i].y_center;
+      trk_dboxes[i].w = pp_output.pOutBuff[i].width;
+      trk_dboxes[i].h = pp_output.pOutBuff[i].height;
+      trk_dboxes[i].conf = pp_output.pOutBuff[i].conf;
+    }
+    trk_update(&trk_ctx, pp_output.nb_detect, trk_dboxes);
+
     /* Get NN timing */
     NN_GetTiming(&nn_timing);
 
@@ -144,6 +168,23 @@ static void pp_thread_entry(ULONG arg) {
     write_buf->postprocess_us = CYCLES_TO_US(pp_end_cycles - pp_start_cycles);
     write_buf->frame_drops = nn_timing.frame_drops;
     write_buf->timestamp_ms = HAL_GetTick();
+
+    write_buf->nb_tracked = 0;
+    for (int i = 0; i < 2 * DETECTION_MAX_BOXES; i++) {
+      if (!trk_tboxes[i].is_tracking || trk_tboxes[i].tlost_cnt) {
+        continue;
+      }
+      tracked_box_t *tb = &write_buf->tracked[write_buf->nb_tracked];
+      tb->x_center = (float)trk_tboxes[i].cx;
+      tb->y_center = (float)trk_tboxes[i].cy;
+      tb->width = (float)trk_tboxes[i].w;
+      tb->height = (float)trk_tboxes[i].h;
+      tb->id = trk_tboxes[i].id;
+      write_buf->nb_tracked++;
+      if (write_buf->nb_tracked >= DETECTION_MAX_BOXES) {
+        break;
+      }
+    }
 
     /* Publish: ensure all writes to write_buf are visible before index swap. */
     __DMB();
