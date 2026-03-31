@@ -59,6 +59,7 @@ static void comm_send_detection_result(const detection_info_t *info) {
   df->has_timing = true;
   df->timing.inference_us = info->inference_us;
   df->timing.postprocess_us = info->postprocess_us;
+  df->timing.tracker_us = info->tracker_us;
   df->timing.nn_period_us = info->nn_period_us;
   df->timing.frame_drop_count = info->frame_drops;
 

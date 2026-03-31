@@ -53,14 +53,16 @@ const uint16_t g_line_y[] = {
     UI_PANEL_LINE_Y(9),  /* Inference value */
     UI_PANEL_LINE_Y(10), /* Postprocess label */
     UI_PANEL_LINE_Y(11), /* Postprocess value */
-    UI_PANEL_LINE_Y(12), /* Overhead label */
-    UI_PANEL_LINE_Y(13), /* Overhead value */
-    UI_PANEL_LINE_Y(14), /* FPS label */
-    UI_PANEL_LINE_Y(15), /* FPS value */
-    UI_PANEL_LINE_Y(16), /* Drops label */
-    UI_PANEL_LINE_Y(17), /* Drops value */
-    UI_PANEL_LINE_Y(18), /* Proximity label */
-    UI_PANEL_LINE_Y(19), /* Proximity value */
+    UI_PANEL_LINE_Y(12), /* Tracker label */
+    UI_PANEL_LINE_Y(13), /* Tracker value */
+    UI_PANEL_LINE_Y(14), /* Overhead label */
+    UI_PANEL_LINE_Y(15), /* Overhead value */
+    UI_PANEL_LINE_Y(16), /* FPS label */
+    UI_PANEL_LINE_Y(17), /* FPS value */
+    UI_PANEL_LINE_Y(18), /* Drops label */
+    UI_PANEL_LINE_Y(19), /* Drops value */
+    UI_PANEL_LINE_Y(20), /* Proximity label */
+    UI_PANEL_LINE_Y(21), /* Proximity value */
 };
 
 /* ============================================================================

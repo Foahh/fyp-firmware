@@ -11,6 +11,7 @@ message Timing {
   uint32 postprocess_us = 2;
   uint32 nn_period_us = 3;
   uint32 frame_drop_count = 4;
+  uint32 tracker_us = 5;
 }
 
 message Detection {

@@ -50,7 +50,8 @@ typedef struct {
   od_pp_outBuffer_t detects[DETECTION_MAX_BOXES]; /**< Detection results */
   uint32_t nn_period_us;                          /**< NN inference period */
   uint32_t inference_us;                          /**< Inference time */
-  uint32_t postprocess_us;                        /**< Postprocess time */
+  uint32_t postprocess_us;                        /**< Library OD postprocess (NMS, decode) */
+  uint32_t tracker_us;                            /**< Tracker update (det → tracks) */
   uint32_t frame_drops;                           /**< Cumulative frame drop count */
   int32_t nb_tracked;                             /**< Number of active tracked boxes */
   tracked_box_t tracked[DETECTION_MAX_BOXES];     /**< Kalman-smoothed tracked detections */

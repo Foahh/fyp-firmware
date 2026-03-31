@@ -105,6 +105,8 @@ static void pp_thread_entry(ULONG arg) {
   uint8_t *pp_input[NN_OUT_NB];
   uint32_t pp_start_cycles;
   uint32_t pp_end_cycles;
+  uint32_t trk_start_cycles;
+  uint32_t trk_end_cycles;
   nn_timing_t nn_timing;
   int ret;
 
@@ -145,6 +147,7 @@ static void pp_thread_entry(ULONG arg) {
     APP_REQUIRE(ret == 0);
     pp_end_cycles = DWT->CYCCNT;
 
+    trk_start_cycles = DWT->CYCCNT;
     for (int i = 0; i < pp_output.nb_detect; i++) {
       trk_dboxes[i].cx = pp_output.pOutBuff[i].x_center;
       trk_dboxes[i].cy = pp_output.pOutBuff[i].y_center;
@@ -153,6 +156,7 @@ static void pp_thread_entry(ULONG arg) {
       trk_dboxes[i].conf = pp_output.pOutBuff[i].conf;
     }
     trk_update(&trk_ctx, pp_output.nb_detect, trk_dboxes);
+    trk_end_cycles = DWT->CYCCNT;
 
     /* Get NN timing */
     NN_GetTiming(&nn_timing);
@@ -166,6 +170,7 @@ static void pp_thread_entry(ULONG arg) {
     write_buf->nn_period_us = nn_timing.nn_period_us;
     write_buf->inference_us = nn_timing.inference_us;
     write_buf->postprocess_us = CYCLES_TO_US(pp_end_cycles - pp_start_cycles);
+    write_buf->tracker_us = CYCLES_TO_US(trk_end_cycles - trk_start_cycles);
     write_buf->frame_drops = nn_timing.frame_drops;
     write_buf->timestamp_ms = HAL_GetTick();
 

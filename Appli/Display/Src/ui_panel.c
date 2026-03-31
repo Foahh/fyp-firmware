@@ -123,33 +123,46 @@ void UI_DrawDetectionInfoSection(const detection_info_t *info) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[11],
                            (uint8_t *)text_buf, LEFT_MODE);
 
-  /* Overhead time */
+  /* Tracker time */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[12],
+                           (uint8_t *)"Tracker", LEFT_MODE);
+  UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
+  snprintf(text_buf, sizeof(text_buf), "%luus", (unsigned long)info->tracker_us);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[13],
+                           (uint8_t *)text_buf, LEFT_MODE);
+
+  /* Overhead time */
+  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[14],
                            (uint8_t *)"Overhead", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
-  uint32_t overhead_us = info->nn_period_us > info->inference_us ? info->nn_period_us - info->inference_us : 0;
+  uint32_t work_us =
+      info->inference_us + info->postprocess_us + info->tracker_us;
+  uint32_t period_us = info->nn_period_us;
+  uint32_t overhead_us =
+      (work_us < period_us) ? (period_us - work_us) : 0U;
   snprintf(text_buf, sizeof(text_buf), "%luus", (unsigned long)overhead_us);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[13],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[15],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* FPS */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[14],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[16],
                            (uint8_t *)"Inf. FPS", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   float fps = info->nn_period_us > 0 ? 1000000.0f / info->nn_period_us : 0.0f;
   snprintf(text_buf, sizeof(text_buf), "%.1f", fps);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[15],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[17],
                            (uint8_t *)text_buf, LEFT_MODE);
 
   /* Frame drops */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[16],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[18],
                            (uint8_t *)"Drops", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   snprintf(text_buf, sizeof(text_buf), "%lu", (unsigned long)info->frame_drops);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[17],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[19],
                            (uint8_t *)text_buf, LEFT_MODE);
 }
 
@@ -199,12 +212,12 @@ void UI_DrawProximitySection(const tof_alert_t *alert) {
   char text_buf[UI_TEXT_BUFFER_SIZE];
 
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[18],
+  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[20],
                            (uint8_t *)"Hand/Hazard", LEFT_MODE);
 
   if (!alert->has_hand_depth && !alert->has_hazard_depth) {
     UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-    UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[19],
+    UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[21],
                              (uint8_t *)"--/--", LEFT_MODE);
   } else {
     uint32_t color = alert->alert ? 0xFFFF0000 : 0xFF00FF00;
@@ -221,7 +234,7 @@ void UI_DrawProximitySection(const tof_alert_t *alert) {
                alert->hazard_distance_mm / 1000.0f);
     }
     snprintf(text_buf, sizeof(text_buf), "%s/%s", hand_str, haz_str);
-    UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[19],
+    UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[21],
                              (uint8_t *)text_buf, LEFT_MODE);
   }
 }

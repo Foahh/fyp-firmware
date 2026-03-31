@@ -92,6 +92,7 @@ class VisualizerState:
 
     infer_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
     post_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
+    tracker_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
     period_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
     fps_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
     timing_time_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
@@ -382,6 +383,7 @@ def receiver_loop(
                     now = time.time()
                     state.infer_hist.append(float(result.timing.inference_us))
                     state.post_hist.append(float(result.timing.postprocess_us))
+                    state.tracker_hist.append(float(result.timing.tracker_us))
                     state.period_hist.append(period_us)
                     state.fps_hist.append(fps)
                     state.timing_time_hist.append(now)
@@ -805,6 +807,7 @@ def create_gui(
         fw_baud = f"{state.firmware_baud}" if state.firmware_baud else "-"
         detections_text = state.detections_text or "  -"
         last_pp = state.post_hist[-1] if state.post_hist else 0.0
+        last_trk = state.tracker_hist[-1] if state.tracker_hist else 0.0
         npu_delta = (
             f"{int(state.power_infer_avg_mw - state.power_idle_avg_mw)} mW"
             if state.power_idle_avg_mw > 0
@@ -835,7 +838,8 @@ def create_gui(
             "",
             f" Stats",
             SEP,
-            f"  Frames  {state.frame_count}   Drops: {state.frame_drops}   PP: {last_pp:.0f} us",
+            f"  Frames  {state.frame_count}   Drops: {state.frame_drops}   "
+            f"PP: {last_pp:.0f} us   Trk: {last_trk:.0f} us",
             f"  Labels  {class_labels}",
             f"  ACK     {state.last_ack}",
             f"  Err     {state.last_error or '-'}",

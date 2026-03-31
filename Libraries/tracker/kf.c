@@ -83,7 +83,7 @@ static void kf_print_mat(char *header, float *m, int row_nb, int col_nb)
 /* result = v * m */
 static void kf_vector_mat_dot_product(float *result, float *v, float *m, int row_nb, int col_nb)
 {
-  float res[row_nb];
+  float res[col_nb];
   int r, c;
 
   for (c = 0; c < col_nb; c++) {
