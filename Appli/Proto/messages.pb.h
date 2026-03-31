@@ -76,7 +76,7 @@ typedef struct _DeviceInfo {
     char class_labels[10][32];
     uint32_t command_id;
     uint32_t nn_input_size_bytes;
-    bool overdrive_mode;
+    uint32_t power_mode;
     uint32_t camera_fps;
     uint32_t mcu_freq_mhz;
     uint32_t npu_freq_mhz;
@@ -209,7 +209,7 @@ extern "C" {
 #define DeviceInfo_class_labels_tag              8
 #define DeviceInfo_command_id_tag                9
 #define DeviceInfo_nn_input_size_bytes_tag       10
-#define DeviceInfo_overdrive_mode_tag            11
+#define DeviceInfo_power_mode_tag                11
 #define DeviceInfo_camera_fps_tag                12
 #define DeviceInfo_mcu_freq_mhz_tag              13
 #define DeviceInfo_npu_freq_mhz_tag              14
@@ -308,7 +308,7 @@ X(a, STATIC,   SINGULAR, STRING,   model_name,        7) \
 X(a, STATIC,   REPEATED, STRING,   class_labels,      8) \
 X(a, STATIC,   SINGULAR, UINT32,   command_id,        9) \
 X(a, STATIC,   SINGULAR, UINT32,   nn_input_size_bytes,  10) \
-X(a, STATIC,   SINGULAR, BOOL,     overdrive_mode,   11) \
+X(a, STATIC,   SINGULAR, UINT32,   power_mode,       11) \
 X(a, STATIC,   SINGULAR, UINT32,   camera_fps,       12) \
 X(a, STATIC,   SINGULAR, UINT32,   mcu_freq_mhz,     13) \
 X(a, STATIC,   SINGULAR, UINT32,   npu_freq_mhz,     14) \
@@ -409,7 +409,7 @@ extern const pb_msgdesc_t HostMessage_msg;
 #define CpuLoad_size                             5
 #define DetectionResult_size                     1439
 #define Detection_size                           36
-#define DeviceInfo_size                          495
+#define DeviceInfo_size                          499
 #define DeviceMessage_size                       1442
 #define GetDeviceInfo_size                       6
 #define GetTraceXDump_size                       12

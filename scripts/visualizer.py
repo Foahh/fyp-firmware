@@ -40,7 +40,9 @@ except ImportError:
 class VisualizerState:
     frame_count: int = 0
     last_timestamp: int = 0
+    detection_timestamp: int = 0
     detection_count: int = 0
+    tracked_box_count: int = 0
     detections_text: str = "No detections yet."
 
     model_name: str = "unknown"
@@ -56,10 +58,12 @@ class VisualizerState:
     camera_fps: int = 0
     mcu_freq_mhz: int = 0
     npu_freq_mhz: int = 0
+    power_mode: int = 1
     nn_size_text: str = "unknown"
     build_mode_text: str = "unknown"
     camera_mode_text: str = "unknown"
     build_timestamp: str = "unknown"
+    device_info_timestamp: int = 0
     firmware_recognized: bool = False
     host_introduced: bool = False
 
@@ -86,6 +90,7 @@ class VisualizerState:
 
     display_enabled: bool = True
     last_ack: str = "No ACK received."
+    last_ack_timestamp: int = 0
     last_error: str = ""
     last_power_error: str = ""
     last_rx_time: float = 0.0
@@ -94,6 +99,7 @@ class VisualizerState:
     firmware_baud: int = 0
     power_connected: bool = False
     power_in_inference: bool = False
+    power_timestamp_us: int = 0
     power_infer_avg_mw: float = 0.0
     power_idle_avg_mw: float = 0.0
     power_infer_energy_uj: float = 0.0
@@ -206,7 +212,9 @@ def receiver_loop(
                 result = dev_msg.detection_result
                 state.frame_count += 1
                 state.last_timestamp = result.timestamp_ms
+                state.detection_timestamp = result.detection_timestamp_ms
                 state.detection_count = len(result.detections)
+                state.tracked_box_count = len(result.tracked_boxes)
                 state.detections_text = build_detection_text(result, state.class_labels)
 
                 if result.HasField("timing"):
@@ -245,6 +253,7 @@ def receiver_loop(
                 state.model_name = info.model_name or "unknown"
                 state.class_labels = list(info.class_labels)
                 state.device_info_command_id = int(info.command_id)
+                state.device_info_timestamp = int(info.timestamp_ms)
                 state.display_width = int(info.display_width_px)
                 state.display_height = int(info.display_height_px)
                 state.letterbox_width = int(info.letterbox_width_px)
@@ -255,6 +264,7 @@ def receiver_loop(
                 state.camera_fps = int(info.camera_fps)
                 state.mcu_freq_mhz = int(info.mcu_freq_mhz)
                 state.npu_freq_mhz = int(info.npu_freq_mhz)
+                state.power_mode = int(info.overdrive_mode)
                 if info.nn_width_px and info.nn_height_px:
                     state.nn_size_text = (
                         f"{info.nn_width_px}x{info.nn_height_px} "
@@ -280,6 +290,7 @@ def receiver_loop(
                 state.last_ack = (
                     f"ACK command_id={ack.command_id} success={ack.success}"
                 )
+                state.last_ack_timestamp = int(ack.timestamp_ms)
                 if ack.command_id in pending_display_cmds:
                     if ack.success:
                         state.display_enabled = pending_display_cmds[ack.command_id]
@@ -326,8 +337,10 @@ def power_receiver_loop(
             energy_j = float(sample.energy_j)
             duration_us = float(sample.duration_us)
             is_inference = bool(sample.is_inference)
+            timestamp_us = int(sample.timestamp_us)
 
             state.power_in_inference = is_inference
+            state.power_timestamp_us = timestamp_us
             now = time.time()
             duration_s = duration_us * 1e-6
             avg_mw = (energy_j / duration_s) * 1000.0 if duration_s > 0.0 else 0.0
