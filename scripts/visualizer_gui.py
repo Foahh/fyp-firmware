@@ -160,7 +160,7 @@ def create_gui(
     (line_power_period,) = ax_power.plot(
         [],
         [],
-        label="Period avg",
+        label="Period",
         color=C_POWER_PERIOD,
         linewidth=LW,
         linestyle="--",
@@ -184,36 +184,36 @@ def create_gui(
     # --- Power energy (mJ) line chart ---
     _style_axis(ax_pm_mj, C_AX_BG)
     (line_pm_inf_mj,) = ax_pm_mj.plot(
-        [], [], label="Inference mJ", color=C_POWER_INF, linewidth=LW
+        [], [], label="Inference", color=C_POWER_INF, linewidth=LW
     )
     (line_pm_idle_mj,) = ax_pm_mj.plot(
-        [], [], label="Idle mJ", color=C_POWER_IDLE, linewidth=LW
+        [], [], label="Idle", color=C_POWER_IDLE, linewidth=LW
+    )
+    (line_pm_period_mj,) = ax_pm_mj.plot(
+        [],
+        [],
+        label="Period",
+        color=C_POWER_PERIOD,
+        linewidth=LW,
+        linestyle="--",
+        zorder=3,
     )
     ax_pm_mj.set_title("Power Energy / Phase", color=C_TITLE, pad=10)
     ax_pm_mj.set_xlabel("Time (s)")
     ax_pm_mj.set_ylabel("mJ")
     _legend(ax_pm_mj, C_AX_BG)
-    pm_period_text = ax_pm_mj.text(
+    pm_mj_stats_text = ax_pm_mj.text(
         0.98,
-        0.98,
+        0.95,
         "",
         transform=ax_pm_mj.transAxes,
         ha="right",
         va="top",
-        fontsize=11,
-        fontweight="semibold",
-        color=C_TITLE,
-        linespacing=1.25,
-        zorder=8,
-        bbox={
-            "boxstyle": "round,pad=0.4",
-            "facecolor": "#12121c",
-            "edgecolor": "#3a3a5c",
-            "alpha": 0.92,
-        },
+        fontsize=10,
+        color=C_ACCENT,
     )
 
-    # --- Battery runtime (mWh / avg mW → h) ---
+    # --- Battery runtime: mAh × V_supply → mWh, then / P_avg mW → h ---
     _style_axis(ax_battery, C_AX_BG)
     (line_battery_hours,) = ax_battery.plot(
         [], [], label="Est. runtime", color=C_BATTERY, linewidth=LW
@@ -229,7 +229,8 @@ def create_gui(
     battery_note = ax_battery.text(
         0.02,
         0.02,
-        "P_avg = (period mJ / NN period ms) × 1000 → mW",
+        "mWh = mAh × V_supply; hours = mWh / P_avg.  "
+        "P_avg = period mJ / (t_infer + t_idle), as mW",
         transform=ax_battery.transAxes,
         ha="left",
         va="bottom",
@@ -256,23 +257,23 @@ def create_gui(
     ax_tb_batt = fig_battery.add_axes([0.12, 0.03, 0.32, 0.065])
     tb_battery = TextBox(
         ax_tb_batt,
-        "Capacity ",
-        initial=f"{state.battery_capacity_mwh:g}",
+        "mAh ",
+        initial=f"{state.battery_capacity_mah:g}",
         color="#252545",
         hovercolor="#35355a",
     )
     tb_battery.text_disp.set_color(C_TEXT)
     tb_battery.label.set_color(C_TEXT)
 
-    def on_battery_mwh(text: str) -> None:
+    def on_battery_mah(text: str) -> None:
         try:
             v = float(str(text).strip().replace(",", ""))
             if v > 0.0:
-                state.battery_capacity_mwh = v
+                state.battery_capacity_mah = v
         except ValueError:
             pass
 
-    tb_battery.on_submit(on_battery_mwh)
+    tb_battery.on_submit(on_battery_mah)
 
     # --- CPU line chart ---
     _style_axis(ax_cpu, C_AX_BG)
@@ -425,14 +426,15 @@ def create_gui(
         return (line_power_inf, line_power_idle, line_power_period, power_peak_text)
 
     def update_pm_mj(_frame_idx):
-        t0_mj = min(
-            state.pm_avg_inf_mj_time_hist[0]
-            if state.pm_avg_inf_mj_time_hist
-            else float("inf"),
-            state.pm_avg_idle_mj_time_hist[0]
-            if state.pm_avg_idle_mj_time_hist
-            else float("inf"),
-        )
+        t0_starts: list[float] = []
+        if state.pm_avg_inf_mj_time_hist:
+            t0_starts.append(state.pm_avg_inf_mj_time_hist[0])
+        if state.pm_avg_idle_mj_time_hist:
+            t0_starts.append(state.pm_avg_idle_mj_time_hist[0])
+        if state.pm_period_mj_time_hist:
+            t0_starts.append(state.pm_period_mj_time_hist[0])
+        t0_mj = min(t0_starts) if t0_starts else 0.0
+
         if state.pm_avg_inf_mj_time_hist:
             x_inf_mj = np.array(
                 [t - t0_mj for t in state.pm_avg_inf_mj_time_hist]
@@ -445,28 +447,51 @@ def create_gui(
             )
         else:
             x_idle_mj = np.array([])
+        if state.pm_period_mj_time_hist:
+            x_period_mj = np.array(
+                [t - t0_mj for t in state.pm_period_mj_time_hist]
+            )
+            y_period_mj = np.array(state.pm_period_mj_hist, dtype=float)
+        else:
+            x_period_mj = np.array([])
+            y_period_mj = np.array([])
+
         line_pm_inf_mj.set_data(x_inf_mj, np.array(state.pm_avg_inf_mj_hist))
         line_pm_idle_mj.set_data(x_idle_mj, np.array(state.pm_avg_idle_mj_hist))
+        line_pm_period_mj.set_data(x_period_mj, y_period_mj)
         if state.pm_seen_infer_mj and state.pm_seen_idle_mj:
-            pm = state.pm_period_total_mj
-            pm_period_text.set_text(f"{pm:.2f} mJ")
+            pm_mj_stats_text.set_text(
+                f"infer: {state.pm_last_inf_mj:.2f} mJ   "
+                f"idle: {state.pm_last_idle_mj:.2f} mJ   "
+                f"period: {state.pm_period_total_mj:.2f} mJ"
+            )
         else:
-            pm_period_text.set_text("—")
+            parts: list[str] = []
+            if state.pm_seen_infer_mj:
+                parts.append(f"infer: {state.pm_last_inf_mj:.2f} mJ")
+            if state.pm_seen_idle_mj:
+                parts.append(f"idle: {state.pm_last_idle_mj:.2f} mJ")
+            pm_mj_stats_text.set_text("   ".join(parts))
         ax_pm_mj.relim()
         ax_pm_mj.autoscale_view()
-        return (line_pm_inf_mj, line_pm_idle_mj, pm_period_text)
+        return (line_pm_inf_mj, line_pm_idle_mj, line_pm_period_mj, pm_mj_stats_text)
 
     def update_battery(_frame_idx):
-        cap = float(state.battery_capacity_mwh)
+        cap_mah = float(state.battery_capacity_mah)
+        v_supply = float(state.battery_supply_voltage_v)
+        energy_mwh = cap_mah * v_supply
         if state.battery_time_hist and state.battery_p_avg_mw_hist:
             t0 = state.battery_time_hist[0]
             x = np.array([t - t0 for t in state.battery_time_hist])
             p = np.array(state.battery_p_avg_mw_hist, dtype=float)
-            hours = cap / p
+            hours = energy_mwh / p
             line_battery_hours.set_data(x, hours)
             last_h = float(hours[-1])
             last_p = float(p[-1])
-            battery_stats.set_text(f"{cap:g} mWh ÷ {last_p:.0f} mW\n≈ {last_h:.2f} h")
+            battery_stats.set_text(
+                f"{cap_mah:g} mAh × {v_supply:g} V → {energy_mwh:g} mWh\n"
+                f"÷ {last_p:.0f} mW ≈ {last_h:.2f} h"
+            )
         else:
             line_battery_hours.set_data([], [])
             battery_stats.set_text("—\n(need power link + frames)")

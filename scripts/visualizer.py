@@ -127,12 +127,20 @@ class VisualizerState:
     )
     pm_last_inf_mj: float = 0.0
     pm_last_idle_mj: float = 0.0
+    pm_last_inf_duration_us: float = 0.0
+    pm_last_idle_duration_us: float = 0.0
     pm_period_total_mj: float = 0.0
     pm_seen_infer_mj: bool = False
     pm_seen_idle_mj: bool = False
+    pm_period_mj_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
+    pm_period_mj_time_hist: deque[float] = field(
+        default_factory=lambda: deque(maxlen=240)
+    )
 
-    # Battery estimate: avg power (mW) from last NN period vs settable capacity (mWh)
-    battery_capacity_mwh: float = 820.0
+    # Battery estimate: capacity in mAh; energy (mWh) = mAh × supply V; runtime h = mWh / P_avg mW.
+    # P_avg uses period mJ / (last infer + last idle duration from power monitor), not nn_period_us.
+    battery_capacity_mah: float = 820.0
+    battery_supply_voltage_v: float = 5.0  # STM32 input rail for mWh = mAh × V
     battery_p_avg_mw_hist: deque[float] = field(
         default_factory=lambda: deque(maxlen=240)
     )
@@ -258,18 +266,23 @@ def receiver_loop(
                 state.cpu_hist.append(state.cpu_usage_percent)
                 state.cpu_time_hist.append(now)
 
+                period_us_pm = (
+                    state.pm_last_inf_duration_us + state.pm_last_idle_duration_us
+                )
                 if (
-                    period_us > 0.0
+                    period_us_pm > 0.0
                     and state.pm_seen_infer_mj
                     and state.pm_seen_idle_mj
                     and state.pm_period_total_mj > 0.0
                 ):
-                    # mJ/ms = W numerically; ×1000 → mW (match power_receiver avg_mw)
-                    period_ms = period_us * 1e-3
+                    # mJ/ms → mW: same window as pm_period_total_mj (last infer + idle samples)
+                    period_ms = period_us_pm * 1e-3
                     p_avg_mw = (state.pm_period_total_mj / period_ms) * 1000.0
                     if p_avg_mw > 0.0:
                         state.battery_p_avg_mw_hist.append(p_avg_mw)
                         state.battery_time_hist.append(now)
+                        state.pm_period_mj_hist.append(state.pm_period_total_mj)
+                        state.pm_period_mj_time_hist.append(now)
 
                 if result.HasField("tof"):
                     tof = result.tof
@@ -388,6 +401,7 @@ def power_receiver_loop(
                 state.power_infer_avg_mw = avg_mw
                 state.power_infer_duration_ms = duration_us / 1000.0
                 state.power_infer_energy_uj = energy_j * 1e6
+                state.pm_last_inf_duration_us = duration_us
                 state.pm_avg_inf_mj_hist.append(energy_mj)
                 state.pm_avg_inf_mj_time_hist.append(now)
                 state.pm_last_inf_mj = energy_mj
@@ -396,6 +410,7 @@ def power_receiver_loop(
                 state.power_idle_hist_mw.append(avg_mw)
                 state.power_idle_time_hist.append(now)
                 state.power_idle_avg_mw = avg_mw
+                state.pm_last_idle_duration_us = duration_us
                 state.pm_avg_idle_mj_hist.append(energy_mj)
                 state.pm_avg_idle_mj_time_hist.append(now)
                 state.pm_last_idle_mj = energy_mj
@@ -449,10 +464,16 @@ def parse_args() -> argparse.Namespace:
         help="Power monitor baud rate (default: 921600)",
     )
     parser.add_argument(
-        "--battery-mwh",
+        "--battery-mah",
         type=float,
         default=820.0,
-        help="Battery capacity for runtime estimate (mWh, default: 820)",
+        help="Battery capacity for runtime estimate (mAh at --battery-v, default: 820)",
+    )
+    parser.add_argument(
+        "--battery-v",
+        type=float,
+        default=5.0,
+        help="Supply voltage (V) for mWh = mAh × V; STM32 rail default 5",
     )
     return parser.parse_args()
 
@@ -460,7 +481,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     state = VisualizerState()
-    state.battery_capacity_mwh = float(args.battery_mwh)
+    state.battery_capacity_mah = float(args.battery_mah)
+    state.battery_supply_voltage_v = float(args.battery_v)
     cmd_queue: Queue[tuple[str, Optional[bool]]] = Queue()
     stop_evt = threading.Event()
 
