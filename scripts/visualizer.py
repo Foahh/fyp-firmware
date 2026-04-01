@@ -116,6 +116,30 @@ class VisualizerState:
         default_factory=lambda: deque(maxlen=240)
     )
 
+    # Per-phase energy from power monitor (mJ); period total = last inf + last idle
+    pm_avg_inf_mj_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
+    pm_avg_inf_mj_time_hist: deque[float] = field(
+        default_factory=lambda: deque(maxlen=240)
+    )
+    pm_avg_idle_mj_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
+    pm_avg_idle_mj_time_hist: deque[float] = field(
+        default_factory=lambda: deque(maxlen=240)
+    )
+    pm_last_inf_mj: float = 0.0
+    pm_last_idle_mj: float = 0.0
+    pm_period_total_mj: float = 0.0
+    pm_seen_infer_mj: bool = False
+    pm_seen_idle_mj: bool = False
+
+    # Battery estimate: avg power (mW) from last NN period vs settable capacity (mWh)
+    battery_capacity_mwh: float = 820.0
+    battery_p_avg_mw_hist: deque[float] = field(
+        default_factory=lambda: deque(maxlen=240)
+    )
+    battery_time_hist: deque[float] = field(
+        default_factory=lambda: deque(maxlen=240)
+    )
+
 
 def build_detection_text(
     result: messages_pb2.DetectionResult, class_labels: list[str]
@@ -220,7 +244,7 @@ def receiver_loop(
                 state.detections_text = build_detection_text(result, state.class_labels)
 
                 period_us = float(result.nn_period_us)
-                fps = (1000000.0 / period_us) if period_us > 0.0 else 0.0
+                fps = (1_000_000.0 / period_us) if period_us > 0.0 else 0.0
                 now = time.time()
                 state.infer_hist.append(float(result.inference_us))
                 state.post_hist.append(float(result.postprocess_us))
@@ -233,6 +257,18 @@ def receiver_loop(
                 state.cpu_usage_percent = float(result.cpu_usage_percent)
                 state.cpu_hist.append(state.cpu_usage_percent)
                 state.cpu_time_hist.append(now)
+
+                if (
+                    period_us > 0.0
+                    and state.pm_seen_infer_mj
+                    and state.pm_seen_idle_mj
+                    and state.pm_period_total_mj > 0.0
+                ):
+                    period_ms = period_us * 1e-3
+                    p_avg_mw = state.pm_period_total_mj / period_ms
+                    if p_avg_mw > 0.0:
+                        state.battery_p_avg_mw_hist.append(p_avg_mw)
+                        state.battery_time_hist.append(now)
 
                 if result.HasField("tof"):
                     tof = result.tof
@@ -343,16 +379,29 @@ def power_receiver_loop(
             duration_s = duration_us * 1e-6
             avg_mw = (energy_j / duration_s) * 1000.0 if duration_s > 0.0 else 0.0
 
+            energy_mj = energy_j * 1000.0
+
             if is_inference:
                 state.power_infer_hist_mw.append(avg_mw)
                 state.power_infer_time_hist.append(now)
                 state.power_infer_avg_mw = avg_mw
                 state.power_infer_duration_ms = duration_us / 1000.0
                 state.power_infer_energy_uj = energy_j * 1e6
+                state.pm_avg_inf_mj_hist.append(energy_mj)
+                state.pm_avg_inf_mj_time_hist.append(now)
+                state.pm_last_inf_mj = energy_mj
+                state.pm_seen_infer_mj = True
             else:
                 state.power_idle_hist_mw.append(avg_mw)
                 state.power_idle_time_hist.append(now)
                 state.power_idle_avg_mw = avg_mw
+                state.pm_avg_idle_mj_hist.append(energy_mj)
+                state.pm_avg_idle_mj_time_hist.append(now)
+                state.pm_last_idle_mj = energy_mj
+                state.pm_seen_idle_mj = True
+
+            if state.pm_seen_infer_mj and state.pm_seen_idle_mj:
+                state.pm_period_total_mj = state.pm_last_inf_mj + state.pm_last_idle_mj
         except Exception as exc:
             state.last_power_error = str(exc)
             state.power_connected = False
@@ -398,12 +447,19 @@ def parse_args() -> argparse.Namespace:
         default=921600,
         help="Power monitor baud rate (default: 921600)",
     )
+    parser.add_argument(
+        "--battery-mwh",
+        type=float,
+        default=820.0,
+        help="Battery capacity for runtime estimate (mWh, default: 820)",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     state = VisualizerState()
+    state.battery_capacity_mwh = float(args.battery_mwh)
     cmd_queue: Queue[tuple[str, Optional[bool]]] = Queue()
     stop_evt = threading.Event()
 

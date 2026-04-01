@@ -6,7 +6,7 @@ from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
-from matplotlib.widgets import Button
+from matplotlib.widgets import Button, TextBox
 
 
 def _style_axis(ax, bg: str) -> None:
@@ -44,6 +44,7 @@ def create_gui(
     C_POWER_INF = "#E06666"
     C_POWER_IDLE = "#5B9BD5"
     C_CPU = "#6AA84F"
+    C_BATTERY = "#B565D8"
     LW = 2.2
 
     plt.style.use("dark_background")
@@ -81,6 +82,17 @@ def create_gui(
     fig_power = plt.figure("Power Consumption", figsize=(8, 5))
     fig_power.set_facecolor(C_FIG_BG)
     ax_power = fig_power.add_subplot(111)
+
+    # --- Power energy (mJ) figure ---
+    fig_pm_mj = plt.figure("Power Energy (mJ)", figsize=(8, 5))
+    fig_pm_mj.set_facecolor(C_FIG_BG)
+    ax_pm_mj = fig_pm_mj.add_subplot(111)
+
+    # --- Battery estimate figure ---
+    fig_battery = plt.figure("Battery Life Estimate", figsize=(8, 5))
+    fig_battery.set_facecolor(C_FIG_BG)
+    fig_battery.subplots_adjust(bottom=0.18)
+    ax_battery = fig_battery.add_subplot(111)
 
     # --- Info figure ---
     fig_info = plt.figure("Device Info", figsize=(8, 7))
@@ -159,6 +171,99 @@ def create_gui(
         color=C_ACCENT,
     )
 
+    # --- Power energy (mJ) line chart ---
+    _style_axis(ax_pm_mj, C_AX_BG)
+    (line_pm_inf_mj,) = ax_pm_mj.plot(
+        [], [], label="Inference mJ", color=C_POWER_INF, linewidth=LW
+    )
+    (line_pm_idle_mj,) = ax_pm_mj.plot(
+        [], [], label="Idle mJ", color=C_POWER_IDLE, linewidth=LW
+    )
+    ax_pm_mj.set_title("Power Energy per Phase", color=C_TITLE, pad=10)
+    ax_pm_mj.set_xlabel("Time (s)")
+    ax_pm_mj.set_ylabel("mJ")
+    _legend(ax_pm_mj, C_AX_BG)
+    pm_period_text = ax_pm_mj.text(
+        0.98,
+        0.98,
+        "",
+        transform=ax_pm_mj.transAxes,
+        ha="right",
+        va="top",
+        fontsize=11,
+        fontweight="semibold",
+        color=C_TITLE,
+        linespacing=1.25,
+        zorder=8,
+        bbox={
+            "boxstyle": "round,pad=0.4",
+            "facecolor": "#12121c",
+            "edgecolor": "#3a3a5c",
+            "alpha": 0.92,
+        },
+    )
+
+    # --- Battery runtime (mWh / avg mW → h) ---
+    _style_axis(ax_battery, C_AX_BG)
+    (line_battery_hours,) = ax_battery.plot(
+        [], [], label="Est. runtime", color=C_BATTERY, linewidth=LW
+    )
+    ax_battery.set_title(
+        "Battery Life Estimate (ideal, load from power monitor)",
+        color=C_TITLE,
+        pad=10,
+    )
+    ax_battery.set_xlabel("Time (s)")
+    ax_battery.set_ylabel("Hours")
+    _legend(ax_battery, C_AX_BG)
+    battery_note = ax_battery.text(
+        0.02,
+        0.02,
+        "P_avg = period mJ / NN period; needs ESP32 power + both infer/idle samples.",
+        transform=ax_battery.transAxes,
+        ha="left",
+        va="bottom",
+        fontsize=8,
+        color="#9898b8",
+    )
+    battery_stats = ax_battery.text(
+        0.98,
+        0.98,
+        "",
+        transform=ax_battery.transAxes,
+        ha="right",
+        va="top",
+        fontsize=10,
+        color=C_TITLE,
+        linespacing=1.2,
+        bbox={
+            "boxstyle": "round,pad=0.35",
+            "facecolor": "#12121c",
+            "edgecolor": "#3a3a5c",
+            "alpha": 0.92,
+        },
+    )
+    ax_tb_batt = fig_battery.add_axes([0.12, 0.03, 0.32, 0.065])
+    tb_battery = TextBox(
+        ax_tb_batt,
+        "Capacity ",
+        initial=f"{state.battery_capacity_mwh:g}",
+        color="#252545",
+        hovercolor="#35355a",
+    )
+    tb_battery.text_disp.set_color(C_TEXT)
+    tb_battery.label.set_color(C_TEXT)
+
+    def on_battery_mwh(text: str) -> None:
+        try:
+            v = float(str(text).strip().replace(",", ""))
+            if v > 0.0:
+                state.battery_capacity_mwh = v
+        except ValueError:
+            pass
+
+    tb_battery.on_submit(on_battery_mwh)
+
     # --- CPU line chart ---
     _style_axis(ax_cpu, C_AX_BG)
     (line_cpu,) = ax_cpu.plot([], [], label="CPU %", color=C_CPU, linewidth=LW)
@@ -205,6 +310,7 @@ def create_gui(
     fig_cpu.tight_layout()
     fig_tof.tight_layout()
     fig_power.tight_layout()
+    fig_pm_mj.tight_layout()
     fig_info.tight_layout()
 
     def on_get_info(_event) -> None:
@@ -283,6 +389,56 @@ def create_gui(
         ax_power.autoscale_view()
         return (line_power_inf, line_power_idle, power_peak_text)
 
+    def update_pm_mj(_frame_idx):
+        t0_mj = min(
+            state.pm_avg_inf_mj_time_hist[0]
+            if state.pm_avg_inf_mj_time_hist
+            else float("inf"),
+            state.pm_avg_idle_mj_time_hist[0]
+            if state.pm_avg_idle_mj_time_hist
+            else float("inf"),
+        )
+        if state.pm_avg_inf_mj_time_hist:
+            x_inf_mj = np.array(
+                [t - t0_mj for t in state.pm_avg_inf_mj_time_hist]
+            )
+        else:
+            x_inf_mj = np.array([])
+        if state.pm_avg_idle_mj_time_hist:
+            x_idle_mj = np.array(
+                [t - t0_mj for t in state.pm_avg_idle_mj_time_hist]
+            )
+        else:
+            x_idle_mj = np.array([])
+        line_pm_inf_mj.set_data(x_inf_mj, np.array(state.pm_avg_inf_mj_hist))
+        line_pm_idle_mj.set_data(x_idle_mj, np.array(state.pm_avg_idle_mj_hist))
+        if state.pm_seen_infer_mj and state.pm_seen_idle_mj:
+            pm = state.pm_period_total_mj
+            pm_period_text.set_text(f"{pm:.2f} mJ\nperiod (inf + idle)")
+        else:
+            pm_period_text.set_text("—\nperiod (inf + idle)")
+        ax_pm_mj.relim()
+        ax_pm_mj.autoscale_view()
+        return (line_pm_inf_mj, line_pm_idle_mj, pm_period_text)
+
+    def update_battery(_frame_idx):
+        cap = float(state.battery_capacity_mwh)
+        if state.battery_time_hist and state.battery_p_avg_mw_hist:
+            t0 = state.battery_time_hist[0]
+            x = np.array([t - t0 for t in state.battery_time_hist])
+            p = np.array(state.battery_p_avg_mw_hist, dtype=float)
+            hours = cap / p
+            line_battery_hours.set_data(x, hours)
+            last_h = float(hours[-1])
+            last_p = float(p[-1])
+            battery_stats.set_text(f"{cap:g} mWh ÷ {last_p:.0f} mW\n≈ {last_h:.2f} h")
+        else:
+            line_battery_hours.set_data([], [])
+            battery_stats.set_text("—\n(need power link + frames)")
+        ax_battery.relim()
+        ax_battery.autoscale_view()
+        return (line_battery_hours, battery_stats)
+
     def update_info(_frame_idx):
         status = "ALERT" if state.tof_alert else "OK"
         stale = "stale" if state.tof_stale else "fresh"
@@ -352,12 +508,34 @@ def create_gui(
     anim_power = FuncAnimation(
         fig_power, update_power, interval=120, blit=False, cache_frame_data=False
     )
+    anim_pm_mj = FuncAnimation(
+        fig_pm_mj, update_pm_mj, interval=120, blit=False, cache_frame_data=False
+    )
+    anim_battery = FuncAnimation(
+        fig_battery, update_battery, interval=120, blit=False, cache_frame_data=False
+    )
     anim_info = FuncAnimation(
         fig_info, update_info, interval=120, blit=False, cache_frame_data=False
     )
 
-    figures = [fig_timing, fig_cpu, fig_tof, fig_power, fig_info]
-    animations = [anim_timing, anim_cpu, anim_tof, anim_power, anim_info]
+    figures = [
+        fig_timing,
+        fig_cpu,
+        fig_tof,
+        fig_power,
+        fig_pm_mj,
+        fig_battery,
+        fig_info,
+    ]
+    animations = [
+        anim_timing,
+        anim_cpu,
+        anim_tof,
+        anim_power,
+        anim_pm_mj,
+        anim_battery,
+        anim_info,
+    ]
 
     _closing_all = [False]
 
