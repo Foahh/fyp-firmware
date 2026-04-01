@@ -37,8 +37,7 @@ static volatile uint32_t host_last_seen_tick = 0;
  * Handlers
  * ============================================================================ */
 
-static void handle_set_display_enabled(uint32_t cmd_id,
-                                       const SetDisplayEnabled *cmd) {
+static void handle_set_display_enabled(const SetDisplayEnabled *cmd) {
   if (cmd->enabled && !display_enabled) {
     __HAL_RCC_PLL4_ENABLE();
     while (!__HAL_RCC_GET_FLAG(RCC_FLAG_PLL4RDY)) {
@@ -70,21 +69,21 @@ static void handle_set_display_enabled(uint32_t cmd_id,
 
     display_enabled = false;
   }
-  COM_Send_Ack(cmd_id, true);
+  COM_Send_Ack(true);
 }
 
-static void handle_get_device_info(uint32_t cmd_id) {
-  COM_Send_DeviceInfo(cmd_id);
+static void handle_get_device_info(void) {
+  COM_Send_DeviceInfo();
 }
 
-static void handle_get_tracex_dump(uint32_t cmd_id, const GetTraceXDump *cmd) {
+static void handle_get_tracex_dump(const GetTraceXDump *cmd) {
   uint32_t total_size;
   uint32_t offset = 0U;
   uint32_t chunk_size;
   uint8_t chunk[256];
 
   if (!TraceX_IsEnabled()) {
-    COM_Send_Ack(cmd_id, false);
+    COM_Send_Ack(false);
     return;
   }
 
@@ -105,7 +104,7 @@ static void handle_get_tracex_dump(uint32_t cmd_id, const GetTraceXDump *cmd) {
     offset += (uint32_t)copied;
   }
 
-  COM_Send_Ack(cmd_id, (offset == total_size));
+  COM_Send_Ack(offset == total_size);
 }
 
 /* ============================================================================
@@ -113,26 +112,24 @@ static void handle_get_tracex_dump(uint32_t cmd_id, const GetTraceXDump *cmd) {
  * ============================================================================ */
 
 void COM_Cmd_Dispatch(const HostMessage *msg) {
-  uint32_t cmd_id = msg->command_id;
-
   switch (msg->which_command) {
   case HostMessage_set_display_enabled_tag:
     host_recognized = true;
     host_last_seen_tick = HAL_GetTick();
-    handle_set_display_enabled(cmd_id, &msg->command.set_display_enabled);
+    handle_set_display_enabled(&msg->command.set_display_enabled);
     break;
   case HostMessage_get_device_info_tag:
     host_recognized = true;
     host_last_seen_tick = HAL_GetTick();
-    handle_get_device_info(cmd_id);
+    handle_get_device_info();
     break;
   case HostMessage_get_tracex_dump_tag:
     host_recognized = true;
     host_last_seen_tick = HAL_GetTick();
-    handle_get_tracex_dump(cmd_id, &msg->command.get_tracex_dump);
+    handle_get_tracex_dump(&msg->command.get_tracex_dump);
     break;
   default:
-    COM_Send_Ack(cmd_id, false);
+    COM_Send_Ack(false);
     break;
   }
 }

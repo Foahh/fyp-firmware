@@ -51,7 +51,6 @@ class VisualizerState:
 
     model_name: str = "unknown"
     class_labels: list[str] = field(default_factory=list)
-    device_info_command_id: int = 0
     display_width: int = 0
     display_height: int = 0
     letterbox_width: int = 0
@@ -145,18 +144,15 @@ def receiver_loop(
     cmd_queue: Queue[tuple[str, Optional[bool]]],
     stop_evt: threading.Event,
 ) -> None:
-    command_id = 1
-    pending_display_cmds: dict[int, bool] = {}
+    pending_display: deque[bool] = deque()
     link: Optional[SerialLink] = None
     last_get_info_mono: float = 0.0
     GET_INFO_RESEND_S = 1.5
 
     def send_get_info(why: str) -> None:
-        nonlocal command_id, last_get_info_mono
+        nonlocal last_get_info_mono
         assert link is not None
         msg = messages_pb2.HostMessage()
-        msg.command_id = command_id
-        command_id += 1
         msg.get_device_info.SetInParent()
         msg.get_device_info.timestamp_ms = int(time.time() * 1000) & 0xFFFFFFFF
         link.send_host_message(msg)
@@ -187,8 +183,6 @@ def receiver_loop(
                 except Empty:
                     break
                 msg = messages_pb2.HostMessage()
-                msg.command_id = command_id
-                command_id += 1
                 if command == "get_info":
                     msg.get_device_info.SetInParent()
                     msg.get_device_info.timestamp_ms = (
@@ -202,7 +196,7 @@ def receiver_loop(
                         int(time.time() * 1000) & 0xFFFFFFFF
                     )
                     state.host_introduced = True
-                    pending_display_cmds[msg.command_id] = bool(value)
+                    pending_display.append(bool(value))
                 link.send_host_message(msg)
                 if command == "get_info":
                     print("[firmware] Sent get_device_info (queued)", file=sys.stderr)
@@ -259,7 +253,6 @@ def receiver_loop(
                 info = dev_msg.device_info
                 state.model_name = info.model_name or "unknown"
                 state.class_labels = list(info.class_labels)
-                state.device_info_command_id = int(info.command_id)
                 state.device_info_timestamp = int(info.timestamp_ms)
                 state.display_width = int(info.display_width_px)
                 state.display_height = int(info.display_height_px)
@@ -294,14 +287,12 @@ def receiver_loop(
 
             elif which == "ack":
                 ack = dev_msg.ack
-                state.last_ack = (
-                    f"ACK command_id={ack.command_id} success={ack.success}"
-                )
+                state.last_ack = f"ACK success={ack.success}"
                 state.last_ack_timestamp = int(ack.timestamp_ms)
-                if ack.command_id in pending_display_cmds:
+                if pending_display:
+                    desired = pending_display.popleft()
                     if ack.success:
-                        state.display_enabled = pending_display_cmds[ack.command_id]
-                    del pending_display_cmds[ack.command_id]
+                        state.display_enabled = desired
 
         except Exception as exc:
             state.last_error = str(exc)

@@ -60,31 +60,29 @@ message DetectionResult {
 
 /* Scalar fields first for compact C struct layout; strings last. */
 message DeviceInfo {
-  uint32 command_id = 1;
-  uint32 timestamp_ms = 2;
-  uint32 display_width_px = 3;
-  uint32 display_height_px = 4;
-  uint32 letterbox_width_px = 5;
-  uint32 letterbox_height_px = 6;
-  uint32 nn_width_px = 7;
-  uint32 nn_height_px = 8;
-  uint32 nn_input_size_bytes = 9;
-  uint32 power_mode = 10;
-  uint32 camera_fps = 11;
-  uint32 mcu_freq_mhz = 12;
-  uint32 npu_freq_mhz = 13;
-  string model_name = 14 [(nanopb).max_size = 64];
-  repeated string class_labels = 15 [
+  uint32 timestamp_ms = 1;
+  uint32 display_width_px = 2;
+  uint32 display_height_px = 3;
+  uint32 letterbox_width_px = 4;
+  uint32 letterbox_height_px = 5;
+  uint32 nn_width_px = 6;
+  uint32 nn_height_px = 7;
+  uint32 nn_input_size_bytes = 8;
+  uint32 power_mode = 9;
+  uint32 camera_fps = 10;
+  uint32 mcu_freq_mhz = 11;
+  uint32 npu_freq_mhz = 12;
+  string model_name = 13 [(nanopb).max_size = 64];
+  repeated string class_labels = 14 [
     (nanopb).max_size = 32,
     (nanopb).max_count = 10
   ];
-  string build_timestamp = 16 [(nanopb).max_size = 24];
+  string build_timestamp = 15 [(nanopb).max_size = 24];
 }
 
 message Ack {
-  uint32 command_id = 1;
-  bool success = 2;
-  uint32 timestamp_ms = 3;
+  bool success = 1;
+  uint32 timestamp_ms = 2;
 }
 
 message TraceXChunk {
@@ -127,10 +125,9 @@ message DeviceMessage {
 }
 
 message HostMessage {
-  uint32 command_id = 1;
   oneof command {
-    SetDisplayEnabled set_display_enabled = 2;
-    GetDeviceInfo get_device_info = 3;
-    GetTraceXDump get_tracex_dump = 4;
+    SetDisplayEnabled set_display_enabled = 1;
+    GetDeviceInfo get_device_info = 2;
+    GetTraceXDump get_tracex_dump = 3;
   }
 }

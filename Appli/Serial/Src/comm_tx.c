@@ -85,7 +85,7 @@ void COM_TX_Send(const DeviceMessage *msg) {
   tx_mutex_put(&tx_mutex);
 }
 
-void COM_Send_DeviceInfo(uint32_t command_id) {
+void COM_Send_DeviceInfo(void) {
   DeviceMessage msg = DeviceMessage_init_zero;
   msg.which_payload = DeviceMessage_device_info_tag;
 
@@ -97,7 +97,6 @@ void COM_Send_DeviceInfo(uint32_t command_id) {
   di->nn_width_px = NN_WIDTH;
   di->nn_height_px = NN_HEIGHT;
   di->nn_input_size_bytes = (uint32_t)(NN_WIDTH * NN_HEIGHT * NN_BPP);
-  di->command_id = command_id;
 
   di->power_mode = POWER_MODE;
   di->mcu_freq_mhz = AppClock_GetCpuFreqMHz();
@@ -133,10 +132,9 @@ void COM_Send_DeviceInfo(uint32_t command_id) {
   COM_TX_Send(&msg);
 }
 
-void COM_Send_Ack(uint32_t command_id, bool success) {
+void COM_Send_Ack(bool success) {
   DeviceMessage msg = DeviceMessage_init_zero;
   msg.which_payload = DeviceMessage_ack_tag;
-  msg.payload.ack.command_id = command_id;
   msg.payload.ack.success = success;
   msg.payload.ack.timestamp_ms = HAL_GetTick();
 

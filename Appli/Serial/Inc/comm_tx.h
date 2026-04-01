@@ -41,16 +41,14 @@ void COM_TX_Send(const DeviceMessage *msg);
 
 /**
  * @brief  Send a DeviceInfo response
- * @param  command_id: The command_id from the originating HostMessage
  */
-void COM_Send_DeviceInfo(uint32_t command_id);
+void COM_Send_DeviceInfo(void);
 
 /**
  * @brief  Send an Ack response
- * @param  command_id: The command_id from the originating HostMessage
  * @param  success: true if command succeeded
  */
-void COM_Send_Ack(uint32_t command_id, bool success);
+void COM_Send_Ack(bool success);
 
 /**
  * @brief  Send one TraceX dump chunk
