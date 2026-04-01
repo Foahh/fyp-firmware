@@ -43,6 +43,7 @@ def create_gui(
     C_PERIOD = "#ED7D31"
     C_POWER_INF = "#E06666"
     C_POWER_IDLE = "#5B9BD5"
+    C_POWER_PERIOD = "#FFC000"
     C_CPU = "#6AA84F"
     C_BATTERY = "#B565D8"
     LW = 2.2
@@ -156,6 +157,15 @@ def create_gui(
     (line_power_idle,) = ax_power.plot(
         [], [], label="Idle", color=C_POWER_IDLE, linewidth=LW
     )
+    (line_power_period,) = ax_power.plot(
+        [],
+        [],
+        label="Period avg",
+        color=C_POWER_PERIOD,
+        linewidth=LW,
+        linestyle="--",
+        zorder=3,
+    )
     ax_power.set_title("Power Consumption", color=C_TITLE, pad=10)
     ax_power.set_xlabel("Time (s)")
     ax_power.set_ylabel("mW")
@@ -179,7 +189,7 @@ def create_gui(
     (line_pm_idle_mj,) = ax_pm_mj.plot(
         [], [], label="Idle mJ", color=C_POWER_IDLE, linewidth=LW
     )
-    ax_pm_mj.set_title("Power Energy per Phase", color=C_TITLE, pad=10)
+    ax_pm_mj.set_title("Power Energy / Phase", color=C_TITLE, pad=10)
     ax_pm_mj.set_xlabel("Time (s)")
     ax_pm_mj.set_ylabel("mJ")
     _legend(ax_pm_mj, C_AX_BG)
@@ -209,7 +219,7 @@ def create_gui(
         [], [], label="Est. runtime", color=C_BATTERY, linewidth=LW
     )
     ax_battery.set_title(
-        "Battery Life Estimate (ideal, load from power monitor)",
+        "Battery Life Estimate",
         color=C_TITLE,
         pad=10,
     )
@@ -219,7 +229,7 @@ def create_gui(
     battery_note = ax_battery.text(
         0.02,
         0.02,
-        "P_avg = period mJ / NN period; needs ESP32 power + both infer/idle samples.",
+        "P_avg = (period mJ / NN period ms) × 1000 → mW",
         transform=ax_battery.transAxes,
         ha="left",
         va="bottom",
@@ -364,14 +374,15 @@ def create_gui(
         return (img,)
 
     def update_power(_frame_idx):
-        t0_power = min(
-            state.power_infer_time_hist[0]
-            if state.power_infer_time_hist
-            else float("inf"),
-            state.power_idle_time_hist[0]
-            if state.power_idle_time_hist
-            else float("inf"),
-        )
+        t0_starts: list[float] = []
+        if state.power_infer_time_hist:
+            t0_starts.append(state.power_infer_time_hist[0])
+        if state.power_idle_time_hist:
+            t0_starts.append(state.power_idle_time_hist[0])
+        if state.battery_time_hist:
+            t0_starts.append(state.battery_time_hist[0])
+        t0_power = min(t0_starts) if t0_starts else 0.0
+
         if state.power_infer_time_hist:
             x_inf = np.array([t - t0_power for t in state.power_infer_time_hist])
         else:
@@ -380,14 +391,38 @@ def create_gui(
             x_idle = np.array([t - t0_power for t in state.power_idle_time_hist])
         else:
             x_idle = np.array([])
+        if state.battery_time_hist and state.battery_p_avg_mw_hist:
+            x_period = np.array(
+                [t - t0_power for t in state.battery_time_hist]
+            )
+            y_period = np.array(state.battery_p_avg_mw_hist, dtype=float)
+        else:
+            x_period = np.array([])
+            y_period = np.array([])
+
         line_power_inf.set_data(x_inf, np.array(state.power_infer_hist_mw))
         line_power_idle.set_data(x_idle, np.array(state.power_idle_hist_mw))
-        power_peak_text.set_text(
-            f"infer: {state.power_infer_avg_mw:.0f} mW   idle: {state.power_idle_avg_mw:.0f} mW"
+        line_power_period.set_data(x_period, y_period)
+
+        period_mw = (
+            float(state.battery_p_avg_mw_hist[-1])
+            if state.battery_p_avg_mw_hist
+            else None
         )
+        if period_mw is not None:
+            power_peak_text.set_text(
+                f"infer: {state.power_infer_avg_mw:.0f} mW   "
+                f"idle: {state.power_idle_avg_mw:.0f} mW   "
+                f"period: {period_mw:.0f} mW"
+            )
+        else:
+            power_peak_text.set_text(
+                f"infer: {state.power_infer_avg_mw:.0f} mW   "
+                f"idle: {state.power_idle_avg_mw:.0f} mW"
+            )
         ax_power.relim()
         ax_power.autoscale_view()
-        return (line_power_inf, line_power_idle, power_peak_text)
+        return (line_power_inf, line_power_idle, line_power_period, power_peak_text)
 
     def update_pm_mj(_frame_idx):
         t0_mj = min(
@@ -414,9 +449,9 @@ def create_gui(
         line_pm_idle_mj.set_data(x_idle_mj, np.array(state.pm_avg_idle_mj_hist))
         if state.pm_seen_infer_mj and state.pm_seen_idle_mj:
             pm = state.pm_period_total_mj
-            pm_period_text.set_text(f"{pm:.2f} mJ\nperiod (inf + idle)")
+            pm_period_text.set_text(f"{pm:.2f} mJ")
         else:
-            pm_period_text.set_text("—\nperiod (inf + idle)")
+            pm_period_text.set_text("—")
         ax_pm_mj.relim()
         ax_pm_mj.autoscale_view()
         return (line_pm_inf_mj, line_pm_idle_mj, pm_period_text)

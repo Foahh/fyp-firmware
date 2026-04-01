@@ -264,8 +264,9 @@ def receiver_loop(
                     and state.pm_seen_idle_mj
                     and state.pm_period_total_mj > 0.0
                 ):
+                    # mJ/ms = W numerically; ×1000 → mW (match power_receiver avg_mw)
                     period_ms = period_us * 1e-3
-                    p_avg_mw = state.pm_period_total_mj / period_ms
+                    p_avg_mw = (state.pm_period_total_mj / period_ms) * 1000.0
                     if p_avg_mw > 0.0:
                         state.battery_p_avg_mw_hist.append(p_avg_mw)
                         state.battery_time_hist.append(now)
