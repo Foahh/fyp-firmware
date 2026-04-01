@@ -23,6 +23,7 @@
  */
 
 #include "platform.h"
+#include "stm32n6xx_hal.h"
 #include "timebase.h"
 #include "tx_api.h"
 
@@ -59,20 +60,21 @@ void SwapBuffer(uint8_t *buffer, uint16_t size) {
 }
 
 /**
- * @brief  RTOS-friendly delay.  The vendor version spins on GetTick() which
- *         blocks the CPU.  This version yields to other threads via
- *         tx_thread_sleep().  Safe because WaitMs is only called from within
- *         the ToF thread (a kernel thread).
+ * @brief  Delay for VL53L5CX driver.  Inside a ThreadX thread, sleeps with
+ *         tx_thread_sleep() so other threads run.  Outside a thread (e.g.
+ *         sensor init before tx_kernel_enter), uses HAL_Delay() so the wait
+ *         still completes instead of misusing the scheduler.
  */
- uint8_t WaitMs(VL53L5CX_Platform *p_platform, uint32_t TimeMs) {
+uint8_t WaitMs(VL53L5CX_Platform *p_platform, uint32_t TimeMs) {
   (void)p_platform;
   if (TimeMs == 0) {
     return 0;
   }
-  ULONG ticks = MS_TO_TICKS(TimeMs);
-  if (ticks == 0) {
-    ticks = 1;
+  if (tx_thread_identify() != TX_NULL) {
+    ULONG ticks = MS_TO_TICKS(TimeMs);
+    tx_thread_sleep(ticks);
+  } else {
+    HAL_Delay(TimeMs);
   }
-  tx_thread_sleep(ticks);
   return 0;
 }
