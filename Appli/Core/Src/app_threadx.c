@@ -18,6 +18,7 @@
 
 #include "app_threadx.h"
 
+#include "thread_config.h"
 #include "cam.h"
 #include "cmw_camera.h"
 #include "comm_log.h"
@@ -32,9 +33,6 @@
 #include "tracex.h"
 #include "ui.h"
 #include "utils.h"
-
-/* Startup thread for runtime operations that require ThreadX resources */
-#define STARTUP_THREAD_STACK_SIZE 1024U
 
 /* Thread resources */
 static struct {
@@ -83,7 +81,7 @@ UINT ThreadX_Start(VOID *memory_ptr) {
   ret = tx_thread_create(&startup_ctx.thread, "startup",
                          startup_thread_entry, 0,
                          startup_ctx.stack, STARTUP_THREAD_STACK_SIZE,
-                         1, 1, /* High priority to run first */
+                         STARTUP_THREAD_PRIORITY, STARTUP_THREAD_PRIORITY,
                          TX_NO_TIME_SLICE, TX_AUTO_START);
   APP_REQUIRE(ret == TX_SUCCESS);
 

@@ -16,6 +16,7 @@
  ******************************************************************************
  */
 
+#include "thread_config.h"
 #include "comm_log.h"
 #include "comm_tx.h"
 #include "cpu_load.h"
@@ -29,13 +30,6 @@
 /* ToFAlert.flags (protobuf); keep in sync with messages.proto */
 #define TOF_PB_FLAG_ALERT (1u << 0)
 #define TOF_PB_FLAG_STALE (1u << 1)
-
-/* ============================================================================
- * Configuration
- * ============================================================================ */
-
-#define COMM_LOG_THREAD_STACK_SIZE 2048U
-#define COMM_LOG_THREAD_PRIORITY   8
 
 /* ============================================================================
  * Static resources

@@ -16,6 +16,7 @@
  ******************************************************************************
  */
 
+#include "thread_config.h"
 #include "comm_rx.h"
 #include "comm_cmd.h"
 #include "error.h"
@@ -29,9 +30,6 @@
 /* ============================================================================
  * Configuration
  * ============================================================================ */
-
-#define COMM_RX_THREAD_STACK_SIZE 2048U
-#define COMM_RX_THREAD_PRIORITY   8
 
 /* Ring buffer size (must be power of 2) */
 #define RX_RING_SIZE 2048U

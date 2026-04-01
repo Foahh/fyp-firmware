@@ -19,23 +19,12 @@
 #ifndef CAM_INTERNAL_H
 #define CAM_INTERNAL_H
 
+#include "thread_config.h"
 #include "bqueue.h"
 #include "cam.h"
 #include "cmw_camera.h"
 #include "nn.h"
 #include "stm32n6xx_hal.h"
-
-/* ============================================================================
- * Configuration Constants
- * ============================================================================ */
-
-/* ISP update thread configuration */
-#define ISP_THREAD_STACK_SIZE 2048
-#define ISP_THREAD_PRIORITY   7
-
-/* LCD reload thread configuration (high priority to minimize display latency) */
-#define LCD_RELOAD_THREAD_STACK_SIZE 1024
-#define LCD_RELOAD_THREAD_PRIORITY   6
 
 /* ============================================================================
  * Shared State (extern declarations)

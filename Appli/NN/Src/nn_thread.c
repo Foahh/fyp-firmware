@@ -16,6 +16,7 @@
  ******************************************************************************
  */
 
+#include "thread_config.h"
 #include "cam.h"
 #include "error.h"
 #include "model_config.h"
@@ -41,10 +42,6 @@ static void nn_thread_entry(ULONG arg);
 /* ============================================================================
  * Configuration Constants
  * ============================================================================ */
-
-/* Thread configuration */
-#define NN_THREAD_STACK_SIZE 4096
-#define NN_THREAD_PRIORITY   5
 
 /* NN output sizes from model header */
 

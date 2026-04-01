@@ -16,6 +16,7 @@
  ******************************************************************************
  */
 
+#include "thread_config.h"
 #include "bqueue.h"
 #include "cam.h"
 #include "error.h"
@@ -48,14 +49,6 @@ int32_t app_postprocess_run(void *pInput[], int nb_input, void *pOutput, void *p
  * ============================================================================ */
 
 static void pp_thread_entry(ULONG arg);
-
-/* ============================================================================
- * Configuration Constants
- * ============================================================================ */
-
-/* Thread configurations */
-#define PP_THREAD_STACK_SIZE 4096
-#define PP_THREAD_PRIORITY   4
 
 /* ============================================================================
  * Global State Variables

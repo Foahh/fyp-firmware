@@ -18,6 +18,7 @@
 
 #include "ui_internal.h"
 
+#include "thread_config.h"
 #include "cam.h"
 #include "cam_config.h"
 #include "display.h"
@@ -81,10 +82,6 @@ static volatile uint8_t g_tof_overlay_visible = 0;
 /* ============================================================================
  * Thread Configuration
  * ============================================================================ */
-
-/* UI update thread */
-#define UI_THREAD_STACK_SIZE 4096
-#define UI_THREAD_PRIORITY   9
 
 /* Update rate for periodic diagnostic updates */
 #define UI_UPDATE_FPS 20

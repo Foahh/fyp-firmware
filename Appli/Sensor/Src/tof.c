@@ -25,6 +25,7 @@
  ******************************************************************************
  */
 
+#include "thread_config.h"
 #include "tof.h"
 #include "cam_config.h"
 #include "cmw_camera.h"
@@ -45,9 +46,6 @@
 /* ============================================================================
  * Configuration
  * ============================================================================ */
-
-#define TOF_THREAD_STACK_SIZE 2048U
-#define TOF_THREAD_PRIORITY   8
 
 /* Sensor I2C address */
 #define TOF_I2C_ADDRESS VL53L5CX_DEFAULT_I2C_ADDRESS
