@@ -393,9 +393,7 @@ def create_gui(
         else:
             x_idle = np.array([])
         if state.battery_time_hist and state.battery_p_avg_mw_hist:
-            x_period = np.array(
-                [t - t0_power for t in state.battery_time_hist]
-            )
+            x_period = np.array([t - t0_power for t in state.battery_time_hist])
             y_period = np.array(state.battery_p_avg_mw_hist, dtype=float)
         else:
             x_period = np.array([])
@@ -436,21 +434,15 @@ def create_gui(
         t0_mj = min(t0_starts) if t0_starts else 0.0
 
         if state.pm_avg_inf_mj_time_hist:
-            x_inf_mj = np.array(
-                [t - t0_mj for t in state.pm_avg_inf_mj_time_hist]
-            )
+            x_inf_mj = np.array([t - t0_mj for t in state.pm_avg_inf_mj_time_hist])
         else:
             x_inf_mj = np.array([])
         if state.pm_avg_idle_mj_time_hist:
-            x_idle_mj = np.array(
-                [t - t0_mj for t in state.pm_avg_idle_mj_time_hist]
-            )
+            x_idle_mj = np.array([t - t0_mj for t in state.pm_avg_idle_mj_time_hist])
         else:
             x_idle_mj = np.array([])
         if state.pm_period_mj_time_hist:
-            x_period_mj = np.array(
-                [t - t0_mj for t in state.pm_period_mj_time_hist]
-            )
+            x_period_mj = np.array([t - t0_mj for t in state.pm_period_mj_time_hist])
             y_period_mj = np.array(state.pm_period_mj_hist, dtype=float)
         else:
             x_period_mj = np.array([])

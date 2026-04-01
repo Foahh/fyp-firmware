@@ -144,9 +144,7 @@ class VisualizerState:
     battery_p_avg_mw_hist: deque[float] = field(
         default_factory=lambda: deque(maxlen=240)
     )
-    battery_time_hist: deque[float] = field(
-        default_factory=lambda: deque(maxlen=240)
-    )
+    battery_time_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
 
 
 def build_detection_text(
