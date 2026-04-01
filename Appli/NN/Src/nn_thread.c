@@ -16,13 +16,13 @@
  ******************************************************************************
  */
 
-#include "thread_config.h"
 #include "cam.h"
 #include "error.h"
 #include "model_config.h"
 #include "nn.h"
 #include "nn_config.h"
 #include "stm32n6xx_hal.h"
+#include "thread_config.h"
 #include "timebase.h"
 #include "utils.h"
 #include <string.h>
@@ -43,18 +43,9 @@ static void nn_thread_entry(ULONG arg);
  * Configuration Constants
  * ============================================================================ */
 
-/* NN output sizes from model header */
+/* NN output sizes from model header (MDL_NN_OUT_BUFFER_SIZE / MDL_NN_OUT_SIZES) */
 
-#define NN_OUT0_SIZE       MDL_NN_OUT_1_SIZE
-#define NN_OUT0_SIZE_ALIGN ALIGN_VALUE(NN_OUT0_SIZE, MDL_NN_OUT_1_ALIGNMENT)
-
-#define NN_OUT1_SIZE       MDL_NN_OUT_2_SIZE
-#define NN_OUT1_SIZE_ALIGN ALIGN_VALUE(NN_OUT1_SIZE, MDL_NN_OUT_2_ALIGNMENT)
-
-#define NN_OUT2_SIZE       MDL_NN_OUT_3_SIZE
-#define NN_OUT2_SIZE_ALIGN ALIGN_VALUE(NN_OUT2_SIZE, MDL_NN_OUT_3_ALIGNMENT)
-
-#define NN_OUT_BUFFER_SIZE (NN_OUT0_SIZE_ALIGN + NN_OUT1_SIZE_ALIGN + NN_OUT2_SIZE_ALIGN)
+#define NN_OUT_BUFFER_SIZE MDL_NN_OUT_BUFFER_SIZE
 #define NN_INPUT_SIZE      (NN_WIDTH * NN_HEIGHT * NN_BPP)
 
 /* ============================================================================
@@ -84,7 +75,7 @@ static bqueue_t nn_output_queue;
 static uint8_t nn_output_buffers[2][NN_OUT_BUFFER_SIZE] ALIGN_32;
 
 /* Output sizes array */
-static const uint32_t nn_out_sizes[NN_OUT_NB] = {NN_OUT0_SIZE, NN_OUT1_SIZE, NN_OUT2_SIZE};
+static const uint32_t nn_out_sizes[NN_OUT_NB] = MDL_NN_OUT_SIZES;
 
 /* Timing statistics published via double-buffered snapshots with seqlock. */
 static nn_timing_t nn_timing_buffers[2];

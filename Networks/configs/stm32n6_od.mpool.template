@@ -1,7 +1,7 @@
 {
 	"params": {
 		"param": [
-			{ "paramname": "max_onchip_sram_size", "value": "512", "magnitude": "KBYTES" }
+			{ "paramname": "max_onchip_sram_size", "value": "1024", "magnitude": "KBYTES" }
 		]
 	},
 	"memory": {
@@ -21,8 +21,8 @@
 				"name":  "cpuRAM2",
 				"fformat": "FORMAT_RAW",
 				"prop":	  { "rights": "ACC_WRITE", "throughput": "MID",  "latency": "MID", "byteWidth": 8, "freqRatio": 2.50, "read_power": 17.324, "write_power": 15.321 },
-				"offset": { "value": "0x34180000", "magnitude":  "BYTES" },
-				"size":   { "value": "512",        "magnitude": "KBYTES" }
+				"offset": { "value": "#CPURAM2_OFFSET#", "magnitude":  "BYTES" },
+				"size":   { "value": "#CPURAM2_SIZE_KB#", "magnitude": "KBYTES" }
 			},
 			{
 				"fname": "AXISRAM3",
@@ -62,7 +62,7 @@
 				"fformat": "FORMAT_RAW",
 				"prop":	  { "rights": "ACC_WRITE", "throughput": "MID", "latency": "HIGH", "byteWidth": 2, "freqRatio": 5.00, "cacheable": "CACHEABLE_ON","read_power": 380, "write_power": 340.0, "constants_preferred": "true" },
 				"offset": { "value": "0x90000000", "magnitude":  "BYTES" },
-				"size":   { "value": "16",         "magnitude": "MBYTES" }
+				"size":   { "value": "8",         "magnitude": "MBYTES" }
 			},
 			{
 				"fname": "xSPI2",
@@ -70,7 +70,7 @@
 				"fformat": "FORMAT_RAW",
 				"prop":	  { "rights": "ACC_READ",  "throughput": "MID", "latency": "HIGH", "byteWidth": 1, "freqRatio": 6.00, "cacheable": "CACHEABLE_ON", "read_power": 110, "write_power": 400.0, "constants_preferred": "true" },
 				"offset": { "value": "0x70380000", "magnitude":  "BYTES" },
-				"size":   { "value": "60",         "magnitude": "MBYTES" }
+				"size":   { "value": "16",         "magnitude": "MBYTES" }
 			}
 		]
 	}

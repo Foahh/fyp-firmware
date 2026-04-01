@@ -1,7 +1,9 @@
 from .common import (
     SIGN_CACHE_FILE,
     bin_to_hex,
+    compute_memory_replacements,
     file_hash,
+    generate_from_template,
     read_cached_hash,
     remove_if_exists,
     require_tool,
@@ -118,6 +120,12 @@ def cmd_build(
     if sign:
         require_tool("STM32_SigningTool_CLI")
         require_tool("arm-none-eabi-objcopy")
+
+    # Generate linker script from template with model-specific SRAM layout
+    ld_template = project_root / "Appli" / "Startup" / "STM32N657XX_LRUN.ld.template"
+    ld_output = project_root / "Appli" / "Startup" / "STM32N657XX_LRUN.gen.ld"
+    replacements = compute_memory_replacements(model["sram_size_kb"])
+    generate_from_template(ld_template, ld_output, replacements)
 
     if fsbl:
         build_project(project_root, "FSBL", projects["FSBL"], build_type)

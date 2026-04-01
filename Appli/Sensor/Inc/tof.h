@@ -144,7 +144,8 @@ typedef struct {
  * ============================================================================ */
 
 /**
- * @brief  Initialize ToF hardware (GPIO, EXTI). Does NOT create ThreadX resources.
+ * @brief  Initialize ToF hardware (GPIO, EXTI, power-on, firmware upload,
+ *         sensor configuration). Requires BSP_I2C1_Init() first. ~1-2 s.
  * @note   Call from main() before ThreadX starts.
  */
 void TOF_Init(void);

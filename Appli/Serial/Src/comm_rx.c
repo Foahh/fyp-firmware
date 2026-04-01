@@ -16,7 +16,6 @@
  ******************************************************************************
  */
 
-#include "thread_config.h"
 #include "comm_rx.h"
 #include "comm_cmd.h"
 #include "error.h"
@@ -24,6 +23,7 @@
 #include "pb_decode.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6xx_hal.h"
+#include "thread_config.h"
 #include "tx_api.h"
 #include <string.h>
 

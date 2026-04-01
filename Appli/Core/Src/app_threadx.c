@@ -18,7 +18,6 @@
 
 #include "app_threadx.h"
 
-#include "thread_config.h"
 #include "cam.h"
 #include "cmw_camera.h"
 #include "comm_log.h"
@@ -29,6 +28,7 @@
 #include "main.h"
 #include "nn.h"
 #include "pp.h"
+#include "thread_config.h"
 #include "tof.h"
 #include "tracex.h"
 #include "ui.h"

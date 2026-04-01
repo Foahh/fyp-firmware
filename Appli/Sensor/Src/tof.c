@@ -25,7 +25,6 @@
  ******************************************************************************
  */
 
-#include "thread_config.h"
 #include "tof.h"
 #include "cam_config.h"
 #include "cmw_camera.h"
@@ -35,6 +34,7 @@
 #include "stm32n6570_discovery.h"
 #include "stm32n6570_discovery_bus.h"
 #include "stm32n6xx_hal.h"
+#include "thread_config.h"
 #include "timebase.h"
 #include "tx_api.h"
 #include "vl53l5cx.h"
@@ -331,6 +331,38 @@ void TOF_Init(void) {
 
   HAL_NVIC_SetPriority(EXTI0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  /* Power on sensor */
+  HAL_GPIO_WritePin(TOF_PWR_EN_PORT, TOF_PWR_EN_PIN, GPIO_PIN_SET);
+  HAL_Delay(10);
+
+  /* Register bus I/O (I2C1 must already be initialised) */
+  VL53L5CX_IO_t io = {
+      .Init = BSP_I2C1_Init,
+      .DeInit = BSP_I2C1_DeInit,
+      .Address = TOF_I2C_ADDRESS,
+      .WriteReg = BSP_I2C1_WriteReg16,
+      .ReadReg = BSP_I2C1_ReadReg16,
+      .GetTick = (VL53L5CX_GetTick_Func)HAL_GetTick,
+  };
+
+  int32_t ret = VL53L5CX_RegisterBusIO(&tof_obj, &io);
+  APP_REQUIRE(ret == VL53L5CX_OK);
+
+  /* Upload firmware to sensor (~1-2 s) */
+  ret = VL53L5CX_Init(&tof_obj);
+  APP_REQUIRE(ret == VL53L5CX_OK);
+
+  /* Configure: 8x8 resolution, 15 Hz ranging, 20 ms integration */
+  uint8_t status;
+  status = vl53l5cx_set_resolution(&tof_obj.Dev, VL53L5CX_RESOLUTION_8X8);
+  APP_REQUIRE(status == VL53L5CX_OK);
+
+  status = vl53l5cx_set_ranging_frequency_hz(&tof_obj.Dev, 15);
+  APP_REQUIRE(status == VL53L5CX_OK);
+
+  status = vl53l5cx_set_integration_time_ms(&tof_obj.Dev, 20);
+  APP_REQUIRE(status == VL53L5CX_OK);
 }
 
 void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin) {
@@ -346,40 +378,8 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin) {
 static void tof_thread_entry(ULONG arg) {
   UNUSED(arg);
 
-  /* Power on sensor via PQ5 */
-  HAL_GPIO_WritePin(TOF_PWR_EN_PORT, TOF_PWR_EN_PIN, GPIO_PIN_SET);
-  tx_thread_sleep(MS_TO_TICKS(10)); /* 10ms power-up delay */
-
-  /* Register bus I/O */
-  VL53L5CX_IO_t io = {
-      .Init = BSP_I2C1_Init,
-      .DeInit = BSP_I2C1_DeInit,
-      .Address = TOF_I2C_ADDRESS,
-      .WriteReg = BSP_I2C1_WriteReg16,
-      .ReadReg = BSP_I2C1_ReadReg16,
-      .GetTick = (VL53L5CX_GetTick_Func)HAL_GetTick,
-  };
-
-  int32_t ret = VL53L5CX_RegisterBusIO(&tof_obj, &io);
-  APP_REQUIRE(ret == VL53L5CX_OK);
-
-  /* Initialize sensor (uploads firmware, ~1-2s) */
-  ret = VL53L5CX_Init(&tof_obj);
-  APP_REQUIRE(ret == VL53L5CX_OK);
-
-  /* Configure: 8x8 resolution, 15Hz ranging, 20ms integration */
-  uint8_t status;
-  status = vl53l5cx_set_resolution(&tof_obj.Dev, VL53L5CX_RESOLUTION_8X8);
-  APP_REQUIRE(status == VL53L5CX_OK);
-
-  status = vl53l5cx_set_ranging_frequency_hz(&tof_obj.Dev, 15);
-  APP_REQUIRE(status == VL53L5CX_OK);
-
-  status = vl53l5cx_set_integration_time_ms(&tof_obj.Dev, 20);
-  APP_REQUIRE(status == VL53L5CX_OK);
-
-  /* Start ranging */
-  status = vl53l5cx_start_ranging(&tof_obj.Dev);
+  /* Sensor already initialised and configured by TOF_Init(); start ranging. */
+  uint8_t status = vl53l5cx_start_ranging(&tof_obj.Dev);
   APP_REQUIRE(status == VL53L5CX_OK);
 
   /* Main ranging loop — wait for INT pin instead of polling */

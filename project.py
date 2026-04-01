@@ -8,7 +8,7 @@ from scripts.build import cmd_build
 from scripts.clean import cmd_clean
 from scripts.flash import cmd_flash
 from scripts.format import cmd_format
-from scripts.generate_model import cmd_model
+from scripts.generate_model import cmd_model, cmd_model_all
 from scripts.generate_proto import cmd_generate_proto
 from scripts.tracex_dump import cmd_tracex_dump
 from scripts.tracex_parse import cmd_tracex_parse
@@ -36,15 +36,32 @@ PROJECTS = {
 NETWORK_BIN_ADDRESS = "0x70380000"
 
 MODELS = {
-    "yolox_nano": {
-        "define": "MODEL_YOLOX_NANO",
-        "tflite": "models/st_yolo_x_nano_480_1.0_0.25_3_int8.tflite",
-        "network_name": "od_yolo_x_person",
+    "yolox_480": {
+        "define": "MODEL_YOLOX_NANO_480_D100_W025_PERSON",
+        "model_file": "models/st_yoloxn_d100_w025_480_int8.tflite",
+        "network_name": "st_yolo_x_480_person",
         "neural_art": "object_detection@my_neural_art.json",
+        "sram_size_kb": 512,
+    },
+    "yolod_256": {
+        "define": "MODEL_ST_YOLODV2MILLI_256_PERSON",
+        "model_file": "models/st_yolodv2milli_actrelu_pt_coco_person_256_qdq_int8.onnx",
+        "network_name": "st_yolo_d_256_person",
+        "neural_art": "object_detection@my_neural_art.json",
+        "sram_size_kb": 1024,
+        "inputs_ch_position": "chlast",
+    },
+    "yolo26_320": {
+        "define": "MODEL_YOLO26_320_PERSON",
+        "model_file": "models/yolo26_320_qdq_int8_od_coco-person-st.onnx",
+        "network_name": "yolo26_320_person",
+        "neural_art": "object_detection@my_neural_art.json",
+        "sram_size_kb": 512,
+        "inputs_ch_position": "chlast",
     },
 }
 
-DEFAULT_MODEL = "yolox_nano"
+DEFAULT_MODEL = "yolox_480"
 
 CAMERA_FPS_CHOICES = (10, 15, 20, 25, 30)
 DEFAULT_CAMERA_FPS = 30
@@ -72,13 +89,19 @@ def main():
     model_parser = sub.add_parser(
         "model", help="Generate network model sources and binaries"
     )
-    model_parser.add_argument(
+    model_name_group = model_parser.add_mutually_exclusive_group(required=False)
+    model_name_group.add_argument(
         "--name",
         "-n",
         dest="model",
         choices=list(MODELS),
-        default=DEFAULT_MODEL,
-        help=f"Model to use (default: {DEFAULT_MODEL})",
+        help=f"Model to generate (default: {DEFAULT_MODEL} if --all not set)",
+    )
+    model_name_group.add_argument(
+        "--all",
+        action="store_true",
+        dest="model_all",
+        help="Generate every model; deletes Networks/Src and Networks/Bin first",
     )
 
     proto_parser = sub.add_parser(
@@ -110,8 +133,8 @@ def main():
     build_parser.add_argument(
         "--mode",
         choices=["underdrive", "nominal", "overdrive"],
-        default="nominal",
-        help="Power/clock mode (default: nominal)",
+        default="underdrive",
+        help="Power/clock mode (default: underdrive)",
     )
     build_parser.add_argument(
         "--fps",
@@ -243,7 +266,17 @@ def main():
     elif args.command == "format":
         cmd_format(PROJECT_ROOT)
     elif args.command == "model":
-        cmd_model(PROJECT_ROOT, resolve_model(args), NETWORK_BIN_ADDRESS)
+        if args.model_all:
+            cmd_model_all(PROJECT_ROOT, MODELS, NETWORK_BIN_ADDRESS)
+        else:
+            model_key = args.model if args.model is not None else DEFAULT_MODEL
+            if model_key not in MODELS:
+                print(
+                    f"ERROR: Unknown model '{model_key}'. Available: {', '.join(MODELS)}",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            cmd_model(PROJECT_ROOT, MODELS[model_key], model_key, NETWORK_BIN_ADDRESS)
     elif args.command == "proto":
         cmd_generate_proto(args.proto or None)
     elif args.command == "build":
@@ -269,7 +302,14 @@ def main():
             tracex=args.tracex,
         )
         if args.flash:
-            cmd_flash(PROJECT_ROOT, build_type, PROJECT_NAME_PREFIX, force=args.force)
+            m = resolve_model(args)
+            cmd_flash(
+                PROJECT_ROOT,
+                build_type,
+                PROJECT_NAME_PREFIX,
+                m["network_name"],
+                force=args.force,
+            )
     elif args.command == "ui":
         cmd_ui(PROJECT_ROOT, args.port, baud=args.baud, timeout=args.timeout)
     elif args.command == "tracex":

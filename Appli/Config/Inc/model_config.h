@@ -9,14 +9,18 @@
 #define MODEL_CONFIG_H
 
 /* Model selection */
-#if defined(MODEL_YOLOX_NANO)
-#include "models/model_yolox_nano.h"
+#if defined(MODEL_YOLOX_NANO_480_D100_W025_PERSON)
+#include "models/model_yolox_nano_480_coco_person.h"
 #elif defined(MODEL_YOLOV8N)
 #include "models/model_yolov8n.h"
 #elif defined(MODEL_YOLOV11N)
 #include "models/model_yolov11n.h"
+#elif defined(MODEL_ST_YOLODV2MILLI_256_PERSON)
+#include "models/model_st_yolodv2milli_256_coco_person.h"
+#elif defined(MODEL_YOLO26_320_PERSON)
+#include "models/model_yolo26_320_coco_person.h"
 #else
-#error "No model selected. Define MODEL_YOLOX_NANO, MODEL_YOLOV8N, or MODEL_YOLOV11N."
+#error "No model selected."
 #endif
 
 /* Token-pasting helpers for generated stai API */

@@ -16,7 +16,6 @@
  ******************************************************************************
  */
 
-#include "thread_config.h"
 #include "comm_log.h"
 #include "comm_tx.h"
 #include "cpu_load.h"
@@ -24,6 +23,7 @@
 #include "messages.pb.h"
 #include "pp.h"
 #include "stm32n6xx_hal.h"
+#include "thread_config.h"
 #include "tof.h"
 #include "tx_api.h"
 

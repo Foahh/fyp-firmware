@@ -19,12 +19,12 @@
 #ifndef CAM_INTERNAL_H
 #define CAM_INTERNAL_H
 
-#include "thread_config.h"
 #include "bqueue.h"
 #include "cam.h"
 #include "cmw_camera.h"
 #include "nn.h"
 #include "stm32n6xx_hal.h"
+#include "thread_config.h"
 
 /* ============================================================================
  * Shared State (extern declarations)

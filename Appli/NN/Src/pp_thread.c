@@ -16,7 +16,6 @@
  ******************************************************************************
  */
 
-#include "thread_config.h"
 #include "bqueue.h"
 #include "cam.h"
 #include "error.h"
@@ -25,6 +24,7 @@
 #include "nn_config.h"
 #include "pp.h"
 #include "stm32n6xx_hal.h"
+#include "thread_config.h"
 #include "timebase.h"
 #include "tracker.h"
 #include "utils.h"
@@ -32,12 +32,15 @@
 #include <string.h>
 
 /* Include library headers */
+#include "app_postprocess.h"
 #include "stai.h"
 
 #if MDL_PP_TYPE == POSTPROCESS_OD_ST_YOLOX_UI
 #include "od_st_yolox_pp_if.h"
 #elif MDL_PP_TYPE == POSTPROCESS_OD_YOLO_V8_UI
 #include "od_yolov8_pp_if.h"
+#elif MDL_PP_TYPE == POSTPROCESS_OD_ST_YOLOD_UI
+#include "od_yolo_d_pp_if.h"
 #endif
 
 /* Forward declarations for library functions */
@@ -73,6 +76,8 @@ static int write_buffer_idx = 1;
 static od_st_yolox_pp_static_param_t pp_params;
 #elif MDL_PP_TYPE == POSTPROCESS_OD_YOLO_V8_UI
 static od_yolov8_pp_static_param_t pp_params;
+#elif MDL_PP_TYPE == POSTPROCESS_OD_ST_YOLOD_UI
+static od_yolo_d_pp_static_param_t pp_params;
 #endif
 
 static trk_ctx_t trk_ctx;
@@ -92,8 +97,10 @@ static void pp_thread_entry(ULONG arg) {
   UNUSED(arg);
 
   bqueue_t *output_queue = NN_GetOutputQueue();
-  const uint32_t *out_sizes = NN_GetOutputSizes();
   int out_count = NN_GetOutputCount();
+#if NN_OUT_NB > 1
+  const uint32_t *out_sizes = NN_GetOutputSizes();
+#endif
   od_pp_out_t pp_output;
   uint8_t *pp_input[NN_OUT_NB];
   uint32_t pp_start_cycles;
@@ -128,9 +135,11 @@ static void pp_thread_entry(ULONG arg) {
 
     /* Calculate output buffer pointers */
     pp_input[0] = output_buffer;
+#if NN_OUT_NB > 1
     for (int i = 1; i < out_count; i++) {
       pp_input[i] = pp_input[i - 1] + ALIGN_VALUE(out_sizes[i - 1], 32);
     }
+#endif
 
     pp_output.pOutBuff = NULL;
 

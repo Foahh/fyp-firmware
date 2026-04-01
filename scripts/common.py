@@ -70,6 +70,40 @@ def write_cached_hash(elf_file, digest, cache_file):
     )
 
 
+AXISRAM2_END = 0x3420_0000
+APPLI_SRAM_ORIGIN = 0x3400_0400
+MAX_CPURAM2_SIZE_KB = 1024
+
+
+def compute_memory_replacements(sram_size_kb):
+    """Derive mpool/linker placeholder values from a model's sram_size_kb."""
+    if not 1 <= sram_size_kb <= MAX_CPURAM2_SIZE_KB:
+        raise ValueError(
+            f"sram_size_kb must be 1..{MAX_CPURAM2_SIZE_KB}, got {sram_size_kb}"
+        )
+    cpuram2_offset = AXISRAM2_END - sram_size_kb * 1024
+    sram_length = cpuram2_offset - APPLI_SRAM_ORIGIN
+    if sram_length <= 0:
+        raise ValueError(
+            f"sram_size_kb={sram_size_kb} leaves no SRAM for Appli "
+            f"(AXISRAM1_2_S length would be {sram_length})"
+        )
+    return {
+        "#CPURAM2_OFFSET#": f"0x{cpuram2_offset:08x}",
+        "#CPURAM2_SIZE_KB#": str(sram_size_kb),
+        "#SRAM_LENGTH#": f"0x{sram_length:X}",
+    }
+
+
+def generate_from_template(template_path, output_path, replacements):
+    """Read *template_path*, substitute every key in *replacements*, write *output_path*."""
+    content = template_path.read_text()
+    for tag, value in replacements.items():
+        content = content.replace(tag, value)
+    output_path.write_text(content)
+    print(f"  Generated {output_path} from {template_path.name}")
+
+
 def bin_to_hex(bin_file, hex_file, base_address):
     remove_if_exists(hex_file)
     run(

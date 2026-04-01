@@ -64,7 +64,7 @@ void SwapBuffer(uint8_t *buffer, uint16_t size) {
  *         tx_thread_sleep().  Safe because WaitMs is only called from within
  *         the ToF thread (a kernel thread).
  */
-uint8_t WaitMs(VL53L5CX_Platform *p_platform, uint32_t TimeMs) {
+ uint8_t WaitMs(VL53L5CX_Platform *p_platform, uint32_t TimeMs) {
   (void)p_platform;
   if (TimeMs == 0) {
     return 0;

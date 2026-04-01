@@ -1,8 +1,8 @@
 #include "cpu_load.h"
 
-#include "thread_config.h"
 #include "error.h"
 #include "stm32n6xx_hal.h"
+#include "thread_config.h"
 #include "timebase.h"
 #include "tx_api.h"
 

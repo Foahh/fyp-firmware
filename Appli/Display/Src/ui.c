@@ -18,7 +18,6 @@
 
 #include "ui_internal.h"
 
-#include "thread_config.h"
 #include "cam.h"
 #include "cam_config.h"
 #include "display.h"
@@ -29,6 +28,7 @@
 #include "stm32_lcd.h"
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"
+#include "thread_config.h"
 #include "timebase.h"
 #include "tof.h"
 #include "ui.h"

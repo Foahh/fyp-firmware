@@ -1,5 +1,4 @@
 import shutil
-import sys
 from pathlib import Path
 
 from .common import file_hash, read_cached_hash, require_tool, run, write_cached_hash
@@ -51,7 +50,7 @@ def flash_hex(label, hex_file, force=False):
     write_cached_hash(hex_file, digest, cache)
 
 
-def cmd_flash(project_root, build_type, name_prefix, force=False):
+def cmd_flash(project_root, build_type, name_prefix, network_name, force=False):
     require_tool("STM32_Programmer_CLI")
 
     def hex_path(project):
@@ -65,13 +64,14 @@ def cmd_flash(project_root, build_type, name_prefix, force=False):
 
     flash_hex("FSBL", hex_path("FSBL"), force=force)
 
-    # Network models — flash all .hex files in Networks/Bin
     bin_dir = project_root / "Networks" / "Bin"
-    hex_files = sorted(bin_dir.glob("*.hex")) if bin_dir.exists() else []
-    if not hex_files:
-        print("WARNING: No network HEX files found, skipping.", file=sys.stderr)
-    for hf in hex_files:
-        flash_hex(f"Network: {hf.name}", hf, force=force)
+    net_hex = bin_dir / f"{network_name}_atonbuf.xSPI2.hex"
+    if not net_hex.exists():
+        raise RuntimeError(
+            f"Network image not found: {net_hex}\n"
+            f"Run: python project.py model -n <model>  (see project.py MODELS for keys)"
+        )
+    flash_hex(f"Network: {net_hex.name}", net_hex, force=force)
 
     flash_hex("Appli", hex_path("Appli"), force=force)
 
