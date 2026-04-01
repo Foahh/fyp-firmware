@@ -36,10 +36,6 @@ endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-# LTO
-add_compile_options(-flto)
-add_link_options(-flto)
-
 # Enable compile commands for IDE indexing (e.g., clangd)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
