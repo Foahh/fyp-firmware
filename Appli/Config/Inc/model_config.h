@@ -19,6 +19,8 @@
 #include "models/model_st_yolodv2milli_256_coco_person.h"
 #elif defined(MODEL_YOLO26_320_PERSON)
 #include "models/model_yolo26_320_coco_person.h"
+#elif defined(MODEL_YOLO26_320_FYP_MERGED)
+#include "models/model_yolo26_320_fyp_merged.h"
 #else
 #error "No model selected."
 #endif

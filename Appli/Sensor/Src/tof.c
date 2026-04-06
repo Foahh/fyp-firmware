@@ -5,13 +5,9 @@
  * @brief   VL53L5CX Time-of-Flight ranging thread and hazard proximity fusion.
  *
  *          The ToF sensor provides an 8x8 depth grid. Fusion extracts the
- *          Z-distance inside "hand" and "hazard" bounding boxes (from the NN
+ *          Z-distance inside "hand" and "tool" bounding boxes (from the NN
  *          model) and raises an alert when a hand is within a configurable
- *          distance of a hazardous object.
- *
- *          NOTE: The hazard detection model (hand + saw/hazard classes) is not
- *          yet trained. TOF_GetHazardDetections() is a STUB returning zero
- *          detections. Replace it when the model is available.
+ *          distance of a tool.
  ******************************************************************************
  * @attention
  *
@@ -42,6 +38,13 @@
 
 #include <math.h>
 #include <string.h>
+
+/* ============================================================================
+ * Model class indices (must match MDL_PP_CLASS_LABELS in model header)
+ * ============================================================================ */
+
+#define TOF_CLASS_HAND 0
+#define TOF_CLASS_TOOL 1
 
 /* ============================================================================
  * Configuration
@@ -101,9 +104,6 @@ static volatile uint8_t alert_read_idx = 0;
 
 /* Configurable alert threshold (hand-to-hazard Z-distance) */
 static uint32_t alert_threshold_mm = TOF_DEFAULT_ALERT_THRESHOLD_MM;
-
-/* Stub detection result (always empty until model is trained) */
-static hazard_detection_t stub_detections;
 
 /* ============================================================================
  * Depth extraction helper
@@ -234,27 +234,6 @@ static void tof_run_fusion(const tof_depth_grid_t *grid, tof_alert_t *out) {
     }
   }
 
-  /* --- Extract depth for tracked objects (Kalman-smoothed) --- */
-  if (pp_info != NULL) {
-    for (int i = 0; i < pp_info->nb_tracked; i++) {
-      tof_bbox_t bbox = {
-          .x_center = pp_info->tracked[i].x_center,
-          .y_center = pp_info->tracked[i].y_center,
-          .width = pp_info->tracked[i].width,
-          .height = pp_info->tracked[i].height,
-      };
-      uint32_t d;
-      tof_point3d_t pt;
-      if (tof_extract_depth(grid, &bbox, &d, &pt)) {
-        if (!out->has_hazard_depth || d < out->hazard_distance_mm) {
-          out->has_hazard_depth = 1;
-          out->hazard_distance_mm = d;
-          out->hazard_xyz_mm = pt;
-        }
-      }
-    }
-  }
-
   /* --- Extract closest hand depth + 3D point --- */
   uint32_t hand_min = UINT32_MAX;
   tof_point3d_t hand_pt = {0};
@@ -274,11 +253,9 @@ static void tof_run_fusion(const tof_depth_grid_t *grid, tof_alert_t *out) {
     out->hand_xyz_mm = hand_pt;
   }
 
-  /* --- Extract closest hazard depth + 3D point --- */
-  uint32_t hazard_min =
-      out->has_hazard_depth ? out->hazard_distance_mm : UINT32_MAX;
-  tof_point3d_t hazard_pt =
-      out->has_hazard_depth ? out->hazard_xyz_mm : (tof_point3d_t){0};
+  /* --- Extract closest tool depth + 3D point --- */
+  uint32_t hazard_min = UINT32_MAX;
+  tof_point3d_t hazard_pt = {0};
   for (int i = 0; i < det->nb_hazards; i++) {
     uint32_t d;
     tof_point3d_t pt;
@@ -485,18 +462,42 @@ void TOF_SetAlertThreshold(uint32_t threshold_mm) {
 }
 
 /**
- * @brief  STUB — Returns zero hand/hazard detections.
+ * @brief  Split latest NN detections into hands (class 0) and tools (class 1).
  *
- *         When a hand+hazard detection model is trained, replace this with
- *         real inference output.  The expected workflow:
- *           1. NN model outputs bounding boxes with class_index for
- *              "hand" and "saw" (or other hazard).
- *           2. Post-processing splits detections into hands[] and hazards[].
- *           3. tof_run_fusion() extracts depth for each and checks proximity.
+ *         Reads directly from PP_GetInfo() and partitions detects[] by
+ *         class_index.  Called from tof_run_fusion() on every ToF cycle.
  */
 const hazard_detection_t *TOF_GetHazardDetections(void) {
-  /* Always returns empty — no model trained yet */
-  return &stub_detections;
+  static hazard_detection_t det;
+  det.nb_hands = 0;
+  det.nb_hazards = 0;
+
+  const detection_info_t *pp_info = PP_GetInfo();
+  if (pp_info == NULL) {
+    return &det;
+  }
+
+  for (int i = 0; i < pp_info->nb_detect; i++) {
+    const od_pp_outBuffer_t *d = &pp_info->detects[i];
+    if (d->class_index == TOF_CLASS_HAND && det.nb_hands < TOF_MAX_DETECTIONS) {
+      tof_bbox_t *b = &det.hands[det.nb_hands++];
+      b->x_center = d->x_center;
+      b->y_center = d->y_center;
+      b->width    = d->width;
+      b->height   = d->height;
+      b->conf     = d->conf;
+    } else if (d->class_index == TOF_CLASS_TOOL &&
+               det.nb_hazards < TOF_MAX_DETECTIONS) {
+      tof_bbox_t *b = &det.hazards[det.nb_hazards++];
+      b->x_center = d->x_center;
+      b->y_center = d->y_center;
+      b->width    = d->width;
+      b->height   = d->height;
+      b->conf     = d->conf;
+    }
+  }
+
+  return &det;
 }
 
 void TOF_Stop(void) {

@@ -31,7 +31,7 @@ extern "C" {
 /** Default alert threshold: hand-to-hazard distance in mm */
 #define TOF_DEFAULT_ALERT_THRESHOLD_MM 150
 
-/** Maximum detections per category for the hazard detection stub */
+/** Maximum detections per category */
 #define TOF_MAX_DETECTIONS 4
 
 /** Maximum allowed NN-to-ToF timestamp delta for fusion (ms) */
@@ -78,7 +78,6 @@ typedef struct {
 
 /**
  * @brief  Axis-aligned bounding box in normalized [0,1] NN coordinates.
- *         Used by the hazard detection stub; will match the future model output.
  */
 typedef struct {
   float x_center;
@@ -89,13 +88,11 @@ typedef struct {
 } tof_bbox_t;
 
 /* ============================================================================
- * Hazard detection result (STUB — no model trained yet)
+ * Hazard detection result
  * ============================================================================ */
 
 /**
- * @brief  Result from the hazard detection model.
- *         Currently a stub that always returns zero detections.
- *         Replace the implementation when a hand/hazard model is available.
+ * @brief  NN detections split by class: hands (class 0) and tools (class 1).
  */
 typedef struct {
   int32_t nb_hands;
@@ -172,9 +169,9 @@ const tof_alert_t *TOF_GetAlert(void);
 void TOF_SetAlertThreshold(uint32_t threshold_mm);
 
 /**
- * @brief  STUB — Get current hazard detections.
- *         Returns zero detections until a hand/hazard model is trained.
- *         Replace this implementation when the model is ready.
+ * @brief  Get current detections split by class from the NN model.
+ *         Reads PP_GetInfo() and partitions detects[] into hands (class 0)
+ *         and tools (class 1).
  * @retval Pointer to static hazard_detection_t (always valid, may be empty)
  */
 const hazard_detection_t *TOF_GetHazardDetections(void);
