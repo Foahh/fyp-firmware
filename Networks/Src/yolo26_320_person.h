@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file    yolo26_320_person.h
   * @author  STEdgeAI
-  * @date    2026-04-02 03:15:28
+  * @date    2026-04-06 23:10:41
   * @brief   Minimal description of the generated c-implemention of the network
   ******************************************************************************
   * @attention

@@ -628,7 +628,7 @@ static const stai_network_info __stai_st_yolo_d_256_person_network_info = {
     .n_weights = STAI_ST_YOLO_D_256_PERSON_WEIGHTS_NUM,
     .n_states = STAI_ST_YOLO_D_256_PERSON_STATES_NUM,
 
-    .c_model_datetime = "2026-04-02 03:15:02",
+    .c_model_datetime = "2026-04-06 23:10:15",
 
     .n_nodes = 591,
 

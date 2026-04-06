@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file    st_yolo_x_480_person.h
   * @author  STEdgeAI
-  * @date    2026-04-02 03:14:40
+  * @date    2026-04-06 23:09:54
   * @brief   Minimal description of the generated c-implemention of the network
   ******************************************************************************
   * @attention

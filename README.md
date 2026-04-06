@@ -38,7 +38,14 @@ python project.py ui                    # Launch visualizer (auto-detect serial 
 python project.py ui /dev/ttyACM0      # Launch visualizer with explicit serial port
 ```
 
-`model` and `build` accept `--name` / `-n` to select the model (default: `yolox_nano`).
+`model` and `build` accept `--name` / `-n` to select the model (default: `yolox_480`):
+
+| Key | Model | Classes |
+|---|---|---|
+| `yolox_480` | YOLOX Nano 480×480 | person |
+| `yolod_256` | ST YOLODv2 Milli 256×256 | person |
+| `yolo26_320` | YOLO26 320×320 (COCO) | person |
+| `yolo26_320_fyp` | YOLO26 320×320 (finetuned) | hand, tool |
 
 `build` also accepts:
 
