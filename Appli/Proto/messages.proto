@@ -24,13 +24,6 @@ message TrackedBox {
   uint32 track_id = 5;
 }
 
-/* flags: bit0 = person-distance alert, bit1 = measurement stale. */
-message TofAlert {
-  repeated uint32 person_mm = 1 [(nanopb).max_count = 4];
-  uint32 flags = 2;
-  repeated int32 depth_mm = 3 [(nanopb).max_count = 64];
-}
-
 /* ============================================================================
  * Device payloads
  * ============================================================================ */
@@ -54,7 +47,14 @@ message DetectionResult {
 
 message TofResult {
   uint32 timestamp_ms = 1;
-  TofAlert tof = 2;
+  repeated int32 depth_mm = 2 [(nanopb).max_count = 64];
+}
+
+/* flags: bit0 = person-distance alert, bit1 = measurement stale. */
+message TofAlertResult {
+  uint32 timestamp_ms = 1;
+  uint32 flags = 2;
+  repeated uint32 person_mm = 3 [(nanopb).max_count = 4];
 }
 
 /* Scalar fields first for compact C struct layout; strings last. */
@@ -139,6 +139,7 @@ message DeviceMessage {
     Ack ack = 3;
     TraceXChunk tracex_chunk = 4;
     TofResult tof_result = 5;
+    TofAlertResult tof_alert_result = 6;
   }
 }
 

@@ -25,8 +25,8 @@
 #include "model_config.h"
 #include "nn_config.h"
 #include "pb_encode.h"
-#include "pp.h"
 #include "power_mode.h"
+#include "pp.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6xx_hal.h"
 #include "tof.h"
@@ -51,7 +51,7 @@ _Static_assert(sizeof(BUILD_TIMESTAMP) <= PROTO_DEVICE_INFO_BUILD_TIMESTAMP_CAPA
  * ============================================================================ */
 
 /* TX frame queue */
-#define TX_FRAME_BUF_SIZE (4 + DeviceMessage_size)
+#define TX_FRAME_BUF_SIZE  (4 + DeviceMessage_size)
 #define COM_TX_QUEUE_DEPTH 8U
 
 static __NON_CACHEABLE uint8_t tx_frame_bufs[COM_TX_QUEUE_DEPTH][TX_FRAME_BUF_SIZE];
@@ -73,9 +73,9 @@ static TX_SEMAPHORE tx_free_sem;
 static TX_SEMAPHORE tx_ready_sem;
 
 /* Bounded waits keep transient UART faults from wedging the host link forever. */
-#define COM_TX_DMA_START_RETRIES   3U
-#define COM_TX_DMA_RETRY_TICKS     1U
-#define COM_TX_DONE_TIMEOUT_TICKS  50U
+#define COM_TX_DMA_START_RETRIES  3U
+#define COM_TX_DMA_RETRY_TICKS    1U
+#define COM_TX_DONE_TIMEOUT_TICKS 50U
 
 /* ============================================================================
  * Public API
@@ -246,44 +246,64 @@ void COM_Send_TraceXChunk(uint32_t offset, uint32_t total_size, const uint8_t *d
 void COM_Send_TofResult(void) {
   DeviceMessage msg = DeviceMessage_init_zero;
   TofResult *tof_result;
-  const tof_alert_t *alert;
   const tof_depth_grid_t *grid;
-  uint32_t tof_flags = 0;
 
   msg.which_payload = DeviceMessage_tof_result_tag;
   tof_result = &msg.payload.tof_result;
-  tof_result->timestamp_ms = HAL_GetTick();
+  tof_result->timestamp_ms = 0U;
 
-  alert = TOF_GetAlert();
   grid = TOF_GetDepthGrid();
 
-  if (alert != NULL) {
+  if (grid == NULL || !grid->valid) {
+    return;
+  }
+
+  tof_result->timestamp_ms = grid->timestamp_ms;
+  tof_result->depth_mm_count = PROTO_TOF_ALERT_MAX_DEPTH_MM;
+  for (int r = 0; r < TOF_GRID_SIZE; r++) {
+    for (int c = 0; c < TOF_GRID_SIZE; c++) {
+      tof_result->depth_mm[r * TOF_GRID_SIZE + c] =
+          (int32_t)grid->distance_mm[r][c];
+    }
+  }
+
+  COM_TX_Send(&msg);
+}
+
+void COM_Send_TofAlertResult(void) {
+  DeviceMessage msg = DeviceMessage_init_zero;
+  TofAlertResult *tof_alert_result;
+  const tof_alert_t *alert;
+  uint32_t tof_flags = 0;
+
+  msg.which_payload = DeviceMessage_tof_alert_result_tag;
+  tof_alert_result = &msg.payload.tof_alert_result;
+
+  alert = TOF_GetAlert();
+  if (alert == NULL) {
+    return;
+  }
+
+  tof_alert_result->timestamp_ms = HAL_GetTick();
+
+  {
     uint8_t person_depth_count = alert->nb_person_depths;
     if (person_depth_count > PROTO_TOF_ALERT_MAX_PERSON_MM) {
       person_depth_count = PROTO_TOF_ALERT_MAX_PERSON_MM;
     }
-    tof_result->tof.person_mm_count = person_depth_count;
+    tof_alert_result->person_mm_count = person_depth_count;
     for (uint8_t i = 0; i < person_depth_count; i++) {
-      tof_result->tof.person_mm[i] = alert->person_distances_mm[i];
-    }
-    if (alert->alert) {
-      tof_flags |= TOF_PB_FLAG_ALERT;
-    }
-    if (alert->stale) {
-      tof_flags |= TOF_PB_FLAG_STALE;
+      tof_alert_result->person_mm[i] = alert->person_distances_mm[i];
     }
   }
 
-  tof_result->tof.flags = tof_flags;
-  if (grid != NULL && grid->valid) {
-    tof_result->tof.depth_mm_count = PROTO_TOF_ALERT_MAX_DEPTH_MM;
-    for (int r = 0; r < TOF_GRID_SIZE; r++) {
-      for (int c = 0; c < TOF_GRID_SIZE; c++) {
-        tof_result->tof.depth_mm[r * TOF_GRID_SIZE + c] =
-            (int32_t)grid->distance_mm[r][c];
-      }
-    }
+  if (alert->alert) {
+    tof_flags |= TOF_PB_FLAG_ALERT;
   }
+  if (alert->stale) {
+    tof_flags |= TOF_PB_FLAG_STALE;
+  }
+  tof_alert_result->flags = tof_flags;
 
   COM_TX_Send(&msg);
 }

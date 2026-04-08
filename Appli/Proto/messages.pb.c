@@ -12,13 +12,13 @@ PB_BIND(Detection, Detection, AUTO)
 PB_BIND(TrackedBox, TrackedBox, AUTO)
 
 
-PB_BIND(TofAlert, TofAlert, 2)
+PB_BIND(TofResult, TofResult, 2)
 
 
 PB_BIND(DetectionResult, DetectionResult, 2)
 
 
-PB_BIND(TofResult, TofResult, 2)
+PB_BIND(TofAlertResult, TofAlertResult, AUTO)
 
 
 PB_BIND(DeviceInfo, DeviceInfo, 2)

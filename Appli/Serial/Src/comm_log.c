@@ -27,10 +27,6 @@
 #include "tof.h"
 #include "tx_api.h"
 
-/* ToFAlert.flags (protobuf); keep in sync with messages.proto */
-#define TOF_PB_FLAG_ALERT (1u << 0)
-#define TOF_PB_FLAG_STALE (1u << 1)
-
 /* ============================================================================
  * Static resources
  * ============================================================================ */
@@ -102,9 +98,11 @@ static void comm_log_thread_entry(ULONG arg) {
   UNUSED(arg);
 
   TX_EVENT_FLAGS_GROUP *event_flags = PP_GetUpdateEventFlags();
-  TX_EVENT_FLAGS_GROUP *tof_event_flags = TOF_GetUpdateEventFlags();
+  TX_EVENT_FLAGS_GROUP *tof_result_event_flags = TOF_GetResultUpdateEventFlags();
+  TX_EVENT_FLAGS_GROUP *tof_alert_event_flags = TOF_GetAlertUpdateEventFlags();
   ULONG actual_flags;
-  ULONG tof_actual_flags;
+  ULONG tof_result_actual_flags;
+  ULONG tof_alert_actual_flags;
 
   while (1) {
     UINT status = tx_event_flags_get(event_flags, 0x01, TX_OR_CLEAR,
@@ -116,9 +114,14 @@ static void comm_log_thread_entry(ULONG arg) {
       }
     }
 
-    while (tx_event_flags_get(tof_event_flags, 0x01, TX_OR_CLEAR,
-                              &tof_actual_flags, TX_NO_WAIT) == TX_SUCCESS) {
+    while (tx_event_flags_get(tof_result_event_flags, 0x01, TX_OR_CLEAR,
+                              &tof_result_actual_flags, TX_NO_WAIT) == TX_SUCCESS) {
       COM_Send_TofResult();
+    }
+
+    while (tx_event_flags_get(tof_alert_event_flags, 0x01, TX_OR_CLEAR,
+                              &tof_alert_actual_flags, TX_NO_WAIT) == TX_SUCCESS) {
+      COM_Send_TofAlertResult();
     }
   }
 }

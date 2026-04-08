@@ -14,9 +14,9 @@ enum {
   PROTO_DETECTION_RESULT_MAX_TRACKS =
       (int)PB_MEMBER_ARRAY_COUNT(DetectionResult, tracks),
   PROTO_TOF_ALERT_MAX_PERSON_MM =
-      (int)PB_MEMBER_ARRAY_COUNT(TofAlert, person_mm),
+      (int)PB_MEMBER_ARRAY_COUNT(TofAlertResult, person_mm),
   PROTO_TOF_ALERT_MAX_DEPTH_MM =
-      (int)PB_MEMBER_ARRAY_COUNT(TofAlert, depth_mm),
+      (int)PB_MEMBER_ARRAY_COUNT(TofResult, depth_mm),
   PROTO_DEVICE_INFO_MODEL_NAME_CAPACITY =
       (int)PB_MEMBER_SIZE(DeviceInfo, model_name),
   PROTO_DEVICE_INFO_CLASS_LABEL_COUNT_CAPACITY =

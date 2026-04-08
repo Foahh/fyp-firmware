@@ -89,7 +89,8 @@ static struct {
 /* Event flag for interrupt-driven data-ready notification */
 #define TOF_EVT_DATA_READY 0x1U
 static TX_EVENT_FLAGS_GROUP tof_events;
-static TX_EVENT_FLAGS_GROUP tof_update_event_flags;
+static TX_EVENT_FLAGS_GROUP tof_result_update_event_flags;
+static TX_EVENT_FLAGS_GROUP tof_alert_update_event_flags;
 static TX_EVENT_FLAGS_GROUP tof_fusion_events;
 
 #define TOF_FUSION_EVT_DEPTH_READY  0x1U
@@ -393,6 +394,7 @@ static void tof_thread_entry(ULONG arg) {
     __DMB();
     depth_read_idx = write_idx;
 
+    tx_event_flags_set(&tof_result_update_event_flags, 0x01, TX_OR);
     tx_event_flags_set(&tof_fusion_events, TOF_FUSION_EVT_DEPTH_READY, TX_OR);
   }
 }
@@ -416,11 +418,12 @@ static void tof_fusion_thread_entry(ULONG arg) {
     alert_write_idx = alert_read_idx ^ 1U;
     tof_run_fusion(grid, det, &alerts[alert_write_idx]);
 
+    uint8_t fired = alerts[alert_write_idx].alert;
     __DMB();
     alert_read_idx = alert_write_idx;
-    tx_event_flags_set(&tof_update_event_flags, 0x01, TX_OR);
+    tx_event_flags_set(&tof_alert_update_event_flags, 0x01, TX_OR);
 
-    if (alerts[alert_write_idx].alert) {
+    if (fired) {
       BSP_LED_On(LED_RED);
       HAPTIC_On();
     } else {
@@ -438,7 +441,10 @@ void TOF_ThreadStart(void) {
   UINT status = tx_event_flags_create(&tof_events, "tof_events");
   APP_REQUIRE(status == TX_SUCCESS);
 
-  status = tx_event_flags_create(&tof_update_event_flags, "tof_update");
+  status = tx_event_flags_create(&tof_result_update_event_flags, "tof_result_update");
+  APP_REQUIRE(status == TX_SUCCESS);
+
+  status = tx_event_flags_create(&tof_alert_update_event_flags, "tof_alert_update");
   APP_REQUIRE(status == TX_SUCCESS);
 
   status = tx_event_flags_create(&tof_fusion_events, "tof_fusion");
@@ -471,8 +477,12 @@ const tof_alert_t *TOF_GetAlert(void) {
   return &alerts[idx];
 }
 
-TX_EVENT_FLAGS_GROUP *TOF_GetUpdateEventFlags(void) {
-  return &tof_update_event_flags;
+TX_EVENT_FLAGS_GROUP *TOF_GetResultUpdateEventFlags(void) {
+  return &tof_result_update_event_flags;
+}
+
+TX_EVENT_FLAGS_GROUP *TOF_GetAlertUpdateEventFlags(void) {
+  return &tof_alert_update_event_flags;
 }
 
 void TOF_SetAlertThreshold(uint32_t threshold_mm) {

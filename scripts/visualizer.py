@@ -382,17 +382,19 @@ def receiver_loop(
 
             elif which == "tof_result":
                 tof_result = dev_msg.tof_result
-                tof = tof_result.tof
-                state.person_mm = [int(v) for v in tof.person_mm]
-                fl = int(tof.flags)
-                state.tof_alert = bool(fl & TOF_PB_FLAG_ALERT)
-                state.tof_stale = bool(fl & TOF_PB_FLAG_STALE)
-                if len(tof.depth_mm) == 64:
+                if len(tof_result.depth_mm) == 64:
                     state.tof_grid = np.array(
-                        tof.depth_mm, dtype=np.float32
+                        tof_result.depth_mm, dtype=np.float32
                     ).reshape(8, 8)
                 else:
                     state.tof_grid = np.full((8, 8), np.nan, dtype=np.float32)
+
+            elif which == "tof_alert_result":
+                tof_alert_result = dev_msg.tof_alert_result
+                state.person_mm = [int(v) for v in tof_alert_result.person_mm]
+                fl = int(tof_alert_result.flags)
+                state.tof_alert = bool(fl & TOF_PB_FLAG_ALERT)
+                state.tof_stale = bool(fl & TOF_PB_FLAG_STALE)
 
         except Exception as exc:
             state.last_error = str(exc)

@@ -40,7 +40,7 @@ extern "C" {
 #define FUSION_MAX_DT_MS 60
 
 _Static_assert(TOF_GRID_SIZE * TOF_GRID_SIZE == PROTO_TOF_ALERT_MAX_DEPTH_MM,
-               "TOF_GRID_SIZE * TOF_GRID_SIZE must match messages.proto TofAlert.depth_mm max_count");
+               "TOF_GRID_SIZE * TOF_GRID_SIZE must match messages.proto TofResult.depth_mm max_count");
 
 /* ============================================================================
  * Bounding box type (normalized NN coordinates [0,1])
@@ -129,9 +129,14 @@ const tof_depth_grid_t *TOF_GetDepthGrid(void);
 const tof_alert_t *TOF_GetAlert(void);
 
 /**
- * @brief  Get pointer to ToF update event flags group.
+ * @brief  Get pointer to ToF depth-result update event flags group.
  */
-TX_EVENT_FLAGS_GROUP *TOF_GetUpdateEventFlags(void);
+TX_EVENT_FLAGS_GROUP *TOF_GetResultUpdateEventFlags(void);
+
+/**
+ * @brief  Get pointer to ToF alert update event flags group.
+ */
+TX_EVENT_FLAGS_GROUP *TOF_GetAlertUpdateEventFlags(void);
 
 /**
  * @brief  Change the person-distance alert threshold at runtime.
