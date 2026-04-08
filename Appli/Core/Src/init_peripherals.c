@@ -106,7 +106,7 @@ void COM_Config(void) {
   COM_InitTypeDef COM_Init = {0};
   int32_t ret = BSP_ERROR_NONE;
 
-  /* Configure COM1 (USART1) for logging */
+  /* Configure COM1 (USART1) for host protobuf traffic. */
   COM_Init.BaudRate = 921600U;
   COM_Init.WordLength = COM_WORDLENGTH_8B;
   COM_Init.StopBits = COM_STOPBITS_1;
@@ -148,11 +148,7 @@ void COM_Config(void) {
   HAL_NVIC_SetPriority(GPDMA1_Channel0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(GPDMA1_Channel0_IRQn);
 
-#if (USE_COM_LOG > 0)
-  /* Select COM1 as the logging port */
-  ret = BSP_COM_SelectLogPort(COM1);
-  APP_REQUIRE(ret == BSP_ERROR_NONE);
-#endif /* USE_COM_LOG */
+  /* COM1 carries framed protobuf traffic; do not also attach stdio logging. */
 }
 #endif /* USE_BSP_COM_FEATURE */
 

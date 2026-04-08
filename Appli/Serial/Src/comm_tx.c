@@ -47,6 +47,11 @@ static TX_MUTEX tx_mutex;
 /* TX complete semaphore (signalled from HAL_UART_TxCpltCallback) */
 static TX_SEMAPHORE tx_done_sem;
 
+/* Bounded waits keep transient UART faults from wedging the host link forever. */
+#define COM_TX_DMA_START_RETRIES   3U
+#define COM_TX_DMA_RETRY_TICKS     1U
+#define COM_TX_DONE_TIMEOUT_TICKS  50U
+
 /* ============================================================================
  * Public API
  * ============================================================================ */
@@ -78,8 +83,32 @@ void COM_TX_Send(const DeviceMessage *msg) {
   buf[3] = (uint8_t)(len >> 24);
 
   APP_REQUIRE(4 + len <= UINT16_MAX);
-  HAL_UART_Transmit_DMA(&hcom_uart[COM1], buf, (uint16_t)(4 + len));
-  tx_semaphore_get(&tx_done_sem, TX_WAIT_FOREVER);
+
+  /* Drop any stale completion signal before starting a new DMA transfer. */
+  while (tx_semaphore_get(&tx_done_sem, TX_NO_WAIT) == TX_SUCCESS) {
+  }
+
+  HAL_StatusTypeDef hal_status = HAL_ERROR;
+  for (uint32_t attempt = 0; attempt < COM_TX_DMA_START_RETRIES; ++attempt) {
+    hal_status =
+        HAL_UART_Transmit_DMA(&hcom_uart[COM1], buf, (uint16_t)(4 + len));
+    if (hal_status == HAL_OK) {
+      break;
+    }
+    tx_thread_sleep(COM_TX_DMA_RETRY_TICKS);
+  }
+
+  if (hal_status != HAL_OK) {
+    tx_mutex_put(&tx_mutex);
+    return;
+  }
+
+  status = tx_semaphore_get(&tx_done_sem, COM_TX_DONE_TIMEOUT_TICKS);
+  if (status != TX_SUCCESS) {
+    HAL_UART_AbortTransmit(&hcom_uart[COM1]);
+    tx_mutex_put(&tx_mutex);
+    return;
+  }
 
   tx_buf_idx ^= 1;
 

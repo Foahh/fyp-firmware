@@ -57,6 +57,13 @@ static volatile bool rx_ring_overflowed;
 /* Semaphore signalled from ISR on each received byte */
 static TX_SEMAPHORE rx_sem;
 
+static void com_rx_arm_uart(void) {
+  __HAL_UART_CLEAR_FLAG(&hcom_uart[COM1],
+                        UART_CLEAR_OREF | UART_CLEAR_NEF | UART_CLEAR_PEF |
+                            UART_CLEAR_FEF);
+  HAL_UART_Receive_IT(&hcom_uart[COM1], &rx_byte, 1);
+}
+
 /* ============================================================================
  * Ring buffer helpers
  * ============================================================================ */
@@ -95,6 +102,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
     /* Re-arm single-byte receive */
     HAL_UART_Receive_IT(&hcom_uart[COM1], &rx_byte, 1);
+  }
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+  if (huart->Instance == hcom_uart[COM1].Instance) {
+    rx_ring_overflowed = true;
+    com_rx_arm_uart();
+    tx_semaphore_put(&rx_sem);
   }
 }
 
@@ -192,5 +207,6 @@ void COM_RX_ThreadStart(void) {
   APP_REQUIRE(status == TX_SUCCESS);
 
   /* Arm first UART receive */
-  HAL_UART_Receive_IT(&hcom_uart[COM1], &rx_byte, 1);
+  HAL_UART_AbortReceive(&hcom_uart[COM1]);
+  com_rx_arm_uart();
 }
