@@ -73,12 +73,6 @@ void UI_DrawDepthGrid(const tof_depth_grid_t *grid,
     return;
   }
 
-  /* Skip if data is stale (>1s) */
-  uint32_t now = HAL_GetTick();
-  if ((now - grid->timestamp_ms) > 1000) {
-    return;
-  }
-
   /* Map the ToF 8x8 grid onto the NN ROI (preferred) */
   uint32_t draw_x0, draw_y0, draw_w, draw_h;
   uint8_t use_roi = 0;
