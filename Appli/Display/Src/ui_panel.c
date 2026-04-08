@@ -210,6 +210,7 @@ void UI_DrawCpuLoadSection(void) {
  */
 void UI_DrawProximitySection(const tof_alert_t *alert) {
   char text_buf[UI_TEXT_BUFFER_SIZE];
+  size_t used = 0;
 
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[20],
@@ -222,8 +223,20 @@ void UI_DrawProximitySection(const tof_alert_t *alert) {
   } else {
     uint32_t color = alert->alert ? 0xFFFF0000 : 0xFF00FF00;
     UTIL_LCD_SetTextColor(color);
-    snprintf(text_buf, sizeof(text_buf), "%.2fm",
-             alert->person_distance_mm / 1000.0f);
+
+    text_buf[0] = '\0';
+    for (int i = 0; i < TOF_MAX_DETECTIONS; i++) {
+      if (!alert->person_depth_valid[i]) {
+        continue;
+      }
+      int written = snprintf(text_buf + used, sizeof(text_buf) - used,
+                             "%s%.2fm", (used == 0U) ? "" : ",",
+                             alert->person_distances_mm[i] / 1000.0f);
+      if (written < 0 || (size_t)written >= (sizeof(text_buf) - used)) {
+        break;
+      }
+      used += (size_t)written;
+    }
     UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[21],
                              (uint8_t *)text_buf, LEFT_MODE);
   }

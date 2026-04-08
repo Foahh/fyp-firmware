@@ -30,7 +30,8 @@ typedef struct _TrackedBox {
 
 /* flags: bit0 = person-distance alert, bit1 = measurement stale. */
 typedef struct _TofAlert {
-    uint32_t person_mm;
+    pb_size_t person_mm_count;
+    uint32_t person_mm[4];
     uint32_t flags;
     pb_size_t depth_mm_count;
     int32_t depth_mm[64];
@@ -149,7 +150,7 @@ extern "C" {
 /* Initializer values for message structs */
 #define Detection_init_default                   {0, 0, 0, 0, 0, 0}
 #define TrackedBox_init_default                  {0, 0, 0, 0, 0}
-#define TofAlert_init_default                    {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
+#define TofAlert_init_default                    {0, {0, 0, 0, 0}, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
 #define DetectionResult_init_default             {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, 0, {TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default}, false, TofAlert_init_default}
 #define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0}
 #define Ack_init_default                         {0, 0}
@@ -162,7 +163,7 @@ extern "C" {
 #define HostMessage_init_default                 {0, {SetDisplayEnabled_init_default}}
 #define Detection_init_zero                      {0, 0, 0, 0, 0, 0}
 #define TrackedBox_init_zero                     {0, 0, 0, 0, 0}
-#define TofAlert_init_zero                       {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
+#define TofAlert_init_zero                       {0, {0, 0, 0, 0}, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
 #define DetectionResult_init_zero                {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, 0, {TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero}, false, TofAlert_init_zero}
 #define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0}
 #define Ack_init_zero                            {0, 0}
@@ -272,7 +273,7 @@ X(a, STATIC,   SINGULAR, UINT32,   track_id,          5)
 #define TrackedBox_DEFAULT NULL
 
 #define TofAlert_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   person_mm,         1) \
+X(a, STATIC,   REPEATED, UINT32,   person_mm,         1) \
 X(a, STATIC,   SINGULAR, UINT32,   flags,             2) \
 X(a, STATIC,   REPEATED, INT32,    depth_mm,          3)
 #define TofAlert_CALLBACK NULL
@@ -421,17 +422,17 @@ extern const pb_msgdesc_t HostMessage_msg;
 
 /* Maximum encoded size of messages (where known) */
 #define Ack_size                                 8
-#define DetectionResult_size                     1376
+#define DetectionResult_size                     1394
 #define Detection_size                           31
 #define DeviceInfo_size                          535
-#define DeviceMessage_size                       1379
+#define DeviceMessage_size                       1397
 #define GetDeviceInfo_size                       6
 #define GetTraceXDump_size                       12
 #define HostMessage_size                         44
 #define MESSAGES_PB_H_MAX_SIZE                   DeviceMessage_size
 #define SetDisplayEnabled_size                   8
 #define SetPostprocessConfig_size                42
-#define TofAlert_size                            716
+#define TofAlert_size                            734
 #define TraceXChunk_size                         279
 #define TrackedBox_size                          26
 

@@ -5,9 +5,9 @@
  * @brief   VL53L5CX Time-of-Flight ranging thread and person-distance fusion.
  *
  *          The ToF sensor provides an 8x8 depth grid. Fusion extracts the
- *          nearest depth sample inside detected person bounding boxes and
- *          raises an alert when a person is within a configurable distance
- *          threshold.
+ *          a distance sample for each detected person bounding box and raises
+ *          an alert when the nearest sampled person is within a configurable
+ *          distance threshold.
  ******************************************************************************
  * @attention
  *
@@ -187,8 +187,9 @@ static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
  * @brief  Run person-distance fusion with temporal pairing.
  *
  *         Pairs the latest NN detection with the depth grid, checking the
- *         timestamp delta is within FUSION_MAX_DT_MS. The alert is asserted
- *         when the nearest person depth is within the configured threshold.
+ *         timestamp delta is within FUSION_MAX_DT_MS. Depth is sampled for
+ *         each detected person bbox; the alert is asserted when the nearest
+ *         sampled person is within the configured threshold.
  *
  * @param  grid  Current depth grid snapshot
  * @param  out   Alert state to populate
@@ -221,6 +222,9 @@ static void tof_run_fusion(const tof_depth_grid_t *grid, tof_alert_t *out) {
   for (int i = 0; i < det->nb_persons; i++) {
     uint32_t d;
     if (tof_extract_depth(grid, &det->persons[i], &d)) {
+      out->person_distances_mm[i] = d;
+      out->person_depth_valid[i] = 1U;
+      out->nb_person_depths++;
       out->has_person_depth = 1;
       if (d < person_min) {
         person_min = d;

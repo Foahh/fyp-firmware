@@ -92,7 +92,7 @@ class VisualizerState:
     fps_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
     timing_time_hist: deque[float] = field(default_factory=lambda: deque(maxlen=240))
 
-    person_mm: int = 0
+    person_mm: list[int] = field(default_factory=list)
     tof_alert: bool = False
     tof_stale: bool = True
     tof_grid: np.ndarray = field(
@@ -309,7 +309,7 @@ def receiver_loop(
 
                 if result.HasField("tof"):
                     tof = result.tof
-                    state.person_mm = int(tof.person_mm)
+                    state.person_mm = [int(v) for v in tof.person_mm]
                     fl = int(tof.flags)
                     state.tof_alert = bool(fl & TOF_PB_FLAG_ALERT)
                     state.tof_stale = bool(fl & TOF_PB_FLAG_STALE)

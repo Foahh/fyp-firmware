@@ -98,7 +98,10 @@ static void comm_send_detection_result(const detection_info_t *info) {
   df->has_tof = true;
   uint32_t tof_flags = 0;
   if (alert != NULL) {
-    df->tof.person_mm = alert->person_distance_mm;
+    df->tof.person_mm_count = alert->nb_person_depths;
+    for (int i = 0; i < alert->nb_person_depths; i++) {
+      df->tof.person_mm[i] = alert->person_distances_mm[i];
+    }
     if (alert->alert) {
       tof_flags |= TOF_PB_FLAG_ALERT;
     }
