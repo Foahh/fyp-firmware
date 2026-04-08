@@ -262,11 +262,17 @@ void COM_Send_TofResult(void) {
   }
 
   tof_result->timestamp_ms = grid->timestamp_ms;
-  tof_result->depth_mm_count = PROTO_TOF_ALERT_MAX_DEPTH_MM;
+  tof_result->depth_mm_count = PROTO_TOF_RESULT_MAX_DEPTH_MM;
+  tof_result->range_sigma_mm_count = PROTO_TOF_RESULT_MAX_RANGE_SIGMA_MM;
+  tof_result->signal_per_spad_count = PROTO_TOF_RESULT_MAX_SIGNAL_PER_SPAD;
   for (int r = 0; r < TOF_GRID_SIZE; r++) {
     for (int c = 0; c < TOF_GRID_SIZE; c++) {
       tof_result->depth_mm[r * TOF_GRID_SIZE + c] =
           (int32_t)grid->distance_mm[r][c];
+      tof_result->range_sigma_mm[r * TOF_GRID_SIZE + c] =
+          (uint32_t)grid->range_sigma_mm[r][c];
+      tof_result->signal_per_spad[r * TOF_GRID_SIZE + c] =
+          grid->signal_per_spad[r][c];
     }
   }
 

@@ -98,6 +98,14 @@ extern "C" {
  * Extern Data
  * ============================================================================ */
 
+typedef enum {
+  UI_TOF_OVERLAY_NONE = 0,
+  UI_TOF_OVERLAY_DISTANCE,
+  UI_TOF_OVERLAY_SIGMA,
+  UI_TOF_OVERLAY_SIGNAL_PER_SPAD,
+  UI_TOF_OVERLAY_MODE_COUNT
+} ui_tof_overlay_mode_t;
+
 /** Detection color palette (defined in ui_overlay.c) */
 extern const uint32_t detection_colors[NUMBER_COLORS];
 
@@ -125,7 +133,8 @@ void UI_DrawDetectionOverlays(const detection_info_t *info,
 
 /* ui_depth.c */
 void UI_DrawDepthGrid(const tof_depth_grid_t *grid,
-                      const nn_crop_info_display_t *roi_info);
+                      const nn_crop_info_display_t *roi_info,
+                      ui_tof_overlay_mode_t mode);
 void UI_DrawProximityAlertBanner(void);
 
 #ifdef __cplusplus

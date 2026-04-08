@@ -75,9 +75,12 @@ def create_gui(
     ax_cpu = fig_cpu.add_subplot(111)
 
     # --- ToF figure ---
-    fig_tof = plt.figure("ToF Depth Grid", figsize=(6, 5))
+    fig_tof = plt.figure("ToF Grids", figsize=(12, 4.5))
     fig_tof.set_facecolor(C_FIG_BG)
-    ax_tof = fig_tof.add_subplot(111)
+    grid_tof = fig_tof.add_gridspec(1, 3, wspace=0.32)
+    ax_tof_depth = fig_tof.add_subplot(grid_tof[0, 0])
+    ax_tof_sigma = fig_tof.add_subplot(grid_tof[0, 1])
+    ax_tof_signal = fig_tof.add_subplot(grid_tof[0, 2])
 
     # --- Power figure ---
     fig_power = plt.figure("Power Consumption", figsize=(8, 5))
@@ -153,27 +156,38 @@ def create_gui(
     ax_timing.set_ylabel("Microseconds")
     _legend(ax_timing, C_AX_BG)
 
-    # --- ToF heatmap ---
-    ax_tof.set_facecolor(C_AX_BG)
-    img = ax_tof.imshow(
-        np.full((8, 8), np.nan),
-        cmap="magma",
-        interpolation="nearest",
-        vmin=0,
-        vmax=2000,
+    def _create_tof_heatmap(ax, title: str, cmap: str, vmin: float, vmax: float, cbar_label: str):
+        ax.set_facecolor(C_AX_BG)
+        img = ax.imshow(
+            np.full((8, 8), np.nan),
+            cmap=cmap,
+            interpolation="nearest",
+            vmin=vmin,
+            vmax=vmax,
+        )
+        cbar = fig_tof.colorbar(img, ax=ax, fraction=0.046, pad=0.04)
+        cbar.set_label(cbar_label, rotation=270, labelpad=15, color=C_TEXT)
+        cbar.ax.yaxis.set_tick_params(color="#b0b0c8")
+        for label in cbar.ax.get_yticklabels():
+            label.set_color("#b0b0c8")
+        ax.set_title(title, color=C_TITLE, pad=10)
+        ax.set_xticks(np.arange(-0.5, 8, 1), minor=True)
+        ax.set_yticks(np.arange(-0.5, 8, 1), minor=True)
+        ax.grid(which="minor", color="w", linestyle="-", linewidth=0.5, alpha=0.15)
+        ax.tick_params(which="minor", bottom=False, left=False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        return img
+
+    img_tof_depth = _create_tof_heatmap(
+        ax_tof_depth, "Distance", "magma", 0, 2000, "Distance (mm)"
     )
-    cbar = fig_tof.colorbar(img, ax=ax_tof, fraction=0.046, pad=0.04)
-    cbar.set_label("Distance (mm)", rotation=270, labelpad=15, color=C_TEXT)
-    cbar.ax.yaxis.set_tick_params(color="#b0b0c8")
-    for label in cbar.ax.get_yticklabels():
-        label.set_color("#b0b0c8")
-    ax_tof.set_title("ToF Depth Grid (8x8)", color=C_TITLE, pad=10)
-    ax_tof.set_xticks(np.arange(-0.5, 8, 1), minor=True)
-    ax_tof.set_yticks(np.arange(-0.5, 8, 1), minor=True)
-    ax_tof.grid(which="minor", color="w", linestyle="-", linewidth=0.5, alpha=0.15)
-    ax_tof.tick_params(which="minor", bottom=False, left=False)
-    ax_tof.set_xticks([])
-    ax_tof.set_yticks([])
+    img_tof_sigma = _create_tof_heatmap(
+        ax_tof_sigma, "Range Sigma", "viridis", 0, 80, "Sigma (mm)"
+    )
+    img_tof_signal = _create_tof_heatmap(
+        ax_tof_signal, "Signal / SPAD", "cividis", 0, 300, "kcps / spad"
+    )
 
     # --- Power plot ---
     _style_axis(ax_power, C_AX_BG)
@@ -494,8 +508,10 @@ def create_gui(
         return (line_cpu, cpu_percent_text, cpu_freq_text)
 
     def update_tof(_frame_idx):
-        img.set_data(state.tof_grid)
-        return (img,)
+        img_tof_depth.set_data(state.tof_depth_grid)
+        img_tof_sigma.set_data(state.tof_sigma_grid)
+        img_tof_signal.set_data(state.tof_signal_grid)
+        return (img_tof_depth, img_tof_sigma, img_tof_signal)
 
     def update_power(_frame_idx):
         t0_starts: list[float] = []

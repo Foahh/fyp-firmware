@@ -95,7 +95,13 @@ class VisualizerState:
     person_mm: list[int] = field(default_factory=list)
     tof_alert: bool = False
     tof_stale: bool = True
-    tof_grid: np.ndarray = field(
+    tof_depth_grid: np.ndarray = field(
+        default_factory=lambda: np.full((8, 8), np.nan, dtype=np.float32)
+    )
+    tof_sigma_grid: np.ndarray = field(
+        default_factory=lambda: np.full((8, 8), np.nan, dtype=np.float32)
+    )
+    tof_signal_grid: np.ndarray = field(
         default_factory=lambda: np.full((8, 8), np.nan, dtype=np.float32)
     )
 
@@ -172,6 +178,12 @@ def build_detection_text(
             f"xywh=({det.x:0.2f}, {det.y:0.2f}, {det.w:0.2f}, {det.h:0.2f})"
         )
     return "\n".join(lines)
+
+
+def reshape_tof_grid(values: Any) -> np.ndarray:
+    if len(values) != 64:
+        return np.full((8, 8), np.nan, dtype=np.float32)
+    return np.array(values, dtype=np.float32).reshape(8, 8)
 
 
 def receiver_loop(
@@ -382,12 +394,9 @@ def receiver_loop(
 
             elif which == "tof_result":
                 tof_result = dev_msg.tof_result
-                if len(tof_result.depth_mm) == 64:
-                    state.tof_grid = np.array(
-                        tof_result.depth_mm, dtype=np.float32
-                    ).reshape(8, 8)
-                else:
-                    state.tof_grid = np.full((8, 8), np.nan, dtype=np.float32)
+                state.tof_depth_grid = reshape_tof_grid(tof_result.depth_mm)
+                state.tof_sigma_grid = reshape_tof_grid(tof_result.range_sigma_mm)
+                state.tof_signal_grid = reshape_tof_grid(tof_result.signal_per_spad)
 
             elif which == "tof_alert_result":
                 tof_alert_result = dev_msg.tof_alert_result

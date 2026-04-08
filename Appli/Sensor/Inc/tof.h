@@ -30,9 +30,15 @@ extern "C" {
 
 #define TOF_GRID_SIZE 8
 
-_Static_assert(TOF_GRID_SIZE *TOF_GRID_SIZE == PROTO_TOF_ALERT_MAX_DEPTH_MM,
+_Static_assert(TOF_GRID_SIZE *TOF_GRID_SIZE == PROTO_TOF_RESULT_MAX_DEPTH_MM,
                "TOF_GRID_SIZE * TOF_GRID_SIZE must match messages.proto "
                "TofResult.depth_mm max_count");
+_Static_assert(TOF_GRID_SIZE *TOF_GRID_SIZE == PROTO_TOF_RESULT_MAX_RANGE_SIGMA_MM,
+               "TOF_GRID_SIZE * TOF_GRID_SIZE must match messages.proto "
+               "TofResult.range_sigma_mm max_count");
+_Static_assert(TOF_GRID_SIZE *TOF_GRID_SIZE == PROTO_TOF_RESULT_MAX_SIGNAL_PER_SPAD,
+               "TOF_GRID_SIZE * TOF_GRID_SIZE must match messages.proto "
+               "TofResult.signal_per_spad max_count");
 
 /* ============================================================================
  * Depth grid
@@ -49,8 +55,10 @@ _Static_assert(TOF_GRID_SIZE *TOF_GRID_SIZE == PROTO_TOF_ALERT_MAX_DEPTH_MM,
 typedef struct {
   int16_t distance_mm[TOF_GRID_SIZE][TOF_GRID_SIZE];
   uint8_t status[TOF_GRID_SIZE][TOF_GRID_SIZE]; /**< 5 or 9 = valid */
-  uint16_t range_sigma_mm[TOF_GRID_SIZE][TOF_GRID_SIZE]; /**< Measurement uncertainty in mm */
-  uint32_t signal_per_spad[TOF_GRID_SIZE][TOF_GRID_SIZE]; /**< Return signal strength in kcps/spad */
+  uint16_t
+      range_sigma_mm[TOF_GRID_SIZE][TOF_GRID_SIZE]; /**< Measurement uncertainty in mm */
+  uint32_t
+      signal_per_spad[TOF_GRID_SIZE][TOF_GRID_SIZE]; /**< Return signal strength in kcps/spad */
   uint32_t timestamp_ms;
   uint8_t valid;
 } tof_depth_grid_t;

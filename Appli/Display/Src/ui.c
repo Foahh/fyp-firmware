@@ -75,7 +75,7 @@ volatile int ui_display_idx = 0;
 /* UI state */
 static uint8_t g_ui_visible = 1;
 static uint8_t g_ui_initialized = 0;
-static volatile uint8_t g_tof_overlay_visible = 0;
+static volatile ui_tof_overlay_mode_t g_tof_overlay_mode = UI_TOF_OVERLAY_NONE;
 
 /* ============================================================================
  * Thread Configuration
@@ -162,7 +162,9 @@ static void ui_thread_entry(ULONG arg) {
     /* Clear detection overlay area only when needed */
     uint8_t cur_has_detections =
         (det_info != NULL && (det_info->nb_detect > 0 || det_info->nb_tracked > 0)) ? 1 : 0;
-    uint8_t cur_tof_overlay_visible = g_tof_overlay_visible ? 1 : 0;
+    ui_tof_overlay_mode_t cur_tof_overlay_mode = g_tof_overlay_mode;
+    uint8_t cur_tof_overlay_visible =
+        (cur_tof_overlay_mode != UI_TOF_OVERLAY_NONE) ? 1 : 0;
 
     uint8_t cur_overlay_active = cur_has_detections || cur_tof_overlay_visible;
     uint8_t prev_overlay_active =
@@ -219,7 +221,7 @@ static void ui_thread_entry(ULONG arg) {
       rcu_read_token_t depth_token = {0};
       const tof_depth_grid_t *depth_grid = TOF_AcquireDepthGrid(&depth_token);
       if (depth_grid != NULL && depth_grid->valid) {
-        UI_DrawDepthGrid(depth_grid, roi_info);
+        UI_DrawDepthGrid(depth_grid, roi_info, cur_tof_overlay_mode);
       }
       TOF_ReleaseDepthGrid(&depth_token);
     }
@@ -283,7 +285,9 @@ uint8_t UI_IsVisible(void) {
 }
 
 void UI_ToggleTOFOverlay(void) {
-  g_tof_overlay_visible ^= 1;
+  g_tof_overlay_mode =
+      (ui_tof_overlay_mode_t)(((uint32_t)g_tof_overlay_mode + 1U) %
+                              (uint32_t)UI_TOF_OVERLAY_MODE_COUNT);
 }
 
 void UI_ThreadSuspend(void) {

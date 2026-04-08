@@ -48,6 +48,8 @@ message DetectionResult {
 message TofResult {
   uint32 timestamp_ms = 1;
   repeated int32 depth_mm = 2 [(nanopb).max_count = 64];
+  repeated uint32 range_sigma_mm = 3 [(nanopb).max_count = 64];
+  repeated uint32 signal_per_spad = 4 [(nanopb).max_count = 64];
 }
 
 /* flags: bit0 = person-distance alert, bit1 = measurement stale. */

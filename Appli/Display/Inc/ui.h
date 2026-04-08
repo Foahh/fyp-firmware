@@ -71,7 +71,7 @@ void UI_SetVisible(uint8_t visible);
 uint8_t UI_IsVisible(void);
 
 /**
- * @brief  Toggle ToF alert overlay (depth grid, person-distance section, alert banner)
+ * @brief  Cycle ToF overlay mode: none -> distance -> sigma -> per_spad -> none
  */
 void UI_ToggleTOFOverlay(void);
 
