@@ -50,16 +50,27 @@ _Static_assert(sizeof(BUILD_TIMESTAMP) <= PROTO_DEVICE_INFO_BUILD_TIMESTAMP_CAPA
  * Static resources
  * ============================================================================ */
 
-/* TX frame double buffer */
+/* TX frame queue */
 #define TX_FRAME_BUF_SIZE (4 + DeviceMessage_size)
-static __NON_CACHEABLE uint8_t tx_frame_bufs[2][TX_FRAME_BUF_SIZE];
-static uint8_t tx_buf_idx = 0;
+#define COM_TX_QUEUE_DEPTH 8U
+
+static __NON_CACHEABLE uint8_t tx_frame_bufs[COM_TX_QUEUE_DEPTH][TX_FRAME_BUF_SIZE];
+static uint16_t tx_frame_lens[COM_TX_QUEUE_DEPTH];
+static uint8_t tx_enqueue_idx = 0;
+static uint8_t tx_dequeue_idx = 0;
+
+static struct {
+  TX_THREAD thread;
+  UCHAR stack[COMM_TX_THREAD_STACK_SIZE];
+} comm_tx_ctx;
 
 /* TX mutex for shared send helper */
 static TX_MUTEX tx_mutex;
 
 /* TX complete semaphore (signalled from HAL_UART_TxCpltCallback) */
 static TX_SEMAPHORE tx_done_sem;
+static TX_SEMAPHORE tx_free_sem;
+static TX_SEMAPHORE tx_ready_sem;
 
 /* Bounded waits keep transient UART faults from wedging the host link forever. */
 #define COM_TX_DMA_START_RETRIES   3U
@@ -70,6 +81,8 @@ static TX_SEMAPHORE tx_done_sem;
  * Public API
  * ============================================================================ */
 
+static void comm_tx_thread_entry(ULONG arg);
+
 void COM_TX_ThreadStart(void) {
   UINT status;
 
@@ -78,17 +91,43 @@ void COM_TX_ThreadStart(void) {
 
   status = tx_semaphore_create(&tx_done_sem, "comm_tx_done", 0);
   APP_REQUIRE(status == TX_SUCCESS);
+
+  status = tx_semaphore_create(&tx_free_sem, "comm_tx_free", COM_TX_QUEUE_DEPTH);
+  APP_REQUIRE(status == TX_SUCCESS);
+
+  status = tx_semaphore_create(&tx_ready_sem, "comm_tx_ready", 0);
+  APP_REQUIRE(status == TX_SUCCESS);
+
+  tx_enqueue_idx = 0;
+  tx_dequeue_idx = 0;
+  memset(tx_frame_lens, 0, sizeof(tx_frame_lens));
+
+  status =
+      tx_thread_create(&comm_tx_ctx.thread, "comm_tx", comm_tx_thread_entry, 0,
+                       comm_tx_ctx.stack, COMM_TX_THREAD_STACK_SIZE,
+                       COMM_TX_THREAD_PRIORITY, COMM_TX_THREAD_PRIORITY,
+                       TX_NO_TIME_SLICE, TX_AUTO_START);
+  APP_REQUIRE(status == TX_SUCCESS);
 }
 
 void COM_TX_Send(const DeviceMessage *msg) {
+  if (tx_semaphore_get(&tx_free_sem, TX_NO_WAIT) != TX_SUCCESS) {
+    return;
+  }
+
   UINT status = tx_mutex_get(&tx_mutex, TX_WAIT_FOREVER);
   APP_REQUIRE(status == TX_SUCCESS);
 
-  uint8_t *buf = tx_frame_bufs[tx_buf_idx];
+  uint8_t slot_idx = tx_enqueue_idx;
+  uint8_t *buf = tx_frame_bufs[slot_idx];
 
   pb_ostream_t stream = pb_ostream_from_buffer(buf + 4, TX_FRAME_BUF_SIZE - 4);
   bool ok = pb_encode(&stream, DeviceMessage_fields, msg);
-  APP_REQUIRE(ok);
+  if (!ok) {
+    tx_mutex_put(&tx_mutex);
+    tx_semaphore_put(&tx_free_sem);
+    APP_REQUIRE(ok);
+  }
 
   uint32_t len = (uint32_t)stream.bytes_written;
   buf[0] = (uint8_t)(len);
@@ -96,37 +135,16 @@ void COM_TX_Send(const DeviceMessage *msg) {
   buf[2] = (uint8_t)(len >> 16);
   buf[3] = (uint8_t)(len >> 24);
 
-  APP_REQUIRE(4 + len <= UINT16_MAX);
-
-  /* Drop any stale completion signal before starting a new DMA transfer. */
-  while (tx_semaphore_get(&tx_done_sem, TX_NO_WAIT) == TX_SUCCESS) {
-  }
-
-  HAL_StatusTypeDef hal_status = HAL_ERROR;
-  for (uint32_t attempt = 0; attempt < COM_TX_DMA_START_RETRIES; ++attempt) {
-    hal_status =
-        HAL_UART_Transmit_DMA(&hcom_uart[COM1], buf, (uint16_t)(4 + len));
-    if (hal_status == HAL_OK) {
-      break;
-    }
-    tx_thread_sleep(COM_TX_DMA_RETRY_TICKS);
-  }
-
-  if (hal_status != HAL_OK) {
+  if (4 + len > UINT16_MAX) {
     tx_mutex_put(&tx_mutex);
-    return;
+    tx_semaphore_put(&tx_free_sem);
+    APP_REQUIRE(4 + len <= UINT16_MAX);
   }
 
-  status = tx_semaphore_get(&tx_done_sem, COM_TX_DONE_TIMEOUT_TICKS);
-  if (status != TX_SUCCESS) {
-    HAL_UART_AbortTransmit(&hcom_uart[COM1]);
-    tx_mutex_put(&tx_mutex);
-    return;
-  }
-
-  tx_buf_idx ^= 1;
-
+  tx_frame_lens[slot_idx] = (uint16_t)(4U + len);
+  tx_enqueue_idx = (uint8_t)((tx_enqueue_idx + 1U) % COM_TX_QUEUE_DEPTH);
   tx_mutex_put(&tx_mutex);
+  tx_semaphore_put(&tx_ready_sem);
 }
 
 void COM_Send_DeviceInfo(void) {
@@ -277,5 +295,45 @@ void COM_Send_TofResult(void) {
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
   if (huart->Instance == hcom_uart[COM1].Instance) {
     tx_semaphore_put(&tx_done_sem);
+  }
+}
+
+static void comm_tx_thread_entry(ULONG arg) {
+  UNUSED(arg);
+
+  while (1) {
+    HAL_StatusTypeDef hal_status = HAL_ERROR;
+    uint8_t slot_idx;
+    uint8_t *buf;
+    uint16_t len;
+
+    tx_semaphore_get(&tx_ready_sem, TX_WAIT_FOREVER);
+
+    slot_idx = tx_dequeue_idx;
+    buf = tx_frame_bufs[slot_idx];
+    len = tx_frame_lens[slot_idx];
+
+    /* Drop any stale completion signal before starting a new DMA transfer. */
+    while (tx_semaphore_get(&tx_done_sem, TX_NO_WAIT) == TX_SUCCESS) {
+    }
+
+    for (uint32_t attempt = 0; attempt < COM_TX_DMA_START_RETRIES; ++attempt) {
+      hal_status = HAL_UART_Transmit_DMA(&hcom_uart[COM1], buf, len);
+      if (hal_status == HAL_OK) {
+        break;
+      }
+      tx_thread_sleep(COM_TX_DMA_RETRY_TICKS);
+    }
+
+    if (hal_status == HAL_OK) {
+      UINT status = tx_semaphore_get(&tx_done_sem, COM_TX_DONE_TIMEOUT_TICKS);
+      if (status != TX_SUCCESS) {
+        HAL_UART_AbortTransmit(&hcom_uart[COM1]);
+      }
+    }
+
+    tx_frame_lens[slot_idx] = 0U;
+    tx_dequeue_idx = (uint8_t)((tx_dequeue_idx + 1U) % COM_TX_QUEUE_DEPTH);
+    tx_semaphore_put(&tx_free_sem);
   }
 }
