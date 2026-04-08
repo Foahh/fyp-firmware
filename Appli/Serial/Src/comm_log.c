@@ -24,7 +24,7 @@
 #include "pp.h"
 #include "stm32n6xx_hal.h"
 #include "thread_config.h"
-#include "tof.h"
+#include "tof_fusion.h"
 #include "tx_api.h"
 
 /* ============================================================================

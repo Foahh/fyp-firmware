@@ -377,7 +377,9 @@ def create_gui(
         y = y0 - idx * dy
         ax_tb = fig_cfg.add_axes([0.38, y, 0.22, 0.055])
         initial = (
-            f"{getattr(state, key):.4f}" if key != "tlost_cnt" else f"{int(state.tlost_cnt)}"
+            f"{getattr(state, key):.4f}"
+            if key != "tlost_cnt"
+            else f"{int(state.tlost_cnt)}"
         )
         tb = TextBox(
             ax_tb,

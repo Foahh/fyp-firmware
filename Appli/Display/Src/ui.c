@@ -30,7 +30,7 @@
 #include "stm32n6xx_hal.h"
 #include "thread_config.h"
 #include "timebase.h"
-#include "tof.h"
+#include "tof_fusion.h"
 #include "ui.h"
 #include "utils.h"
 #include <stdarg.h>

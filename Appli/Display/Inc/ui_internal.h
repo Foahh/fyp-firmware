@@ -28,7 +28,7 @@ extern "C" {
 #include "lcd_config.h"
 #include "model_config.h"
 #include "pp.h"
-#include "tof.h"
+#include "tof_fusion.h"
 #include <stdint.h>
 
 /* ============================================================================

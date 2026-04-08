@@ -29,7 +29,8 @@
 #include "pp.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6xx_hal.h"
-#include "tof.h"
+#include "thread_config.h"
+#include "tof_fusion.h"
 #include "tx_api.h"
 #include <string.h>
 

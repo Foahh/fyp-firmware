@@ -8,9 +8,9 @@
 #ifndef APP_CONFIG_H
 #define APP_CONFIG_H
 
-#include "messages_limits.h"
 #include "app_postprocess.h"
 #include "arm_math.h"
+#include "messages_limits.h"
 #include "model_config.h"
 
 #define POSTPROCESS_TYPE MDL_PP_TYPE

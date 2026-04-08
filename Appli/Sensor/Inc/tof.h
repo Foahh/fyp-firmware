@@ -1,9 +1,8 @@
 /**
  ******************************************************************************
- * @file    app_tof.h
+ * @file    tof.h
  * @author  Long Liangmao
- * @brief   VL53L5CX Time-of-Flight sensor integration and person-distance
- *          alerting
+ * @brief   VL53L5CX Time-of-Flight ranging and depth grid publishing
  ******************************************************************************
  * @attention
  *
@@ -30,48 +29,12 @@ extern "C" {
 
 #define TOF_GRID_SIZE 8
 
-/** Default alert threshold: nearest person distance in mm */
-#define TOF_DEFAULT_ALERT_THRESHOLD_MM 1000
-
-/** Maximum detections per category */
-#define TOF_MAX_DETECTIONS PROTO_TOF_ALERT_MAX_PERSON_MM
-
-/** Maximum allowed NN-to-ToF timestamp delta for fusion (ms) */
-#define FUSION_MAX_DT_MS 60
-
-_Static_assert(TOF_GRID_SIZE * TOF_GRID_SIZE == PROTO_TOF_ALERT_MAX_DEPTH_MM,
-               "TOF_GRID_SIZE * TOF_GRID_SIZE must match messages.proto TofResult.depth_mm max_count");
+_Static_assert(TOF_GRID_SIZE *TOF_GRID_SIZE == PROTO_TOF_ALERT_MAX_DEPTH_MM,
+               "TOF_GRID_SIZE * TOF_GRID_SIZE must match messages.proto "
+               "TofResult.depth_mm max_count");
 
 /* ============================================================================
- * Bounding box type (normalized NN coordinates [0,1])
- * ============================================================================ */
-
-/**
- * @brief  Axis-aligned bounding box in normalized [0,1] NN coordinates.
- */
-typedef struct {
-  float x_center;
-  float y_center;
-  float width;
-  float height;
-  float conf;
-} tof_bbox_t;
-
-/* ============================================================================
- * Person detection result
- * ============================================================================ */
-
-/**
- * @brief  NN detections filtered to person class boxes.
- */
-typedef struct {
-  int32_t nb_persons;
-  uint32_t timestamp_ms;
-  tof_bbox_t persons[TOF_MAX_DETECTIONS];
-} tof_person_detection_t;
-
-/* ============================================================================
- * Depth grid & alert types
+ * Depth grid
  * ============================================================================ */
 
 /**
@@ -89,21 +52,8 @@ typedef struct {
   uint8_t valid;
 } tof_depth_grid_t;
 
-/**
- * @brief  Person-distance alert state derived from fused NN + ToF data
- */
-typedef struct {
-  uint8_t nb_person_depths;     /**< Number of person boxes with sampled depth */
-  uint32_t person_distances_mm[TOF_MAX_DETECTIONS];
-  uint8_t person_depth_valid[TOF_MAX_DETECTIONS];
-  uint32_t person_distance_mm; /**< Closest person depth in mm (0 = no data) */
-  uint8_t has_person_depth;    /**< 1 if depth data overlapped with a person bbox */
-  uint8_t alert;               /**< 1 if person is within threshold */
-  uint8_t stale;               /**< 1 if suppressed due to timestamp mismatch */
-} tof_alert_t;
-
 /* ============================================================================
- * Public API
+ * Public API — ranging and depth
  * ============================================================================ */
 
 /**
@@ -114,7 +64,7 @@ typedef struct {
 void TOF_Init(void);
 
 /**
- * @brief  Create and start the ToF ranging thread.
+ * @brief  Create and start the ToF ranging thread (and fusion thread).
  */
 void TOF_ThreadStart(void);
 
@@ -124,40 +74,12 @@ void TOF_ThreadStart(void);
 const tof_depth_grid_t *TOF_GetDepthGrid(void);
 
 /**
- * @brief  Get pointer to latest alert state (read-only, double-buffered).
- */
-const tof_alert_t *TOF_GetAlert(void);
-
-/**
  * @brief  Get pointer to ToF depth-result update event flags group.
  */
 TX_EVENT_FLAGS_GROUP *TOF_GetResultUpdateEventFlags(void);
 
 /**
- * @brief  Get pointer to ToF alert update event flags group.
- */
-TX_EVENT_FLAGS_GROUP *TOF_GetAlertUpdateEventFlags(void);
-
-/**
- * @brief  Change the person-distance alert threshold at runtime.
- * @param  threshold_mm: Alert if nearest person distance < threshold_mm
- */
-void TOF_SetAlertThreshold(uint32_t threshold_mm);
-
-/**
- * @brief  Publish latest person detections for ToF fusion.
- * @param  detections: Pointer to cached person detections
- */
-void TOF_SetPersonDetections(const tof_person_detection_t *detections);
-
-/**
- * @brief  Get current person detections from the NN model.
- * @retval Pointer to latest cached person detections
- */
-const tof_person_detection_t *TOF_GetPersonDetections(void);
-
-/**
- * @brief  Stop ToF ranging, power off sensor, and suspend thread
+ * @brief  Stop ToF ranging, power off sensor, and suspend threads
  */
 void TOF_Stop(void);
 
