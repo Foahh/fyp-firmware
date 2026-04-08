@@ -132,7 +132,7 @@ void TOF_Init(void) {
   status = vl53l5cx_set_ranging_frequency_hz(&tof_obj.Dev, 15);
   APP_REQUIRE(status == VL53L5CX_OK);
 
-  status = vl53l5cx_set_integration_time_ms(&tof_obj.Dev, 20);
+  status = vl53l5cx_set_integration_time_ms(&tof_obj.Dev, 30);
   APP_REQUIRE(status == VL53L5CX_OK);
 
   for (int zone = 0; zone < TOF_GRID_SIZE * TOF_GRID_SIZE; zone++) {
@@ -207,6 +207,8 @@ static void tof_thread_entry(ULONG arg) {
       uint8_t col = tof_zone_cols[zone];
       grid->distance_mm[row][col] = results.distance_mm[zone];
       grid->status[row][col] = results.target_status[zone];
+      grid->range_sigma_mm[row][col] = results.range_sigma_mm[zone];
+      grid->signal_per_spad[row][col] = results.signal_per_spad[zone];
     }
     grid->timestamp_ms = HAL_GetTick();
     grid->valid = 1;

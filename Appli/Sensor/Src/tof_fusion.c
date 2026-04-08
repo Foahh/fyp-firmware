@@ -46,6 +46,13 @@
 #define TOF_TORSO_HW_FACTOR 0.25f /* half-width = 25% of full bbox width */
 #define TOF_TORSO_HH_FACTOR 0.25f /* half-height = 25% of full bbox height */
 
+/* Cell quality gate: reject only when BOTH sigma is high AND signal is weak.
+ * High sigma + strong signal → real low-reflectance target (dark clothing); keep.
+ * High sigma + weak signal  → likely multipath or noise; reject.
+ * sigma == 0 means field unavailable; those cells are kept unconditionally. */
+#define TOF_SIGMA_REJECT_MM  25U /* mm  — threshold above which sigma is "high" */
+#define TOF_SIGNAL_KEEP_KCPS 30U /* kcps/spad — min signal to trust a high-sigma cell */
+
 /* EMA smoothing per tracked person.  alpha=0.3 weights raw:filtered ≈ 30:70. */
 #define TOF_EMA_ALPHA      0.3f
 #define TOF_EMA_MAX_MISSED 5 /* evict a track after this many consecutive misses */
@@ -152,6 +159,11 @@ static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
     for (int gx = gx0; gx <= gx1; gx++) {
       uint8_t st = grid->status[gy][gx];
       if (st != 5 && st != 9) {
+        continue;
+      }
+      uint16_t sigma = grid->range_sigma_mm[gy][gx];
+      if (sigma > 0U && sigma >= TOF_SIGMA_REJECT_MM &&
+          grid->signal_per_spad[gy][gx] < TOF_SIGNAL_KEEP_KCPS) {
         continue;
       }
       int16_t d = grid->distance_mm[gy][gx];

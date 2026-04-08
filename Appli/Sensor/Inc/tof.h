@@ -49,6 +49,8 @@ _Static_assert(TOF_GRID_SIZE *TOF_GRID_SIZE == PROTO_TOF_ALERT_MAX_DEPTH_MM,
 typedef struct {
   int16_t distance_mm[TOF_GRID_SIZE][TOF_GRID_SIZE];
   uint8_t status[TOF_GRID_SIZE][TOF_GRID_SIZE]; /**< 5 or 9 = valid */
+  uint16_t range_sigma_mm[TOF_GRID_SIZE][TOF_GRID_SIZE]; /**< Measurement uncertainty in mm */
+  uint32_t signal_per_spad[TOF_GRID_SIZE][TOF_GRID_SIZE]; /**< Return signal strength in kcps/spad */
   uint32_t timestamp_ms;
   uint8_t valid;
 } tof_depth_grid_t;

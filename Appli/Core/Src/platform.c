@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file    vl53l5cx_platform.c
+ * @file    platform.c
  * @author  Long Liangmao
  * @brief   VL53L5CX platform layer — replaces the vendor busy-wait WaitMs()
  *          with an RTOS-friendly tx_thread_sleep().
@@ -22,7 +22,7 @@
  ******************************************************************************
  */
 
-#include "vl53l5cx_platform.h"
+#include "platform.h"
 #include "stm32n6xx_hal.h"
 #include "timebase.h"
 #include "tx_api.h"
