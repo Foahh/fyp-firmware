@@ -66,6 +66,7 @@ typedef struct {
  */
 typedef struct {
   int32_t nb_persons;
+  uint32_t timestamp_ms;
   tof_bbox_t persons[TOF_MAX_DETECTIONS];
 } tof_person_detection_t;
 

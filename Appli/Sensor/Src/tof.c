@@ -26,7 +26,6 @@
 #include "cmw_camera.h"
 #include "error.h"
 #include "haptic.h"
-#include "pp.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6570_discovery_bus.h"
 #include "stm32n6xx_hal.h"
@@ -82,10 +81,19 @@ static struct {
   UCHAR stack[TOF_THREAD_STACK_SIZE];
 } tof_ctx;
 
+static struct {
+  TX_THREAD thread;
+  UCHAR stack[TOF_FUSION_THREAD_STACK_SIZE];
+} tof_fusion_ctx;
+
 /* Event flag for interrupt-driven data-ready notification */
 #define TOF_EVT_DATA_READY 0x1U
 static TX_EVENT_FLAGS_GROUP tof_events;
 static TX_EVENT_FLAGS_GROUP tof_update_event_flags;
+static TX_EVENT_FLAGS_GROUP tof_fusion_events;
+
+#define TOF_FUSION_EVT_DEPTH_READY  0x1U
+#define TOF_FUSION_EVT_PERSON_READY 0x2U
 
 /* ============================================================================
  * Sensor state
@@ -203,8 +211,9 @@ static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
  * @param  grid  Current depth grid snapshot
  * @param  out   Alert state to populate
  */
-static void tof_run_fusion(const tof_depth_grid_t *grid, tof_alert_t *out) {
-  const tof_person_detection_t *det = TOF_GetPersonDetections();
+static void tof_run_fusion(const tof_depth_grid_t *grid,
+                           const tof_person_detection_t *det,
+                           tof_alert_t *out) {
 
   memset(out, 0, sizeof(*out));
 
@@ -215,12 +224,16 @@ static void tof_run_fusion(const tof_depth_grid_t *grid, tof_alert_t *out) {
     return;
   }
 
-  /* Temporal pairing: check NN detection timestamp vs depth grid */
-  const detection_info_t *pp_info = PP_GetInfo();
-  if (pp_info != NULL && pp_info->timestamp_ms != 0) {
-    uint32_t dt = (grid->timestamp_ms > pp_info->timestamp_ms)
-                      ? (grid->timestamp_ms - pp_info->timestamp_ms)
-                      : (pp_info->timestamp_ms - grid->timestamp_ms);
+  if (det == NULL || det->timestamp_ms == 0U) {
+    out->stale = 1;
+    return;
+  }
+
+  /* Temporal pairing: check PP detection timestamp vs depth grid */
+  {
+    uint32_t dt = (grid->timestamp_ms > det->timestamp_ms)
+                      ? (grid->timestamp_ms - det->timestamp_ms)
+                      : (det->timestamp_ms - grid->timestamp_ms);
     if (dt > FUSION_MAX_DT_MS) {
       out->stale = 1;
       return;
@@ -380,16 +393,33 @@ static void tof_thread_entry(ULONG arg) {
     __DMB();
     depth_read_idx = write_idx;
 
-    /* Run fusion and update alert */
-    uint8_t alert_write_idx = alert_read_idx ^ 1;
-    tof_run_fusion(grid, &alerts[alert_write_idx]);
+    tx_event_flags_set(&tof_fusion_events, TOF_FUSION_EVT_DEPTH_READY, TX_OR);
+  }
+}
 
-    /* Publish alert: ensure all writes visible before index swap. */
+static void tof_fusion_thread_entry(ULONG arg) {
+  UNUSED(arg);
+
+  while (1) {
+    ULONG actual_flags;
+    uint8_t alert_write_idx;
+    const tof_depth_grid_t *grid;
+    const tof_person_detection_t *det;
+
+    tx_event_flags_get(&tof_fusion_events,
+                       TOF_FUSION_EVT_DEPTH_READY | TOF_FUSION_EVT_PERSON_READY,
+                       TX_OR_CLEAR, &actual_flags, TX_WAIT_FOREVER);
+
+    grid = TOF_GetDepthGrid();
+    det = TOF_GetPersonDetections();
+
+    alert_write_idx = alert_read_idx ^ 1U;
+    tof_run_fusion(grid, det, &alerts[alert_write_idx]);
+
     __DMB();
     alert_read_idx = alert_write_idx;
     tx_event_flags_set(&tof_update_event_flags, 0x01, TX_OR);
 
-    /* Drive LED and haptic based on alert */
     if (alerts[alert_write_idx].alert) {
       BSP_LED_On(LED_RED);
       HAPTIC_On();
@@ -411,10 +441,20 @@ void TOF_ThreadStart(void) {
   status = tx_event_flags_create(&tof_update_event_flags, "tof_update");
   APP_REQUIRE(status == TX_SUCCESS);
 
+  status = tx_event_flags_create(&tof_fusion_events, "tof_fusion");
+  APP_REQUIRE(status == TX_SUCCESS);
+
   status = tx_thread_create(&tof_ctx.thread, "tof_ranging",
                             tof_thread_entry, 0,
                             tof_ctx.stack, TOF_THREAD_STACK_SIZE,
                             TOF_THREAD_PRIORITY, TOF_THREAD_PRIORITY,
+                            TX_NO_TIME_SLICE, TX_AUTO_START);
+  APP_REQUIRE(status == TX_SUCCESS);
+
+  status = tx_thread_create(&tof_fusion_ctx.thread, "tof_fusion",
+                            tof_fusion_thread_entry, 0,
+                            tof_fusion_ctx.stack, TOF_FUSION_THREAD_STACK_SIZE,
+                            TOF_FUSION_THREAD_PRIORITY, TOF_FUSION_THREAD_PRIORITY,
                             TX_NO_TIME_SLICE, TX_AUTO_START);
   APP_REQUIRE(status == TX_SUCCESS);
 }
@@ -448,6 +488,7 @@ void TOF_SetPersonDetections(const tof_person_detection_t *detections) {
   person_detection_buffers[write_idx] = *detections;
   __DMB();
   person_detection_read_idx = write_idx;
+  tx_event_flags_set(&tof_fusion_events, TOF_FUSION_EVT_PERSON_READY, TX_OR);
 }
 
 /**
@@ -461,6 +502,7 @@ const tof_person_detection_t *TOF_GetPersonDetections(void) {
 
 void TOF_Stop(void) {
   HAL_NVIC_DisableIRQ(EXTI0_IRQn);
+  tx_thread_suspend(&tof_fusion_ctx.thread);
   tx_thread_suspend(&tof_ctx.thread);
   vl53l5cx_stop_ranging(&tof_obj.Dev);
   HAL_GPIO_WritePin(TOF_PWR_EN_PORT, TOF_PWR_EN_PIN, GPIO_PIN_RESET);
@@ -474,4 +516,5 @@ void TOF_Resume(void) {
   vl53l5cx_start_ranging(&tof_obj.Dev);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
   tx_thread_resume(&tof_ctx.thread);
+  tx_thread_resume(&tof_fusion_ctx.thread);
 }

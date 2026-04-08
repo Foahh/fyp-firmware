@@ -254,6 +254,7 @@ static void pp_thread_entry(ULONG arg) {
     detection_info_t *write_buf = &detection_info_buffers[write_buffer_idx];
     write_buf->nb_detect = pp_output.nb_detect;
     person_detections.nb_persons = 0;
+    person_detections.timestamp_ms = HAL_GetTick();
     for (int i = 0; i < pp_output.nb_detect && i < DETECTION_MAX_BOXES; i++) {
       write_buf->detects[i] = pp_output.pOutBuff[i];
       if (pp_output.pOutBuff[i].class_index == 0 &&
@@ -271,7 +272,7 @@ static void pp_thread_entry(ULONG arg) {
     write_buf->postprocess_us = CYCLES_TO_US(pp_end_cycles - pp_start_cycles);
     write_buf->tracker_us = CYCLES_TO_US(trk_end_cycles - trk_start_cycles);
     write_buf->frame_drops = nn_timing.frame_drops;
-    write_buf->timestamp_ms = HAL_GetTick();
+    write_buf->timestamp_ms = person_detections.timestamp_ms;
 
     write_buf->nb_tracked = 0;
     for (int i = 0; i < 2 * DETECTION_MAX_BOXES; i++) {
