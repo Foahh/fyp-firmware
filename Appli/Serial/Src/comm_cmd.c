@@ -20,6 +20,7 @@
 #include "cam.h"
 #include "comm_tx.h"
 #include "display.h"
+#include "pp.h"
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"
 #include "tracex.h"
@@ -107,6 +108,20 @@ static void handle_get_tracex_dump(const GetTraceXDump *cmd) {
   COM_Send_Ack(offset == total_size);
 }
 
+static void handle_set_postprocess_config(const SetPostprocessConfig *cmd) {
+  pp_runtime_config_t cfg = {
+      .pp_conf_threshold = cmd->pp_conf_threshold,
+      .pp_iou_threshold = cmd->pp_iou_threshold,
+      .track_thresh = cmd->track_thresh,
+      .det_thresh = cmd->det_thresh,
+      .sim1_thresh = cmd->sim1_thresh,
+      .sim2_thresh = cmd->sim2_thresh,
+      .tlost_cnt = cmd->tlost_cnt,
+  };
+  bool ok = PP_RequestRuntimeConfig(&cfg);
+  COM_Send_Ack(ok);
+}
+
 /* ============================================================================
  * Public API
  * ============================================================================ */
@@ -127,6 +142,11 @@ void COM_Cmd_Dispatch(const HostMessage *msg) {
     host_recognized = true;
     host_last_seen_tick = HAL_GetTick();
     handle_get_tracex_dump(&msg->command.get_tracex_dump);
+    break;
+  case HostMessage_set_postprocess_config_tag:
+    host_recognized = true;
+    host_last_seen_tick = HAL_GetTick();
+    handle_set_postprocess_config(&msg->command.set_postprocess_config);
     break;
   default:
     COM_Send_Ack(false);

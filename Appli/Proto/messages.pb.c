@@ -36,6 +36,9 @@ PB_BIND(GetDeviceInfo, GetDeviceInfo, AUTO)
 PB_BIND(GetTraceXDump, GetTraceXDump, AUTO)
 
 
+PB_BIND(SetPostprocessConfig, SetPostprocessConfig, AUTO)
+
+
 PB_BIND(DeviceMessage, DeviceMessage, 2)
 
 

@@ -80,6 +80,12 @@ static void draw_detection(const od_pp_outBuffer_t *det,
   uint32_t color;
   int class_idx;
 
+  /* Skip if detection center is outside ROI bounds */
+  if (det->x_center < 0.0f || det->x_center > 1.0f ||
+      det->y_center < 0.0f || det->y_center > 1.0f) {
+    return;
+  }
+
   /* Convert normalized coordinates (relative to NN input 480x480) to ROI pixel coordinates */
   /* Detections are normalized (0-1) relative to NN input size, scale to ROI size */
   xc = (int)(det->x_center * roi_w) + roi_x0 + DISPLAY_LETTERBOX_X0;
@@ -135,6 +141,12 @@ static void draw_tracked(const tracked_box_t *tb, int roi_x0, int roi_y0,
   int xc, yc, x0, y0, x1, y1, w, h;
   uint32_t color;
   char id_str[16];
+
+  /* Skip coasting tracks whose predicted center has left the ROI */
+  if (tb->x_center < 0.0f || tb->x_center > 1.0f ||
+      tb->y_center < 0.0f || tb->y_center > 1.0f) {
+    return;
+  }
 
   xc = (int)(tb->x_center * roi_w) + roi_x0 + DISPLAY_LETTERBOX_X0;
   yc = (int)(tb->y_center * roi_h) + roi_y0;

@@ -78,6 +78,13 @@ message DeviceInfo {
     (nanopb).max_count = 10
   ];
   string build_timestamp = 15 [(nanopb).max_size = 24];
+  float pp_conf_threshold = 16;
+  float pp_iou_threshold = 17;
+  float track_thresh = 18;
+  float det_thresh = 19;
+  float sim1_thresh = 20;
+  float sim2_thresh = 21;
+  uint32 tlost_cnt = 22;
 }
 
 message Ack {
@@ -111,6 +118,17 @@ message GetTraceXDump {
   uint32 timestamp_ms = 2;
 }
 
+message SetPostprocessConfig {
+  float pp_conf_threshold = 1;
+  float pp_iou_threshold = 2;
+  float track_thresh = 3;
+  float det_thresh = 4;
+  float sim1_thresh = 5;
+  float sim2_thresh = 6;
+  uint32 tlost_cnt = 7;
+  uint32 timestamp_ms = 8;
+}
+
 /* ============================================================================
  * Top-level wrappers
  * ============================================================================ */
@@ -129,5 +147,6 @@ message HostMessage {
     SetDisplayEnabled set_display_enabled = 1;
     GetDeviceInfo get_device_info = 2;
     GetTraceXDump get_tracex_dump = 3;
+    SetPostprocessConfig set_postprocess_config = 4;
   }
 }

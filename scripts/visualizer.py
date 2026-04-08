@@ -11,7 +11,7 @@ import time
 from collections import deque
 from dataclasses import dataclass, field
 from queue import Empty, Queue
-from typing import Optional
+from typing import Any, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -69,6 +69,16 @@ class VisualizerState:
     device_info_timestamp: int = 0
     firmware_recognized: bool = False
     host_introduced: bool = False
+    pp_conf_threshold: float = 0.1
+    pp_iou_threshold: float = 0.45
+    track_thresh: float = 0.25
+    det_thresh: float = 0.8
+    sim1_thresh: float = 0.8
+    sim2_thresh: float = 0.5
+    tlost_cnt: int = 30
+    # Multi-line status for Runtime PP config window; GUI sets "Sent…"; RX appends ACK/DeviceInfo.
+    pp_cfg_status_text: str = ""
+    pp_cfg_pending_device_info: int = 0
 
     frame_drops: int = 0
     cpu_usage_percent: float = 0.0
@@ -171,10 +181,11 @@ def receiver_loop(
     baud: int,
     timeout_s: float,
     state: VisualizerState,
-    cmd_queue: Queue[tuple[str, Optional[bool]]],
+    cmd_queue: Queue[tuple[str, Any]],
     stop_evt: threading.Event,
 ) -> None:
     pending_display: deque[bool] = deque()
+    pending_ack_types: deque[str] = deque()
     link: Optional[SerialLink] = None
     last_get_info_mono: float = 0.0
     GET_INFO_RESEND_S = 1.5
@@ -201,6 +212,9 @@ def receiver_loop(
                 state.firmware_recognized = False
                 state.host_introduced = False
                 state.last_error = ""
+                pending_display.clear()
+                pending_ack_types.clear()
+                state.pp_cfg_pending_device_info = 0
                 print(
                     f"[firmware] Opened {selected_port} @ {baud} baud (8N1, no handshake)",
                     file=sys.stderr,
@@ -227,6 +241,19 @@ def receiver_loop(
                     )
                     state.host_introduced = True
                     pending_display.append(bool(value))
+                    pending_ack_types.append("display")
+                elif command == "set_pp_config" and isinstance(value, dict):
+                    cfg = msg.set_postprocess_config
+                    cfg.pp_conf_threshold = float(value["pp_conf_threshold"])
+                    cfg.pp_iou_threshold = float(value["pp_iou_threshold"])
+                    cfg.track_thresh = float(value["track_thresh"])
+                    cfg.det_thresh = float(value["det_thresh"])
+                    cfg.sim1_thresh = float(value["sim1_thresh"])
+                    cfg.sim2_thresh = float(value["sim2_thresh"])
+                    cfg.tlost_cnt = int(value["tlost_cnt"])
+                    cfg.timestamp_ms = int(time.time() * 1000) & 0xFFFFFFFF
+                    state.host_introduced = True
+                    pending_ack_types.append("pp_config")
                 link.send_host_message(msg)
                 if command == "get_info":
                     print("[firmware] Sent get_device_info (queued)", file=sys.stderr)
@@ -332,12 +359,40 @@ def receiver_loop(
                     state.camera_mode_text = f"{info.camera_fps} fps"
                 state.firmware_recognized = True
                 state.build_timestamp = info.build_timestamp or "unknown"
+                state.pp_conf_threshold = float(info.pp_conf_threshold)
+                state.pp_iou_threshold = float(info.pp_iou_threshold)
+                state.track_thresh = float(info.track_thresh)
+                state.det_thresh = float(info.det_thresh)
+                state.sim1_thresh = float(info.sim1_thresh)
+                state.sim2_thresh = float(info.sim2_thresh)
+                state.tlost_cnt = int(info.tlost_cnt)
+                if state.pp_cfg_pending_device_info > 0:
+                    state.pp_cfg_status_text = (
+                        state.pp_cfg_status_text.rstrip() + "\nDeviceInfo received."
+                    )
+                    state.pp_cfg_pending_device_info -= 1
 
             elif which == "ack":
                 ack = dev_msg.ack
                 state.last_ack = f"ACK success={ack.success}"
                 state.last_ack_timestamp = int(ack.timestamp_ms)
-                if pending_display:
+                if pending_ack_types:
+                    kind = pending_ack_types.popleft()
+                    if kind == "display":
+                        if pending_display:
+                            desired = pending_display.popleft()
+                            if ack.success:
+                                state.display_enabled = desired
+                    elif kind == "pp_config":
+                        base = state.pp_cfg_status_text.strip()
+                        if not base:
+                            base = "Sent set_postprocess_config."
+                        state.pp_cfg_status_text = (
+                            base
+                            + "\n"
+                            + f"ACK success={ack.success} (t={int(ack.timestamp_ms)} ms)"
+                        )
+                elif pending_display:
                     desired = pending_display.popleft()
                     if ack.success:
                         state.display_enabled = desired
@@ -481,7 +536,7 @@ def main() -> int:
     state = VisualizerState()
     state.battery_capacity_mah = float(args.battery_mah)
     state.battery_supply_voltage_v = float(args.battery_v)
-    cmd_queue: Queue[tuple[str, Optional[bool]]] = Queue()
+    cmd_queue: Queue[tuple[str, Any]] = Queue()
     stop_evt = threading.Event()
 
     firmware_port_for_power_exclude = resolve_port(args.port)

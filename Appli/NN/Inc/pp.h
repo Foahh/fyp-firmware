@@ -28,6 +28,7 @@ extern "C" {
 
 #include "od_pp_output_if.h"
 #include "tx_api.h"
+#include <stdbool.h>
 #include <stdint.h>
 
 /* Maximum detections to display */
@@ -56,6 +57,16 @@ typedef struct {
   int32_t nb_tracked;                             /**< Number of active tracked boxes */
   tracked_box_t tracked[DETECTION_MAX_BOXES];     /**< Kalman-smoothed tracked detections */
 } detection_info_t;
+
+typedef struct {
+  float pp_conf_threshold;
+  float pp_iou_threshold;
+  float track_thresh;
+  float det_thresh;
+  float sim1_thresh;
+  float sim2_thresh;
+  uint32_t tlost_cnt;
+} pp_runtime_config_t;
 
 /**
  * @brief  Initialize postprocessing module (thread, sync primitives)
@@ -90,6 +101,20 @@ void PP_ThreadSuspend(void);
  * @brief  Resume postprocessing thread
  */
 void PP_ThreadResume(void);
+
+/**
+ * @brief  Request runtime update of postprocess and tracker thresholds
+ * @param  cfg: Requested runtime configuration
+ * @retval true on accepted request, false on invalid input
+ */
+bool PP_RequestRuntimeConfig(const pp_runtime_config_t *cfg);
+
+/**
+ * @brief  Get currently active runtime postprocess/tracker configuration
+ * @param  out_cfg: Output structure for active configuration
+ * @retval true if configuration has been initialized and copied
+ */
+bool PP_GetRuntimeConfig(pp_runtime_config_t *out_cfg);
 
 #ifdef __cplusplus
 }

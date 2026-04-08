@@ -83,6 +83,57 @@ static od_yolo_d_pp_static_param_t pp_params;
 static trk_ctx_t trk_ctx;
 static trk_tbox_t trk_tboxes[2 * DETECTION_MAX_BOXES];
 static trk_dbox_t trk_dboxes[DETECTION_MAX_BOXES];
+static volatile uint32_t runtime_cfg_req_seq;
+static pp_runtime_config_t runtime_cfg_pending;
+static volatile uint32_t runtime_cfg_active_seq;
+static pp_runtime_config_t runtime_cfg_active;
+static volatile bool runtime_cfg_ready;
+
+static bool pp_runtime_config_is_valid(const pp_runtime_config_t *cfg) {
+  if (cfg == NULL) {
+    return false;
+  }
+  if (cfg->pp_conf_threshold < 0.0f || cfg->pp_conf_threshold > 1.0f) {
+    return false;
+  }
+  if (cfg->pp_iou_threshold < 0.0f || cfg->pp_iou_threshold > 1.0f) {
+    return false;
+  }
+  if (cfg->track_thresh < 0.0f || cfg->track_thresh > 1.0f) {
+    return false;
+  }
+  if (cfg->det_thresh < 0.0f || cfg->det_thresh > 1.0f) {
+    return false;
+  }
+  if (cfg->sim1_thresh < 0.0f || cfg->sim1_thresh > 1.0f) {
+    return false;
+  }
+  if (cfg->sim2_thresh < 0.0f || cfg->sim2_thresh > 1.0f) {
+    return false;
+  }
+  if (cfg->tlost_cnt == 0U || cfg->tlost_cnt > 1000U) {
+    return false;
+  }
+  return true;
+}
+
+static void pp_apply_runtime_config(const pp_runtime_config_t *cfg) {
+  APP_REQUIRE(cfg != NULL);
+  pp_params.conf_threshold = cfg->pp_conf_threshold;
+  pp_params.iou_threshold = cfg->pp_iou_threshold;
+  trk_ctx.cfg.track_thresh = cfg->track_thresh;
+  trk_ctx.cfg.det_thresh = cfg->det_thresh;
+  trk_ctx.cfg.sim1_thresh = cfg->sim1_thresh;
+  trk_ctx.cfg.sim2_thresh = cfg->sim2_thresh;
+  trk_ctx.cfg.tlost_cnt = cfg->tlost_cnt;
+
+  runtime_cfg_active_seq++;
+  __DMB();
+  runtime_cfg_active = *cfg;
+  __DMB();
+  runtime_cfg_active_seq++;
+  runtime_cfg_ready = true;
+}
 
 /* ============================================================================
  * Thread Entry Points
@@ -109,6 +160,7 @@ static void pp_thread_entry(ULONG arg) {
   uint32_t trk_end_cycles;
   nn_timing_t nn_timing;
   int ret;
+  uint32_t applied_runtime_cfg_req_seq = 0;
 
   /* Initialize postprocess with network info (object detection model) */
   stai_network_info *nn_info = NN_GetNetworkInfo();
@@ -126,12 +178,45 @@ static void pp_thread_entry(ULONG arg) {
   trk_init(&trk_ctx, (trk_conf_t *)&trk_cfg,
            2 * DETECTION_MAX_BOXES, trk_tboxes);
 
+  const pp_runtime_config_t default_runtime_cfg = {
+      .pp_conf_threshold = pp_params.conf_threshold,
+      .pp_iou_threshold = pp_params.iou_threshold,
+      .track_thresh = trk_cfg.track_thresh,
+      .det_thresh = trk_cfg.det_thresh,
+      .sim1_thresh = trk_cfg.sim1_thresh,
+      .sim2_thresh = trk_cfg.sim2_thresh,
+      .tlost_cnt = trk_cfg.tlost_cnt,
+  };
+  pp_apply_runtime_config(&default_runtime_cfg);
+
   while (1) {
     uint8_t *output_buffer;
+    uint32_t seq_start;
+    uint32_t seq_end;
+    pp_runtime_config_t requested_runtime_cfg;
 
     /* Wait for NN output */
     output_buffer = BQUE_GetReady(output_queue);
     APP_REQUIRE(output_buffer != NULL);
+
+    /* Apply host-updated thresholds at a frame boundary. */
+    do {
+      seq_start = runtime_cfg_req_seq;
+      if (seq_start & 1U) {
+        continue;
+      }
+      __DMB();
+      requested_runtime_cfg = runtime_cfg_pending;
+      __DMB();
+      seq_end = runtime_cfg_req_seq;
+    } while ((seq_start & 1U) || (seq_start != seq_end));
+
+    if (seq_end != 0U && seq_end != applied_runtime_cfg_req_seq) {
+      if (pp_runtime_config_is_valid(&requested_runtime_cfg)) {
+        pp_apply_runtime_config(&requested_runtime_cfg);
+      }
+      applied_runtime_cfg_req_seq = seq_end;
+    }
 
     /* Calculate output buffer pointers */
     pp_input[0] = output_buffer;
@@ -248,6 +333,39 @@ void PP_ThreadResume(void) {
   tx_thread_resume(&pp_ctx.thread);
 }
 
+bool PP_RequestRuntimeConfig(const pp_runtime_config_t *cfg) {
+  if (!pp_runtime_config_is_valid(cfg)) {
+    return false;
+  }
+  runtime_cfg_req_seq++;
+  __DMB();
+  runtime_cfg_pending = *cfg;
+  __DMB();
+  runtime_cfg_req_seq++;
+  return true;
+}
+
+bool PP_GetRuntimeConfig(pp_runtime_config_t *out_cfg) {
+  uint32_t seq_start;
+  uint32_t seq_end;
+
+  if (out_cfg == NULL || !runtime_cfg_ready) {
+    return false;
+  }
+
+  do {
+    seq_start = runtime_cfg_active_seq;
+    if (seq_start & 1U) {
+      continue;
+    }
+    __DMB();
+    *out_cfg = runtime_cfg_active;
+    __DMB();
+    seq_end = runtime_cfg_active_seq;
+  } while ((seq_start & 1U) || (seq_start != seq_end));
+  return true;
+}
+
 /**
  * @brief  Initialize postprocessing module (thread, sync primitives)
  * @param  memory_ptr: ThreadX memory pool (unused, static allocation)
@@ -261,6 +379,11 @@ void PP_ThreadStart(void) {
   /* Initialize read pointer to first buffer */
   detection_info_read_ptr = &detection_info_buffers[0];
   write_buffer_idx = 1;
+  runtime_cfg_req_seq = 0U;
+  runtime_cfg_active_seq = 0U;
+  runtime_cfg_ready = false;
+  memset(&runtime_cfg_pending, 0, sizeof(runtime_cfg_pending));
+  memset(&runtime_cfg_active, 0, sizeof(runtime_cfg_active));
 
   /* Create synchronization primitives */
   status = tx_event_flags_create(&update_event_flags, "detection_update");

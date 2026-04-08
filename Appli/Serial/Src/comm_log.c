@@ -63,8 +63,9 @@ static void comm_send_detection_result(const detection_info_t *info) {
   df->cpu_usage_percent = CPU_LoadGetUsageRatio() * 100.0f;
 
   int n = info->nb_detect;
-  if (n > DETECTION_MAX_BOXES) {
-    n = DETECTION_MAX_BOXES;
+  int max_det = (int)(sizeof(df->detections) / sizeof(df->detections[0]));
+  if (n > max_det) {
+    n = max_det;
   }
   df->detections_count = (pb_size_t)n;
   for (int i = 0; i < n; i++) {
@@ -78,8 +79,9 @@ static void comm_send_detection_result(const detection_info_t *info) {
   }
 
   int nt = info->nb_tracked;
-  if (nt > DETECTION_MAX_BOXES) {
-    nt = DETECTION_MAX_BOXES;
+  int max_trk = (int)(sizeof(df->tracks) / sizeof(df->tracks[0]));
+  if (nt > max_trk) {
+    nt = max_trk;
   }
   df->tracks_count = (pb_size_t)nt;
   for (int i = 0; i < nt; i++) {

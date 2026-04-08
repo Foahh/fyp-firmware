@@ -1,7 +1,7 @@
 """GUI creation and styling for visualizer."""
 
 from queue import Queue
-from typing import Optional
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,7 +31,7 @@ def _legend(ax, bg: str) -> None:
 
 def create_gui(
     state,
-    cmd_queue: Queue[tuple[str, Optional[bool]]],
+    cmd_queue: Queue[tuple[str, Any]],
 ) -> tuple[list[plt.Figure], list[FuncAnimation]]:
     # --- Theme constants ---
     C_FIG_BG = "#000000"
@@ -102,6 +102,32 @@ def create_gui(
     ax_text = fig_info.add_subplot(grid_info[0])
     ax_text.axis("off")
     ax_text.set_facecolor(C_FIG_BG)
+
+    # --- Runtime PP config figure ---
+    fig_cfg = plt.figure("Runtime PP/Tracker Config", figsize=(6.5, 6.0))
+    fig_cfg.set_facecolor(C_FIG_BG)
+    fig_cfg.subplots_adjust(left=0.05, right=0.95, top=0.97, bottom=0.03)
+    ax_cfg = fig_cfg.add_subplot(111)
+    ax_cfg.axis("off")
+    cfg_title = ax_cfg.text(
+        0.02,
+        0.98,
+        "Runtime PP / Tracker Config",
+        va="top",
+        ha="left",
+        fontsize=12,
+        color=C_TITLE,
+        fontweight="semibold",
+    )
+    cfg_status = ax_cfg.text(
+        0.02,
+        0.93,
+        "",
+        va="top",
+        ha="left",
+        fontsize=8.5,
+        color="#9898b8",
+    )
 
     # --- Buttons ---
     ax_btn_info = fig_info.add_subplot(grid_info[1])
@@ -334,6 +360,101 @@ def create_gui(
     btn_toggle.on_clicked(on_toggle_display)
     fig_info._visualizer_widgets = (btn_info, btn_toggle)
 
+    # --- Runtime config controls ---
+    cfg_labels = [
+        ("PP conf threshold", "pp_conf_threshold"),
+        ("PP IoU threshold", "pp_iou_threshold"),
+        ("Track thresh", "track_thresh"),
+        ("Det thresh", "det_thresh"),
+        ("Sim1 thresh", "sim1_thresh"),
+        ("Sim2 thresh", "sim2_thresh"),
+        ("Tlost cnt", "tlost_cnt"),
+    ]
+    cfg_textboxes: dict[str, TextBox] = {}
+    y0 = 0.78
+    dy = 0.09
+    for idx, (label, key) in enumerate(cfg_labels):
+        y = y0 - idx * dy
+        ax_tb = fig_cfg.add_axes([0.38, y, 0.22, 0.055])
+        initial = (
+            f"{getattr(state, key):.4f}" if key != "tlost_cnt" else f"{int(state.tlost_cnt)}"
+        )
+        tb = TextBox(
+            ax_tb,
+            f"{label}: ",
+            initial=initial,
+            color="#252545",
+            hovercolor="#35355a",
+        )
+        tb.text_disp.set_color(C_TEXT)
+        tb.label.set_color(C_TEXT)
+        cfg_textboxes[key] = tb
+
+    cfg_btn_load_ax = fig_cfg.add_axes([0.10, 0.08, 0.25, 0.07])
+    cfg_btn_apply_ax = fig_cfg.add_axes([0.62, 0.08, 0.25, 0.07])
+    cfg_btn_load = Button(
+        cfg_btn_load_ax, "Load Device", color="#252545", hovercolor="#35355a"
+    )
+    cfg_btn_apply = Button(
+        cfg_btn_apply_ax, "Apply Config", color="#252545", hovercolor="#35355a"
+    )
+    cfg_btn_load.label.set_color(C_TEXT)
+    cfg_btn_apply.label.set_color(C_TEXT)
+
+    def _populate_cfg_boxes() -> None:
+        cfg_textboxes["pp_conf_threshold"].set_val(f"{state.pp_conf_threshold:.4f}")
+        cfg_textboxes["pp_iou_threshold"].set_val(f"{state.pp_iou_threshold:.4f}")
+        cfg_textboxes["track_thresh"].set_val(f"{state.track_thresh:.4f}")
+        cfg_textboxes["det_thresh"].set_val(f"{state.det_thresh:.4f}")
+        cfg_textboxes["sim1_thresh"].set_val(f"{state.sim1_thresh:.4f}")
+        cfg_textboxes["sim2_thresh"].set_val(f"{state.sim2_thresh:.4f}")
+        cfg_textboxes["tlost_cnt"].set_val(f"{int(state.tlost_cnt)}")
+
+    def _read_cfg_boxes() -> dict[str, float]:
+        return {
+            "pp_conf_threshold": float(cfg_textboxes["pp_conf_threshold"].text.strip()),
+            "pp_iou_threshold": float(cfg_textboxes["pp_iou_threshold"].text.strip()),
+            "track_thresh": float(cfg_textboxes["track_thresh"].text.strip()),
+            "det_thresh": float(cfg_textboxes["det_thresh"].text.strip()),
+            "sim1_thresh": float(cfg_textboxes["sim1_thresh"].text.strip()),
+            "sim2_thresh": float(cfg_textboxes["sim2_thresh"].text.strip()),
+            "tlost_cnt": float(cfg_textboxes["tlost_cnt"].text.strip()),
+        }
+
+    def on_load_cfg(_event) -> None:
+        _populate_cfg_boxes()
+        state.pp_cfg_status_text = "Loaded runtime values from latest DeviceInfo."
+        state.pp_cfg_pending_device_info = 0
+        cfg_status.set_text(state.pp_cfg_status_text)
+
+    def on_apply_cfg(_event) -> None:
+        try:
+            cfg = _read_cfg_boxes()
+            state.pp_cfg_status_text = (
+                "Sent set_postprocess_config. Waiting for ACK/DeviceInfo..."
+            )
+            state.pp_cfg_pending_device_info += 1
+            cfg_status.set_text(state.pp_cfg_status_text)
+            cmd_queue.put(("set_pp_config", cfg))
+            cmd_queue.put(("get_info", None))
+        except ValueError:
+            state.pp_cfg_status_text = (
+                "Invalid number format. Please enter valid numeric values."
+            )
+            state.pp_cfg_pending_device_info = 0
+            cfg_status.set_text(state.pp_cfg_status_text)
+
+    cfg_btn_load.on_clicked(on_load_cfg)
+    cfg_btn_apply.on_clicked(on_apply_cfg)
+    _populate_cfg_boxes()
+    fig_cfg._visualizer_widgets = (
+        cfg_title,
+        cfg_status,
+        cfg_btn_load,
+        cfg_btn_apply,
+        *cfg_textboxes.values(),
+    )
+
     SEP = "\u2500" * 30
 
     def update_timing(_frame_idx):
@@ -537,6 +658,9 @@ def create_gui(
             f"  Timing  PP: {last_pp:.0f} us   Trk: {last_trk:.0f} us",
             f"  Timestamp  msg: {state.last_timestamp} ms   detection: {state.detection_timestamp} ms   info: {state.device_info_timestamp} ms   ack: {state.last_ack_timestamp} ms",
             f"  Labels  {class_labels}",
+            f"  PP cfg  conf={state.pp_conf_threshold:.3f} iou={state.pp_iou_threshold:.3f}",
+            f"          track={state.track_thresh:.3f} det={state.det_thresh:.3f} "
+            f"sim1={state.sim1_thresh:.3f} sim2={state.sim2_thresh:.3f} tlost={state.tlost_cnt}",
             f"  ACK     {state.last_ack}",
             f"  Err     {state.last_error or '-'}",
             f"  PwrErr  {state.last_power_error or '-'}",
@@ -570,6 +694,14 @@ def create_gui(
         fig_info, update_info, interval=120, blit=False, cache_frame_data=False
     )
 
+    def update_cfg(_frame_idx):
+        cfg_status.set_text(state.pp_cfg_status_text)
+        return (cfg_status,)
+
+    anim_cfg = FuncAnimation(
+        fig_cfg, update_cfg, interval=200, blit=False, cache_frame_data=False
+    )
+
     figures = [
         fig_timing,
         fig_cpu,
@@ -578,6 +710,7 @@ def create_gui(
         fig_pm_mj,
         fig_battery,
         fig_info,
+        fig_cfg,
     ]
     animations = [
         anim_timing,
@@ -587,6 +720,7 @@ def create_gui(
         anim_pm_mj,
         anim_battery,
         anim_info,
+        anim_cfg,
     ]
 
     _closing_all = [False]

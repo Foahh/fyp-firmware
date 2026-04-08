@@ -161,7 +161,7 @@ static void ui_thread_entry(ULONG arg) {
 
     /* Clear detection overlay area only when needed */
     uint8_t cur_has_detections =
-        (det_info != NULL && det_info->nb_detect > 0) ? 1 : 0;
+        (det_info != NULL && (det_info->nb_detect > 0 || det_info->nb_tracked > 0)) ? 1 : 0;
     uint8_t cur_tof_overlay_visible = g_tof_overlay_visible ? 1 : 0;
 
     uint8_t cur_overlay_active = cur_has_detections || cur_tof_overlay_visible;

@@ -25,6 +25,7 @@
 #include "model_config.h"
 #include "nn_config.h"
 #include "pb_encode.h"
+#include "pp.h"
 #include "power_mode.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6xx_hal.h"
@@ -87,6 +88,7 @@ void COM_TX_Send(const DeviceMessage *msg) {
 
 void COM_Send_DeviceInfo(void) {
   DeviceMessage msg = DeviceMessage_init_zero;
+  pp_runtime_config_t pp_cfg;
   msg.which_payload = DeviceMessage_device_info_tag;
 
   DeviceInfo *di = &msg.payload.device_info;
@@ -126,6 +128,24 @@ void COM_Send_DeviceInfo(void) {
   /* Build timestamp */
   strncpy(di->build_timestamp, BUILD_TIMESTAMP, sizeof(di->build_timestamp) - 1);
   di->build_timestamp[sizeof(di->build_timestamp) - 1] = '\0';
+
+  if (PP_GetRuntimeConfig(&pp_cfg)) {
+    di->pp_conf_threshold = pp_cfg.pp_conf_threshold;
+    di->pp_iou_threshold = pp_cfg.pp_iou_threshold;
+    di->track_thresh = pp_cfg.track_thresh;
+    di->det_thresh = pp_cfg.det_thresh;
+    di->sim1_thresh = pp_cfg.sim1_thresh;
+    di->sim2_thresh = pp_cfg.sim2_thresh;
+    di->tlost_cnt = pp_cfg.tlost_cnt;
+  } else {
+    di->pp_conf_threshold = MDL_PP_CONF_THRESHOLD;
+    di->pp_iou_threshold = MDL_PP_IOU_THRESHOLD;
+    di->track_thresh = 0.25f;
+    di->det_thresh = 0.8f;
+    di->sim1_thresh = 0.8f;
+    di->sim2_thresh = 0.5f;
+    di->tlost_cnt = 30U;
+  }
 
   di->timestamp_ms = HAL_GetTick();
 
