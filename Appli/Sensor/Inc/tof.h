@@ -139,9 +139,14 @@ TX_EVENT_FLAGS_GROUP *TOF_GetUpdateEventFlags(void);
 void TOF_SetAlertThreshold(uint32_t threshold_mm);
 
 /**
+ * @brief  Publish latest person detections for ToF fusion.
+ * @param  detections: Pointer to cached person detections
+ */
+void TOF_SetPersonDetections(const tof_person_detection_t *detections);
+
+/**
  * @brief  Get current person detections from the NN model.
- *         Reads PP_GetInfo() and filters detects[] to person class boxes.
- * @retval Pointer to static tof_person_detection_t (always valid, may be empty)
+ * @retval Pointer to latest cached person detections
  */
 const tof_person_detection_t *TOF_GetPersonDetections(void);
 

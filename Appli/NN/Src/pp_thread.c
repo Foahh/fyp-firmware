@@ -26,6 +26,7 @@
 #include "stm32n6xx_hal.h"
 #include "thread_config.h"
 #include "timebase.h"
+#include "tof.h"
 #include "tracker.h"
 #include "utils.h"
 #include <stdbool.h>
@@ -194,6 +195,7 @@ static void pp_thread_entry(ULONG arg) {
     uint32_t seq_start;
     uint32_t seq_end;
     pp_runtime_config_t requested_runtime_cfg;
+    tof_person_detection_t person_detections = {0};
 
     /* Wait for NN output */
     output_buffer = BQUE_GetReady(output_queue);
@@ -251,8 +253,18 @@ static void pp_thread_entry(ULONG arg) {
     /* Write to the inactive buffer */
     detection_info_t *write_buf = &detection_info_buffers[write_buffer_idx];
     write_buf->nb_detect = pp_output.nb_detect;
+    person_detections.nb_persons = 0;
     for (int i = 0; i < pp_output.nb_detect && i < DETECTION_MAX_BOXES; i++) {
       write_buf->detects[i] = pp_output.pOutBuff[i];
+      if (pp_output.pOutBuff[i].class_index == 0 &&
+          person_detections.nb_persons < TOF_MAX_DETECTIONS) {
+        tof_bbox_t *bbox = &person_detections.persons[person_detections.nb_persons++];
+        bbox->x_center = pp_output.pOutBuff[i].x_center;
+        bbox->y_center = pp_output.pOutBuff[i].y_center;
+        bbox->width = pp_output.pOutBuff[i].width;
+        bbox->height = pp_output.pOutBuff[i].height;
+        bbox->conf = pp_output.pOutBuff[i].conf;
+      }
     }
     write_buf->nn_period_us = nn_timing.nn_period_us;
     write_buf->inference_us = nn_timing.inference_us;
@@ -280,6 +292,7 @@ static void pp_thread_entry(ULONG arg) {
 
     /* Publish: ensure all writes to write_buf are visible before index swap. */
     __DMB();
+    TOF_SetPersonDetections(&person_detections);
     detection_info_read_ptr = write_buf;
     __DMB();
 

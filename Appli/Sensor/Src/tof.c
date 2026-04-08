@@ -104,6 +104,14 @@ static volatile uint8_t alert_read_idx = 0;
 /* Configurable alert threshold (nearest person distance) */
 static uint32_t alert_threshold_mm = TOF_DEFAULT_ALERT_THRESHOLD_MM;
 
+/* Cached person detections published by postprocess */
+static tof_person_detection_t person_detection_buffers[2];
+static volatile uint8_t person_detection_read_idx = 0;
+
+/* Precomputed zone remap for current CAMERA_FLIP setting */
+static uint8_t tof_zone_rows[TOF_GRID_SIZE * TOF_GRID_SIZE];
+static uint8_t tof_zone_cols[TOF_GRID_SIZE * TOF_GRID_SIZE];
+
 /* ============================================================================
  * Depth extraction helper
  * ============================================================================ */
@@ -294,6 +302,21 @@ void TOF_Init(void) {
 
   status = vl53l5cx_set_integration_time_ms(&tof_obj.Dev, 20);
   APP_REQUIRE(status == VL53L5CX_OK);
+
+  for (int zone = 0; zone < TOF_GRID_SIZE * TOF_GRID_SIZE; zone++) {
+    int row = zone / TOF_GRID_SIZE;
+    int col = zone % TOF_GRID_SIZE;
+
+    if (CAMERA_FLIP & CMW_MIRRORFLIP_MIRROR) {
+      col = TOF_GRID_SIZE - 1 - col;
+    }
+    if (CAMERA_FLIP & CMW_MIRRORFLIP_FLIP) {
+      row = TOF_GRID_SIZE - 1 - row;
+    }
+
+    tof_zone_rows[zone] = (uint8_t)row;
+    tof_zone_cols[zone] = (uint8_t)col;
+  }
 }
 
 void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin) {
@@ -345,15 +368,8 @@ static void tof_thread_entry(ULONG arg) {
     tof_depth_grid_t *grid = &depth_grids[write_idx];
 
     for (int zone = 0; zone < TOF_GRID_SIZE * TOF_GRID_SIZE; zone++) {
-      int row = zone / TOF_GRID_SIZE;
-      int col = zone % TOF_GRID_SIZE;
-      /* Match camera orientation (CAMERA_FLIP / CMW_MIRRORFLIP_*). */
-      if (CAMERA_FLIP & CMW_MIRRORFLIP_MIRROR) {
-        col = TOF_GRID_SIZE - 1 - col;
-      }
-      if (CAMERA_FLIP & CMW_MIRRORFLIP_FLIP) {
-        row = TOF_GRID_SIZE - 1 - row;
-      }
+      uint8_t row = tof_zone_rows[zone];
+      uint8_t col = tof_zone_cols[zone];
       grid->distance_mm[row][col] = results.distance_mm[zone];
       grid->status[row][col] = results.target_status[zone];
     }
@@ -423,35 +439,24 @@ void TOF_SetAlertThreshold(uint32_t threshold_mm) {
   alert_threshold_mm = threshold_mm;
 }
 
+void TOF_SetPersonDetections(const tof_person_detection_t *detections) {
+  uint8_t write_idx;
+
+  APP_REQUIRE(detections != NULL);
+
+  write_idx = person_detection_read_idx ^ 1U;
+  person_detection_buffers[write_idx] = *detections;
+  __DMB();
+  person_detection_read_idx = write_idx;
+}
+
 /**
- * @brief  Filter latest NN detections down to person boxes.
- *
- *         Reads directly from PP_GetInfo() and keeps only class_index 0.
- *         Called from tof_run_fusion() on every ToF cycle.
+ * @brief  Get latest cached person detections published by postprocess.
  */
 const tof_person_detection_t *TOF_GetPersonDetections(void) {
-  static tof_person_detection_t det;
-  det.nb_persons = 0;
-
-  const detection_info_t *pp_info = PP_GetInfo();
-  if (pp_info == NULL) {
-    return &det;
-  }
-
-  for (int i = 0; i < pp_info->nb_detect; i++) {
-    const od_pp_outBuffer_t *d = &pp_info->detects[i];
-    if (d->class_index == TOF_CLASS_PERSON &&
-        det.nb_persons < TOF_MAX_DETECTIONS) {
-      tof_bbox_t *b = &det.persons[det.nb_persons++];
-      b->x_center = d->x_center;
-      b->y_center = d->y_center;
-      b->width    = d->width;
-      b->height   = d->height;
-      b->conf     = d->conf;
-    }
-  }
-
-  return &det;
+  uint8_t idx = person_detection_read_idx;
+  __DMB();
+  return &person_detection_buffers[idx];
 }
 
 void TOF_Stop(void) {
