@@ -95,9 +95,16 @@ void TOF_FUSION_Resume(void);
  * ============================================================================ */
 
 /**
- * @brief  Get pointer to latest alert state (read-only, double-buffered).
+ * @brief  Acquire the latest alert state for zero-copy read access.
+ * @param  token: Reader token released with TOF_ReleaseAlert()
  */
-const tof_alert_t *TOF_GetAlert(void);
+const tof_alert_t *TOF_AcquireAlert(rcu_read_token_t *token);
+
+/**
+ * @brief  Release an alert snapshot previously acquired with TOF_AcquireAlert().
+ * @param  token: Reader token to release
+ */
+void TOF_ReleaseAlert(rcu_read_token_t *token);
 
 /**
  * @brief  Get pointer to ToF alert update event flags group.
@@ -117,10 +124,17 @@ void TOF_SetAlertThreshold(uint32_t threshold_mm);
 void TOF_SetPersonDetections(const tof_person_detection_t *detections);
 
 /**
- * @brief  Get current person detections from the NN model.
+ * @brief  Acquire the latest cached person detections for zero-copy read access.
+ * @param  token: Reader token released with TOF_ReleasePersonDetections()
  * @retval Pointer to latest cached person detections
  */
-const tof_person_detection_t *TOF_GetPersonDetections(void);
+const tof_person_detection_t *TOF_AcquirePersonDetections(rcu_read_token_t *token);
+
+/**
+ * @brief  Release person detections previously acquired with TOF_AcquirePersonDetections().
+ * @param  token: Reader token to release
+ */
+void TOF_ReleasePersonDetections(rcu_read_token_t *token);
 
 #ifdef __cplusplus
 }

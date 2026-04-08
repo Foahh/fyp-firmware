@@ -135,12 +135,6 @@ static void ui_thread_entry(ULONG arg) {
   UI_SetupLCDContext();
 
   while (1) {
-    /* Get latest detection info */
-    det_info = PP_GetInfo();
-
-    /* Get latest person-distance alert */
-    tof_alert = TOF_GetAlert();
-
     if (!g_ui_initialized || !g_ui_visible) {
       tx_thread_sleep(UI_UPDATE_SLEEP_TICKS);
       continue;
@@ -154,6 +148,11 @@ static void ui_thread_entry(ULONG arg) {
     }
 
     LCD_SetUILayerAddress(ui_buffer);
+
+    rcu_read_token_t det_token = {0};
+    rcu_read_token_t alert_token = {0};
+    det_info = PP_AcquireInfo(&det_token);
+    tof_alert = TOF_AcquireAlert(&alert_token);
 
     /* Render all UI elements */
     /* Draw diagnostic panel background (left side) */
@@ -213,10 +212,12 @@ static void ui_thread_entry(ULONG arg) {
 
     /* Draw depth grid (toggled by user button) */
     if (cur_tof_overlay_visible) {
-      const tof_depth_grid_t *depth_grid = TOF_GetDepthGrid();
-      if (depth_grid->valid) {
+      rcu_read_token_t depth_token = {0};
+      const tof_depth_grid_t *depth_grid = TOF_AcquireDepthGrid(&depth_token);
+      if (depth_grid != NULL && depth_grid->valid) {
         UI_DrawDepthGrid(depth_grid, roi_info);
       }
+      TOF_ReleaseDepthGrid(&depth_token);
     }
 
     prev_had_detections = cur_has_detections;
@@ -225,6 +226,9 @@ static void ui_thread_entry(ULONG arg) {
     /* Swap buffers and reload display */
     Buffer_SetUIDisplayIndex(Buffer_GetNextUIDisplayIndex());
     LCD_ReloadUILayer(ui_buffer);
+
+    TOF_ReleaseAlert(&alert_token);
+    PP_ReleaseInfo(&det_token);
 
     tx_thread_sleep(UI_UPDATE_SLEEP_TICKS);
   }

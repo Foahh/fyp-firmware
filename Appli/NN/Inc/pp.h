@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 #include "app_config.h"
+#include "rcu_buffer.h"
 
 #include "arm_math.h"
 
@@ -81,10 +82,17 @@ void PP_ThreadStart(void);
 void PP_SignalUpdate(void);
 
 /**
- * @brief  Get pointer to detection info structure (lock-free, read-only)
- * @retval Pointer to detection_info_t (read-only, no lock needed)
+ * @brief  Acquire the latest detection snapshot for zero-copy read access.
+ * @param  token: Reader token released with PP_ReleaseInfo()
+ * @retval Pointer to read-only detection state, or NULL on invalid args
  */
-detection_info_t *PP_GetInfo(void);
+const detection_info_t *PP_AcquireInfo(rcu_read_token_t *token);
+
+/**
+ * @brief  Release a detection snapshot previously acquired with PP_AcquireInfo().
+ * @param  token: Reader token to release
+ */
+void PP_ReleaseInfo(rcu_read_token_t *token);
 
 /**
  * @brief  Get pointer to update event flags group (for overlay thread)

@@ -29,6 +29,7 @@
 #include "tx_api.h"
 #include "vl53l5cx.h"
 #include "vl53l5cx_api.h"
+#include <string.h>
 
 /* ============================================================================
  * Configuration
@@ -69,9 +70,9 @@ static TX_EVENT_FLAGS_GROUP tof_result_update_event_flags;
 
 static VL53L5CX_Object_t tof_obj;
 
-/* Double-buffered depth grid */
-static tof_depth_grid_t depth_grids[2];
-static volatile uint8_t depth_read_idx = 0;
+/* RCU-published depth grids */
+static tof_depth_grid_t depth_grids[RCU_BUFFER_SLOT_COUNT];
+static rcu_buffer_t depth_grid_rcu;
 
 /* Precomputed zone remap for current CAMERA_FLIP setting */
 static uint8_t tof_zone_rows[TOF_GRID_SIZE * TOF_GRID_SIZE];
@@ -194,8 +195,11 @@ static void tof_thread_entry(ULONG arg) {
       continue;
     }
 
-    /* Write to back buffer */
-    uint8_t write_idx = depth_read_idx ^ 1;
+    uint8_t write_idx;
+    if (!RCU_WriteReserve(&depth_grid_rcu, &write_idx)) {
+      continue;
+    }
+
     tof_depth_grid_t *grid = &depth_grids[write_idx];
 
     for (int zone = 0; zone < TOF_GRID_SIZE * TOF_GRID_SIZE; zone++) {
@@ -207,9 +211,7 @@ static void tof_thread_entry(ULONG arg) {
     grid->timestamp_ms = HAL_GetTick();
     grid->valid = 1;
 
-    /* Publish depth grid: ensure all writes visible before index swap. */
-    __DMB();
-    depth_read_idx = write_idx;
+    RCU_WritePublish(&depth_grid_rcu, write_idx);
 
     tx_event_flags_set(&tof_result_update_event_flags, 0x01, TX_OR);
     TOF_FUSION_NotifyDepthReady();
@@ -227,6 +229,9 @@ void TOF_ThreadStart(void) {
   status = tx_event_flags_create(&tof_result_update_event_flags, "tof_result_update");
   APP_REQUIRE(status == TX_SUCCESS);
 
+  memset(depth_grids, 0, sizeof(depth_grids));
+  RCU_BufferInit(&depth_grid_rcu);
+
   status = tx_thread_create(&tof_ctx.thread, "tof_ranging", tof_thread_entry, 0,
                             tof_ctx.stack, TOF_THREAD_STACK_SIZE,
                             TOF_THREAD_PRIORITY, TOF_THREAD_PRIORITY,
@@ -236,10 +241,18 @@ void TOF_ThreadStart(void) {
   TOF_FUSION_ThreadStart();
 }
 
-const tof_depth_grid_t *TOF_GetDepthGrid(void) {
-  uint8_t idx = depth_read_idx;
-  __DMB();
-  return &depth_grids[idx];
+const tof_depth_grid_t *TOF_AcquireDepthGrid(rcu_read_token_t *token) {
+  uint8_t slot_idx;
+
+  if (!RCU_ReadAcquire(&depth_grid_rcu, token, &slot_idx)) {
+    return NULL;
+  }
+
+  return &depth_grids[slot_idx];
+}
+
+void TOF_ReleaseDepthGrid(rcu_read_token_t *token) {
+  RCU_ReadRelease(&depth_grid_rcu, token);
 }
 
 TX_EVENT_FLAGS_GROUP *TOF_GetResultUpdateEventFlags(void) {

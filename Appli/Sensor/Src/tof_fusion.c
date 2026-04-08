@@ -59,16 +59,16 @@ static TX_EVENT_FLAGS_GROUP tof_alert_update_event_flags;
  * Fusion state
  * ============================================================================ */
 
-/* Double-buffered alert state */
-static tof_alert_t alerts[2];
-static volatile uint8_t alert_read_idx = 0;
+/* RCU-published alert state */
+static tof_alert_t alerts[RCU_BUFFER_SLOT_COUNT];
+static rcu_buffer_t alert_rcu;
 
 /* Configurable alert threshold (nearest person distance) */
 static uint32_t alert_threshold_mm = TOF_DEFAULT_ALERT_THRESHOLD_MM;
 
 /* Cached person detections published by postprocess */
-static tof_person_detection_t person_detection_buffers[2];
-static volatile uint8_t person_detection_read_idx = 0;
+static tof_person_detection_t person_detection_buffers[RCU_BUFFER_SLOT_COUNT];
+static rcu_buffer_t person_detection_rcu;
 
 /* ============================================================================
  * Depth extraction helper
@@ -216,24 +216,36 @@ static void tof_fusion_thread_entry(ULONG arg) {
 
   while (1) {
     ULONG actual_flags;
-    uint8_t alert_write_idx;
+    uint8_t alert_write_idx = 0U;
+    bool have_alert_slot;
+    rcu_read_token_t grid_token = {0};
+    rcu_read_token_t det_token = {0};
     const tof_depth_grid_t *grid;
     const tof_person_detection_t *det;
+    tof_alert_t local_alert;
+    tof_alert_t *alert_out = &local_alert;
 
     tx_event_flags_get(&tof_fusion_events,
                        TOF_FUSION_EVT_DEPTH_READY | TOF_FUSION_EVT_PERSON_READY,
                        TX_OR_CLEAR, &actual_flags, TX_WAIT_FOREVER);
 
-    grid = TOF_GetDepthGrid();
-    det = TOF_GetPersonDetections();
+    grid = TOF_AcquireDepthGrid(&grid_token);
+    det = TOF_AcquirePersonDetections(&det_token);
 
-    alert_write_idx = alert_read_idx ^ 1U;
-    tof_run_fusion(grid, det, &alerts[alert_write_idx]);
+    have_alert_slot = RCU_WriteReserve(&alert_rcu, &alert_write_idx);
+    if (have_alert_slot) {
+      alert_out = &alerts[alert_write_idx];
+    }
 
-    uint8_t fired = alerts[alert_write_idx].alert;
-    __DMB();
-    alert_read_idx = alert_write_idx;
-    tx_event_flags_set(&tof_alert_update_event_flags, 0x01, TX_OR);
+    tof_run_fusion(grid, det, alert_out);
+    TOF_ReleasePersonDetections(&det_token);
+    TOF_ReleaseDepthGrid(&grid_token);
+
+    uint8_t fired = alert_out->alert;
+    if (have_alert_slot) {
+      RCU_WritePublish(&alert_rcu, alert_write_idx);
+      tx_event_flags_set(&tof_alert_update_event_flags, 0x01, TX_OR);
+    }
 
     if (fired) {
       BSP_LED_On(LED_RED);
@@ -254,6 +266,11 @@ void TOF_FUSION_ThreadStart(void) {
   status =
       tx_event_flags_create(&tof_alert_update_event_flags, "tof_alert_update");
   APP_REQUIRE(status == TX_SUCCESS);
+
+  memset(alerts, 0, sizeof(alerts));
+  memset(person_detection_buffers, 0, sizeof(person_detection_buffers));
+  RCU_BufferInit(&alert_rcu);
+  RCU_BufferInit(&person_detection_rcu);
 
   status = tx_thread_create(&tof_fusion_ctx.thread, "tof_fusion",
                             tof_fusion_thread_entry, 0, tof_fusion_ctx.stack,
@@ -276,10 +293,18 @@ void TOF_FUSION_Resume(void) {
   tx_thread_resume(&tof_fusion_ctx.thread);
 }
 
-const tof_alert_t *TOF_GetAlert(void) {
-  uint8_t idx = alert_read_idx;
-  __DMB();
-  return &alerts[idx];
+const tof_alert_t *TOF_AcquireAlert(rcu_read_token_t *token) {
+  uint8_t slot_idx;
+
+  if (!RCU_ReadAcquire(&alert_rcu, token, &slot_idx)) {
+    return NULL;
+  }
+
+  return &alerts[slot_idx];
+}
+
+void TOF_ReleaseAlert(rcu_read_token_t *token) {
+  RCU_ReadRelease(&alert_rcu, token);
 }
 
 TX_EVENT_FLAGS_GROUP *TOF_GetAlertUpdateEventFlags(void) {
@@ -295,15 +320,25 @@ void TOF_SetPersonDetections(const tof_person_detection_t *detections) {
 
   APP_REQUIRE(detections != NULL);
 
-  write_idx = person_detection_read_idx ^ 1U;
+  if (!RCU_WriteReserve(&person_detection_rcu, &write_idx)) {
+    return;
+  }
+
   person_detection_buffers[write_idx] = *detections;
-  __DMB();
-  person_detection_read_idx = write_idx;
+  RCU_WritePublish(&person_detection_rcu, write_idx);
   tx_event_flags_set(&tof_fusion_events, TOF_FUSION_EVT_PERSON_READY, TX_OR);
 }
 
-const tof_person_detection_t *TOF_GetPersonDetections(void) {
-  uint8_t idx = person_detection_read_idx;
-  __DMB();
-  return &person_detection_buffers[idx];
+const tof_person_detection_t *TOF_AcquirePersonDetections(rcu_read_token_t *token) {
+  uint8_t slot_idx;
+
+  if (!RCU_ReadAcquire(&person_detection_rcu, token, &slot_idx)) {
+    return NULL;
+  }
+
+  return &person_detection_buffers[slot_idx];
+}
+
+void TOF_ReleasePersonDetections(rcu_read_token_t *token) {
+  RCU_ReadRelease(&person_detection_rcu, token);
 }

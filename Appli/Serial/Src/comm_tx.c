@@ -248,14 +248,16 @@ void COM_Send_TofResult(void) {
   DeviceMessage msg = DeviceMessage_init_zero;
   TofResult *tof_result;
   const tof_depth_grid_t *grid;
+  rcu_read_token_t grid_token = {0};
 
   msg.which_payload = DeviceMessage_tof_result_tag;
   tof_result = &msg.payload.tof_result;
   tof_result->timestamp_ms = 0U;
 
-  grid = TOF_GetDepthGrid();
+  grid = TOF_AcquireDepthGrid(&grid_token);
 
   if (grid == NULL || !grid->valid) {
+    TOF_ReleaseDepthGrid(&grid_token);
     return;
   }
 
@@ -268,6 +270,7 @@ void COM_Send_TofResult(void) {
     }
   }
 
+  TOF_ReleaseDepthGrid(&grid_token);
   COM_TX_Send(&msg);
 }
 
@@ -276,12 +279,14 @@ void COM_Send_TofAlertResult(void) {
   TofAlertResult *tof_alert_result;
   const tof_alert_t *alert;
   uint32_t tof_flags = 0;
+  rcu_read_token_t alert_token = {0};
 
   msg.which_payload = DeviceMessage_tof_alert_result_tag;
   tof_alert_result = &msg.payload.tof_alert_result;
 
-  alert = TOF_GetAlert();
+  alert = TOF_AcquireAlert(&alert_token);
   if (alert == NULL) {
+    TOF_ReleaseAlert(&alert_token);
     return;
   }
 
@@ -306,6 +311,7 @@ void COM_Send_TofAlertResult(void) {
   }
   tof_alert_result->flags = tof_flags;
 
+  TOF_ReleaseAlert(&alert_token);
   COM_TX_Send(&msg);
 }
 

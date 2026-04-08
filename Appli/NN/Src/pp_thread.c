@@ -67,10 +67,9 @@ static struct {
 /* Synchronization primitives */
 static TX_EVENT_FLAGS_GROUP update_event_flags;
 
-/* Double-buffered detection state */
-static detection_info_t detection_info_buffers[2];
-static volatile detection_info_t *detection_info_read_ptr = &detection_info_buffers[0];
-static int write_buffer_idx = 1;
+/* RCU-published detection state */
+static detection_info_t detection_info_buffers[RCU_BUFFER_SLOT_COUNT];
+static rcu_buffer_t detection_info_rcu;
 
 /* Postprocess parameters (type depends on selected model) */
 #if MDL_PP_TYPE == POSTPROCESS_OD_ST_YOLOX_UI
@@ -250,13 +249,19 @@ static void pp_thread_entry(ULONG arg) {
     /* Get NN timing */
     NN_GetTiming(&nn_timing);
 
-    /* Write to the inactive buffer */
-    detection_info_t *write_buf = &detection_info_buffers[write_buffer_idx];
-    write_buf->nb_detect = pp_output.nb_detect;
+    uint8_t detection_write_idx;
+    detection_info_t *write_buf = NULL;
+    if (RCU_WriteReserve(&detection_info_rcu, &detection_write_idx)) {
+      write_buf = &detection_info_buffers[detection_write_idx];
+      write_buf->nb_detect = pp_output.nb_detect;
+    }
+
     person_detections.nb_persons = 0;
     person_detections.timestamp_ms = HAL_GetTick();
     for (int i = 0; i < pp_output.nb_detect && i < DETECTION_MAX_BOXES; i++) {
-      write_buf->detects[i] = pp_output.pOutBuff[i];
+      if (write_buf != NULL) {
+        write_buf->detects[i] = pp_output.pOutBuff[i];
+      }
       if (pp_output.pOutBuff[i].class_index == 0 &&
           person_detections.nb_persons < TOF_MAX_DETECTIONS) {
         tof_bbox_t *bbox = &person_detections.persons[person_detections.nb_persons++];
@@ -267,44 +272,44 @@ static void pp_thread_entry(ULONG arg) {
         bbox->conf = pp_output.pOutBuff[i].conf;
       }
     }
-    write_buf->nn_period_us = nn_timing.nn_period_us;
-    write_buf->inference_us = nn_timing.inference_us;
-    write_buf->postprocess_us = CYCLES_TO_US(pp_end_cycles - pp_start_cycles);
-    write_buf->tracker_us = CYCLES_TO_US(trk_end_cycles - trk_start_cycles);
-    write_buf->frame_drops = nn_timing.frame_drops;
-    write_buf->timestamp_ms = person_detections.timestamp_ms;
+    if (write_buf != NULL) {
+      write_buf->nn_period_us = nn_timing.nn_period_us;
+      write_buf->inference_us = nn_timing.inference_us;
+      write_buf->postprocess_us = CYCLES_TO_US(pp_end_cycles - pp_start_cycles);
+      write_buf->tracker_us = CYCLES_TO_US(trk_end_cycles - trk_start_cycles);
+      write_buf->frame_drops = nn_timing.frame_drops;
+      write_buf->timestamp_ms = person_detections.timestamp_ms;
 
-    write_buf->nb_tracked = 0;
-    for (int i = 0; i < 2 * DETECTION_MAX_BOXES; i++) {
-      if (!trk_tboxes[i].is_tracking || trk_tboxes[i].tlost_cnt) {
-        continue;
-      }
-      tracked_box_t *tb = &write_buf->tracked[write_buf->nb_tracked];
-      tb->x_center = (float)trk_tboxes[i].cx;
-      tb->y_center = (float)trk_tboxes[i].cy;
-      tb->width = (float)trk_tboxes[i].w;
-      tb->height = (float)trk_tboxes[i].h;
-      tb->id = trk_tboxes[i].id;
-      write_buf->nb_tracked++;
-      if (write_buf->nb_tracked >= DETECTION_MAX_BOXES) {
-        break;
+      write_buf->nb_tracked = 0;
+      for (int i = 0; i < 2 * DETECTION_MAX_BOXES; i++) {
+        if (!trk_tboxes[i].is_tracking || trk_tboxes[i].tlost_cnt) {
+          continue;
+        }
+        tracked_box_t *tb = &write_buf->tracked[write_buf->nb_tracked];
+        tb->x_center = (float)trk_tboxes[i].cx;
+        tb->y_center = (float)trk_tboxes[i].cy;
+        tb->width = (float)trk_tboxes[i].w;
+        tb->height = (float)trk_tboxes[i].h;
+        tb->id = trk_tboxes[i].id;
+        write_buf->nb_tracked++;
+        if (write_buf->nb_tracked >= DETECTION_MAX_BOXES) {
+          break;
+        }
       }
     }
 
-    /* Publish: ensure all writes to write_buf are visible before index swap. */
-    __DMB();
     TOF_SetPersonDetections(&person_detections);
-    detection_info_read_ptr = write_buf;
-    __DMB();
-
-    /* Switch to other buffer for next write */
-    write_buffer_idx = write_buffer_idx ^ 1;
+    if (write_buf != NULL) {
+      RCU_WritePublish(&detection_info_rcu, detection_write_idx);
+    }
 
     /* Release output buffer */
     BQUE_PutFree(output_queue);
 
     /* Signal consumers (comm thread, overlay thread) */
-    PP_SignalUpdate();
+    if (write_buf != NULL) {
+      PP_SignalUpdate();
+    }
   }
 }
 
@@ -321,14 +326,22 @@ void PP_SignalUpdate(void) {
 }
 
 /**
- * @brief  Get pointer to detection info structure (lock-free, read-only)
- * @retval Pointer to detection_info_t (read-only, no lock needed)
- * @note   Uses double buffering for lock-free access
+ * @brief  Acquire the latest detection state for zero-copy read access.
+ * @param  token: Reader token released with PP_ReleaseInfo()
+ * @retval Pointer to detection_info_t (read-only), or NULL on invalid args
  */
-detection_info_t *PP_GetInfo(void) {
-  detection_info_t *ptr = (detection_info_t *)detection_info_read_ptr;
-  __DMB();
-  return ptr;
+const detection_info_t *PP_AcquireInfo(rcu_read_token_t *token) {
+  uint8_t slot_idx;
+
+  if (!RCU_ReadAcquire(&detection_info_rcu, token, &slot_idx)) {
+    return NULL;
+  }
+
+  return &detection_info_buffers[slot_idx];
+}
+
+void PP_ReleaseInfo(rcu_read_token_t *token) {
+  RCU_ReadRelease(&detection_info_rcu, token);
 }
 
 /**
@@ -389,10 +402,8 @@ void PP_ThreadStart(void) {
 
   /* Initialize detection state buffers */
   memset(detection_info_buffers, 0, sizeof(detection_info_buffers));
+  RCU_BufferInit(&detection_info_rcu);
 
-  /* Initialize read pointer to first buffer */
-  detection_info_read_ptr = &detection_info_buffers[0];
-  write_buffer_idx = 1;
   runtime_cfg_req_seq = 0U;
   runtime_cfg_active_seq = 0U;
   runtime_cfg_ready = false;

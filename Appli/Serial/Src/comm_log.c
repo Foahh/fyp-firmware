@@ -108,10 +108,12 @@ static void comm_log_thread_entry(ULONG arg) {
     UINT status = tx_event_flags_get(event_flags, 0x01, TX_OR_CLEAR,
                                      &actual_flags, 1);
     if (status == TX_SUCCESS) {
-      detection_info_t *info = PP_GetInfo();
+      rcu_read_token_t info_token = {0};
+      const detection_info_t *info = PP_AcquireInfo(&info_token);
       if (info != NULL) {
         comm_send_detection_result(info);
       }
+      PP_ReleaseInfo(&info_token);
     }
 
     while (tx_event_flags_get(tof_result_event_flags, 0x01, TX_OR_CLEAR,

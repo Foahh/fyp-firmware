@@ -24,6 +24,7 @@ extern "C" {
 #endif
 
 #include "messages_limits.h"
+#include "rcu_buffer.h"
 #include "tx_api.h"
 #include <stdint.h>
 
@@ -69,9 +70,16 @@ void TOF_Init(void);
 void TOF_ThreadStart(void);
 
 /**
- * @brief  Get pointer to latest depth grid (read-only, double-buffered).
+ * @brief  Acquire the latest depth grid for zero-copy read access.
+ * @param  token: Reader token released with TOF_ReleaseDepthGrid()
  */
-const tof_depth_grid_t *TOF_GetDepthGrid(void);
+const tof_depth_grid_t *TOF_AcquireDepthGrid(rcu_read_token_t *token);
+
+/**
+ * @brief  Release a depth-grid snapshot previously acquired with TOF_AcquireDepthGrid().
+ * @param  token: Reader token to release
+ */
+void TOF_ReleaseDepthGrid(rcu_read_token_t *token);
 
 /**
  * @brief  Get pointer to ToF depth-result update event flags group.

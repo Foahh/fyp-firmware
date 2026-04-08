@@ -116,26 +116,3 @@ Pass `module_ctx.stack` and the stack size in bytes to `tx_thread_create`. The c
 ### Networks
 
 Model config lives in `Networks/my_neural_art.json`. The `stedgeai` tool compiles TFLite models (from `models/`) into ATON NPU C sources placed in `Networks/` and a flashable HEX binary.
-
-### Cross-Thread Data Sharing Patterns
-
-Two lock-free patterns are used for single-writer / multi-reader data sharing. DWT cycle counter is enabled once in `app_threadx.c` via `Timebase_EnableDWT()` before any threads start.
-
-**Seqlock (for small copied structs)** — Used when readers must get a fully coherent snapshot. Writer increments a sequence counter (odd = in-progress, even = stable) with `__DMB()` barriers. Reader retries if it observes an odd or changed sequence. Used by: `nn_thread.c` (nn_timing_t, 12B).
-
-**Volatile scalar + DMB** — For a single published value, a `volatile` scalar with `__DMB()` on writer after store and on reader before load can publish one coherent value to readers.
-
-```
-Writer:                         Reader:
-buf[write_idx] = data;          do {
-seq++;          /* odd */          s1 = seq; __DMB();
-__DMB();                          idx = published_idx;
-published_idx = write_idx;        copy = buf[idx];
-write_idx ^= 1;                   __DMB(); s2 = seq;
-__DMB();                        } while ((s1 & 1) || s1 != s2);
-seq++;          /* even */
-```
-
-**DMB-fenced pointer/index swap (for pointer-returned structs)** — Used when readers get a pointer to the published buffer (no copy). Writer adds `__DMB()` after all data writes and before the index/pointer update. Reader adds `__DMB()` after loading the index/pointer and before accessing data. Used by: `pp_thread.c` (detection_info_t), `tof.c` (tof_depth_grid_t, tof_alert_t).
-
-When adding new cross-thread shared state, use one of these two patterns — never use bare `volatile` index swaps without memory barriers.
