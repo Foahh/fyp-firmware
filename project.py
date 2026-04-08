@@ -125,8 +125,8 @@ def main():
 
     build_parser = sub.add_parser("build", help="Build firmware")
     build_parser.add_argument(
-        "--name",
-        "-n",
+        "--model",
+        "-m",
         dest="model",
         choices=list(MODELS),
         default=DEFAULT_MODEL,
