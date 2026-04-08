@@ -2,12 +2,12 @@
  ******************************************************************************
  * @file    app_tof.c
  * @author  Long Liangmao
- * @brief   VL53L5CX Time-of-Flight ranging thread and hazard proximity fusion.
+ * @brief   VL53L5CX Time-of-Flight ranging thread and person-distance fusion.
  *
  *          The ToF sensor provides an 8x8 depth grid. Fusion extracts the
- *          Z-distance inside "hand" and "tool" bounding boxes (from the NN
- *          model) and raises an alert when a hand is within a configurable
- *          distance of a tool.
+ *          nearest depth sample inside detected person bounding boxes and
+ *          raises an alert when a person is within a configurable distance
+ *          threshold.
  ******************************************************************************
  * @attention
  *
@@ -36,15 +36,13 @@
 #include "vl53l5cx.h"
 #include "vl53l5cx_api.h"
 
-#include <math.h>
 #include <string.h>
 
 /* ============================================================================
  * Model class indices (must match MDL_PP_CLASS_LABELS in model header)
  * ============================================================================ */
 
-#define TOF_CLASS_HAND 0
-#define TOF_CLASS_TOOL 1
+#define TOF_CLASS_PERSON 0
 
 /* ============================================================================
  * Configuration
@@ -102,7 +100,7 @@ static volatile uint8_t depth_read_idx = 0;
 static tof_alert_t alerts[2];
 static volatile uint8_t alert_read_idx = 0;
 
-/* Configurable alert threshold (hand-to-hazard Z-distance) */
+/* Configurable alert threshold (nearest person distance) */
 static uint32_t alert_threshold_mm = TOF_DEFAULT_ALERT_THRESHOLD_MM;
 
 /* ============================================================================
@@ -111,18 +109,15 @@ static uint32_t alert_threshold_mm = TOF_DEFAULT_ALERT_THRESHOLD_MM;
 
 /**
  * @brief  Extract the minimum valid depth (mm) from the ToF grid cells that
- *         overlap a normalised bounding box, and compute a 3D representative
- *         point using calibrated camera intrinsics.
+ *         overlap a normalised bounding box.
  * @param  grid       Current depth grid
  * @param  bbox       Bounding box in NN normalised [0,1] coords
  * @param  out_mm     Output: minimum depth in mm (only written when valid)
- * @param  out_pt     Output: 3D point in mm (only written when valid and 3D enabled)
  * @retval 1 if at least one valid depth sample was found, 0 otherwise
  */
 static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
                                  const tof_bbox_t *bbox,
-                                 uint32_t *out_mm,
-                                 tof_point3d_t *out_pt) {
+                                 uint32_t *out_mm) {
   float hw = bbox->width * 0.5f;
   float hh = bbox->height * 0.5f;
 
@@ -180,17 +175,6 @@ static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
 
   if (found) {
     *out_mm = min_d;
-
-    /* Compute approximate XY from bbox center using pinhole model.
-     * u,v are normalised [0,1] NN coords of the bbox center. */
-    float z = (float)min_d;
-    float x = ((bbox->x_center - TOF_CAM_CX_NORM) / TOF_CAM_FX_NORM) * z +
-              TOF_ALIGN_DX_MM;
-    float y = ((bbox->y_center - TOF_CAM_CY_NORM) / TOF_CAM_FY_NORM) * z +
-              TOF_ALIGN_DY_MM;
-    out_pt->x_mm = x;
-    out_pt->y_mm = y;
-    out_pt->z_mm = z;
   }
   return found;
 }
@@ -200,18 +184,17 @@ static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
  * ============================================================================ */
 
 /**
- * @brief  Run hand-vs-hazard depth fusion with 3D distance and temporal
- *         pairing.
+ * @brief  Run person-distance fusion with temporal pairing.
  *
  *         Pairs the latest NN detection with the depth grid, checking the
- *         timestamp delta is within FUSION_MAX_DT_MS. Computes Euclidean 3D
- *         distance when calibration is available, else falls back to Z-diff.
+ *         timestamp delta is within FUSION_MAX_DT_MS. The alert is asserted
+ *         when the nearest person depth is within the configured threshold.
  *
  * @param  grid  Current depth grid snapshot
  * @param  out   Alert state to populate
  */
 static void tof_run_fusion(const tof_depth_grid_t *grid, tof_alert_t *out) {
-  const hazard_detection_t *det = TOF_GetHazardDetections();
+  const tof_person_detection_t *det = TOF_GetPersonDetections();
 
   memset(out, 0, sizeof(*out));
 
@@ -234,53 +217,19 @@ static void tof_run_fusion(const tof_depth_grid_t *grid, tof_alert_t *out) {
     }
   }
 
-  /* --- Extract closest hand depth + 3D point --- */
-  uint32_t hand_min = UINT32_MAX;
-  tof_point3d_t hand_pt = {0};
-  for (int i = 0; i < det->nb_hands; i++) {
+  uint32_t person_min = UINT32_MAX;
+  for (int i = 0; i < det->nb_persons; i++) {
     uint32_t d;
-    tof_point3d_t pt;
-    if (tof_extract_depth(grid, &det->hands[i], &d, &pt)) {
-      out->has_hand_depth = 1;
-      if (d < hand_min) {
-        hand_min = d;
-        hand_pt = pt;
+    if (tof_extract_depth(grid, &det->persons[i], &d)) {
+      out->has_person_depth = 1;
+      if (d < person_min) {
+        person_min = d;
       }
     }
   }
-  if (out->has_hand_depth) {
-    out->hand_distance_mm = hand_min;
-    out->hand_xyz_mm = hand_pt;
-  }
-
-  /* --- Extract closest tool depth + 3D point --- */
-  uint32_t hazard_min = UINT32_MAX;
-  tof_point3d_t hazard_pt = {0};
-  for (int i = 0; i < det->nb_hazards; i++) {
-    uint32_t d;
-    tof_point3d_t pt;
-    if (tof_extract_depth(grid, &det->hazards[i], &d, &pt)) {
-      out->has_hazard_depth = 1;
-      if (d < hazard_min) {
-        hazard_min = d;
-        hazard_pt = pt;
-      }
-    }
-  }
-  if (out->has_hazard_depth) {
-    out->hazard_distance_mm = hazard_min;
-    out->hazard_xyz_mm = hazard_pt;
-  }
-
-  /* --- Alert decision --- */
-  if (out->has_hand_depth && out->has_hazard_depth) {
-    float dx = hand_pt.x_mm - hazard_pt.x_mm;
-    float dy = hand_pt.y_mm - hazard_pt.y_mm;
-    float dz = hand_pt.z_mm - hazard_pt.z_mm;
-    float dist = sqrtf(dx * dx + dy * dy + dz * dz);
-    out->distance_3d_mm = dist;
-    out->mode = TOF_MODE_3D;
-    out->alert = (dist < (float)alert_threshold_mm) ? 1 : 0;
+  if (out->has_person_depth) {
+    out->person_distance_mm = person_min;
+    out->alert = (person_min < alert_threshold_mm) ? 1U : 0U;
   }
 }
 
@@ -462,15 +411,14 @@ void TOF_SetAlertThreshold(uint32_t threshold_mm) {
 }
 
 /**
- * @brief  Split latest NN detections into hands (class 0) and tools (class 1).
+ * @brief  Filter latest NN detections down to person boxes.
  *
- *         Reads directly from PP_GetInfo() and partitions detects[] by
- *         class_index.  Called from tof_run_fusion() on every ToF cycle.
+ *         Reads directly from PP_GetInfo() and keeps only class_index 0.
+ *         Called from tof_run_fusion() on every ToF cycle.
  */
-const hazard_detection_t *TOF_GetHazardDetections(void) {
-  static hazard_detection_t det;
-  det.nb_hands = 0;
-  det.nb_hazards = 0;
+const tof_person_detection_t *TOF_GetPersonDetections(void) {
+  static tof_person_detection_t det;
+  det.nb_persons = 0;
 
   const detection_info_t *pp_info = PP_GetInfo();
   if (pp_info == NULL) {
@@ -479,16 +427,9 @@ const hazard_detection_t *TOF_GetHazardDetections(void) {
 
   for (int i = 0; i < pp_info->nb_detect; i++) {
     const od_pp_outBuffer_t *d = &pp_info->detects[i];
-    if (d->class_index == TOF_CLASS_HAND && det.nb_hands < TOF_MAX_DETECTIONS) {
-      tof_bbox_t *b = &det.hands[det.nb_hands++];
-      b->x_center = d->x_center;
-      b->y_center = d->y_center;
-      b->width    = d->width;
-      b->height   = d->height;
-      b->conf     = d->conf;
-    } else if (d->class_index == TOF_CLASS_TOOL &&
-               det.nb_hazards < TOF_MAX_DETECTIONS) {
-      tof_bbox_t *b = &det.hazards[det.nb_hazards++];
+    if (d->class_index == TOF_CLASS_PERSON &&
+        det.nb_persons < TOF_MAX_DETECTIONS) {
+      tof_bbox_t *b = &det.persons[det.nb_persons++];
       b->x_center = d->x_center;
       b->y_center = d->y_center;
       b->width    = d->width;

@@ -206,34 +206,24 @@ void UI_DrawCpuLoadSection(void) {
 }
 
 /**
- * @brief  Draw proximity info section in diagnostic panel
+ * @brief  Draw person-distance info section in diagnostic panel
  */
 void UI_DrawProximitySection(const tof_alert_t *alert) {
   char text_buf[UI_TEXT_BUFFER_SIZE];
 
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[20],
-                           (uint8_t *)"Hand/Hazard", LEFT_MODE);
+                           (uint8_t *)"Person Dist", LEFT_MODE);
 
-  if (!alert->has_hand_depth && !alert->has_hazard_depth) {
+  if (!alert->has_person_depth) {
     UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
     UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[21],
-                             (uint8_t *)"--/--", LEFT_MODE);
+                             (uint8_t *)"--", LEFT_MODE);
   } else {
     uint32_t color = alert->alert ? 0xFFFF0000 : 0xFF00FF00;
     UTIL_LCD_SetTextColor(color);
-
-    char hand_str[16] = "--";
-    char haz_str[16] = "--";
-    if (alert->has_hand_depth) {
-      snprintf(hand_str, sizeof(hand_str), "%.2fm",
-               alert->hand_distance_mm / 1000.0f);
-    }
-    if (alert->has_hazard_depth) {
-      snprintf(haz_str, sizeof(haz_str), "%.2fm",
-               alert->hazard_distance_mm / 1000.0f);
-    }
-    snprintf(text_buf, sizeof(text_buf), "%s/%s", hand_str, haz_str);
+    snprintf(text_buf, sizeof(text_buf), "%.2fm",
+             alert->person_distance_mm / 1000.0f);
     UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[21],
                              (uint8_t *)text_buf, LEFT_MODE);
   }

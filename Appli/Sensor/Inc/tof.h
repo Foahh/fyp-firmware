@@ -2,8 +2,8 @@
  ******************************************************************************
  * @file    app_tof.h
  * @author  Long Liangmao
- * @brief   VL53L5CX Time-of-Flight sensor integration and hazard proximity
- *          alert (hand-near-hazard detection)
+ * @brief   VL53L5CX Time-of-Flight sensor integration and person-distance
+ *          alerting
  ******************************************************************************
  * @attention
  *
@@ -28,49 +28,14 @@ extern "C" {
 
 #define TOF_GRID_SIZE 8
 
-/** Default alert threshold: hand-to-hazard distance in mm */
-#define TOF_DEFAULT_ALERT_THRESHOLD_MM 150
+/** Default alert threshold: nearest person distance in mm */
+#define TOF_DEFAULT_ALERT_THRESHOLD_MM 1000
 
 /** Maximum detections per category */
 #define TOF_MAX_DETECTIONS 4
 
 /** Maximum allowed NN-to-ToF timestamp delta for fusion (ms) */
 #define FUSION_MAX_DT_MS 60
-
-/* ============================================================================
- * Camera intrinsics proxy (placeholder calibration constants)
- *
- * These approximate a pinhole model for mapping NN normalised [0,1]
- * coordinates to metric XY at a given depth Z.  Replace with real values
- * from camera calibration.  Units: pixels at the NN input resolution.
- * ============================================================================ */
-
-/** Focal lengths in NN-normalised units (fx_norm = fx_px / img_w) */
-#define TOF_CAM_FX_NORM 1.0f /* TODO: calibrate */
-#define TOF_CAM_FY_NORM 1.0f /* TODO: calibrate */
-
-/** Principal point in NN-normalised units */
-#define TOF_CAM_CX_NORM 0.5f
-#define TOF_CAM_CY_NORM 0.5f
-
-/** Camera-to-ToF alignment offset in mm (added to ToF XY) */
-#define TOF_ALIGN_DX_MM 0.0f /* TODO: calibrate */
-#define TOF_ALIGN_DY_MM 0.0f /* TODO: calibrate */
-
-/* ============================================================================
- * 3D point and fusion mode types
- * ============================================================================ */
-
-typedef enum {
-  TOF_MODE_NONE = 0, /**< No valid fusion data */
-  TOF_MODE_3D,       /**< 3D Euclidean distance */
-} tof_fusion_mode_t;
-
-typedef struct {
-  float x_mm;
-  float y_mm;
-  float z_mm;
-} tof_point3d_t;
 
 /* ============================================================================
  * Bounding box type (normalized NN coordinates [0,1])
@@ -88,18 +53,16 @@ typedef struct {
 } tof_bbox_t;
 
 /* ============================================================================
- * Hazard detection result
+ * Person detection result
  * ============================================================================ */
 
 /**
- * @brief  NN detections split by class: hands (class 0) and tools (class 1).
+ * @brief  NN detections filtered to person class boxes.
  */
 typedef struct {
-  int32_t nb_hands;
-  tof_bbox_t hands[TOF_MAX_DETECTIONS];
-  int32_t nb_hazards;
-  tof_bbox_t hazards[TOF_MAX_DETECTIONS];
-} hazard_detection_t;
+  int32_t nb_persons;
+  tof_bbox_t persons[TOF_MAX_DETECTIONS];
+} tof_person_detection_t;
 
 /* ============================================================================
  * Depth grid & alert types
@@ -121,18 +84,12 @@ typedef struct {
 } tof_depth_grid_t;
 
 /**
- * @brief  Hazard proximity alert state (fused depth of hand vs hazard)
+ * @brief  Person-distance alert state derived from fused NN + ToF data
  */
 typedef struct {
-  uint32_t hand_distance_mm;   /**< Closest hand depth in mm (0 = no data) */
-  uint32_t hazard_distance_mm; /**< Closest hazard depth in mm (0 = no data) */
-  uint8_t has_hand_depth;      /**< 1 if depth data overlapped with a hand bbox */
-  uint8_t has_hazard_depth;    /**< 1 if depth data overlapped with a hazard bbox */
-  uint8_t alert;               /**< 1 if hand and hazard are within threshold */
-  tof_fusion_mode_t mode;      /**< Fusion mode used for this cycle */
-  tof_point3d_t hand_xyz_mm;   /**< Hand representative 3D point */
-  tof_point3d_t hazard_xyz_mm; /**< Hazard representative 3D point */
-  float distance_3d_mm;        /**< Euclidean 3D distance (0 if Z-only mode) */
+  uint32_t person_distance_mm; /**< Closest person depth in mm (0 = no data) */
+  uint8_t has_person_depth;    /**< 1 if depth data overlapped with a person bbox */
+  uint8_t alert;               /**< 1 if person is within threshold */
   uint8_t stale;               /**< 1 if suppressed due to timestamp mismatch */
 } tof_alert_t;
 
@@ -163,18 +120,17 @@ const tof_depth_grid_t *TOF_GetDepthGrid(void);
 const tof_alert_t *TOF_GetAlert(void);
 
 /**
- * @brief  Change the hand-to-hazard proximity alert threshold at runtime.
- * @param  threshold_mm: Alert if distance < threshold_mm (3D or Z-only)
+ * @brief  Change the person-distance alert threshold at runtime.
+ * @param  threshold_mm: Alert if nearest person distance < threshold_mm
  */
 void TOF_SetAlertThreshold(uint32_t threshold_mm);
 
 /**
- * @brief  Get current detections split by class from the NN model.
- *         Reads PP_GetInfo() and partitions detects[] into hands (class 0)
- *         and tools (class 1).
- * @retval Pointer to static hazard_detection_t (always valid, may be empty)
+ * @brief  Get current person detections from the NN model.
+ *         Reads PP_GetInfo() and filters detects[] to person class boxes.
+ * @retval Pointer to static tof_person_detection_t (always valid, may be empty)
  */
-const hazard_detection_t *TOF_GetHazardDetections(void);
+const tof_person_detection_t *TOF_GetPersonDetections(void);
 
 /**
  * @brief  Stop ToF ranging, power off sensor, and suspend thread

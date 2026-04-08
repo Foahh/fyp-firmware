@@ -71,7 +71,7 @@ void UI_SetVisible(uint8_t visible);
 uint8_t UI_IsVisible(void);
 
 /**
- * @brief  Toggle ToF alert overlay (depth grid, proximity section, alert banner)
+ * @brief  Toggle ToF alert overlay (depth grid, person-distance section, alert banner)
  */
 void UI_ToggleTOFOverlay(void);
 

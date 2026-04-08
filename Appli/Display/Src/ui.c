@@ -138,7 +138,7 @@ static void ui_thread_entry(ULONG arg) {
     /* Get latest detection info */
     det_info = PP_GetInfo();
 
-    /* Get latest proximity alert */
+    /* Get latest person-distance alert */
     tof_alert = TOF_GetAlert();
 
     if (!g_ui_initialized || !g_ui_visible) {

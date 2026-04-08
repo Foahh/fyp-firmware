@@ -647,7 +647,7 @@ def create_gui(
             "",
             f" Sensors",
             SEP,
-            f"  ToF     hand {state.hand_mm} mm   haz {state.hazard_mm} mm   {status} ({stale})",
+            f"  ToF     person {state.person_mm} mm   {status} ({stale})",
             f"  Power   infer {state.power_infer_avg_mw:.0f} mW ({state.power_infer_duration_ms:.1f} ms)   idle {state.power_idle_avg_mw:.0f} mW",
             f"          energy {state.power_infer_energy_uj:.0f} uJ   npu delta {npu_delta}",
             f"  ESP32   {'connected' if state.power_connected else 'disconnected'}",

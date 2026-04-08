@@ -28,13 +28,10 @@ typedef struct _TrackedBox {
     uint32_t track_id;
 } TrackedBox;
 
-/* flags: bit0 = proximity alert, bit1 = measurement stale.
- depth_mm: row-major 8x8, millimeters (sensor-native range). */
+/* flags: bit0 = person-distance alert, bit1 = measurement stale. */
 typedef struct _TofAlert {
-    uint32_t hand_mm;
-    uint32_t hazard_mm;
+    uint32_t person_mm;
     uint32_t flags;
-    float distance_3d_mm;
     pb_size_t depth_mm_count;
     int32_t depth_mm[64];
 } TofAlert;
@@ -152,7 +149,7 @@ extern "C" {
 /* Initializer values for message structs */
 #define Detection_init_default                   {0, 0, 0, 0, 0, 0}
 #define TrackedBox_init_default                  {0, 0, 0, 0, 0}
-#define TofAlert_init_default                    {0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
+#define TofAlert_init_default                    {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
 #define DetectionResult_init_default             {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, 0, {TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default}, false, TofAlert_init_default}
 #define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0}
 #define Ack_init_default                         {0, 0}
@@ -165,7 +162,7 @@ extern "C" {
 #define HostMessage_init_default                 {0, {SetDisplayEnabled_init_default}}
 #define Detection_init_zero                      {0, 0, 0, 0, 0, 0}
 #define TrackedBox_init_zero                     {0, 0, 0, 0, 0}
-#define TofAlert_init_zero                       {0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
+#define TofAlert_init_zero                       {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
 #define DetectionResult_init_zero                {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, 0, {TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero}, false, TofAlert_init_zero}
 #define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0}
 #define Ack_init_zero                            {0, 0}
@@ -189,11 +186,9 @@ extern "C" {
 #define TrackedBox_w_tag                         3
 #define TrackedBox_h_tag                         4
 #define TrackedBox_track_id_tag                  5
-#define TofAlert_hand_mm_tag                     1
-#define TofAlert_hazard_mm_tag                   2
-#define TofAlert_flags_tag                       3
-#define TofAlert_distance_3d_mm_tag              4
-#define TofAlert_depth_mm_tag                    5
+#define TofAlert_person_mm_tag                   1
+#define TofAlert_flags_tag                       2
+#define TofAlert_depth_mm_tag                    3
 #define DetectionResult_sent_timestamp_ms_tag    1
 #define DetectionResult_frame_timestamp_ms_tag   2
 #define DetectionResult_inference_us_tag         3
@@ -277,11 +272,9 @@ X(a, STATIC,   SINGULAR, UINT32,   track_id,          5)
 #define TrackedBox_DEFAULT NULL
 
 #define TofAlert_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   hand_mm,           1) \
-X(a, STATIC,   SINGULAR, UINT32,   hazard_mm,         2) \
-X(a, STATIC,   SINGULAR, UINT32,   flags,             3) \
-X(a, STATIC,   SINGULAR, FLOAT,    distance_3d_mm,    4) \
-X(a, STATIC,   REPEATED, INT32,    depth_mm,          5)
+X(a, STATIC,   SINGULAR, UINT32,   person_mm,         1) \
+X(a, STATIC,   SINGULAR, UINT32,   flags,             2) \
+X(a, STATIC,   REPEATED, INT32,    depth_mm,          3)
 #define TofAlert_CALLBACK NULL
 #define TofAlert_DEFAULT NULL
 
@@ -428,17 +421,17 @@ extern const pb_msgdesc_t HostMessage_msg;
 
 /* Maximum encoded size of messages (where known) */
 #define Ack_size                                 8
-#define DetectionResult_size                     1387
+#define DetectionResult_size                     1376
 #define Detection_size                           31
 #define DeviceInfo_size                          535
-#define DeviceMessage_size                       1390
+#define DeviceMessage_size                       1379
 #define GetDeviceInfo_size                       6
 #define GetTraceXDump_size                       12
 #define HostMessage_size                         44
 #define MESSAGES_PB_H_MAX_SIZE                   DeviceMessage_size
 #define SetDisplayEnabled_size                   8
 #define SetPostprocessConfig_size                42
-#define TofAlert_size                            727
+#define TofAlert_size                            716
 #define TraceXChunk_size                         279
 #define TrackedBox_size                          26
 

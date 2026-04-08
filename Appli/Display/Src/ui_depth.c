@@ -2,7 +2,7 @@
  ******************************************************************************
  * @file    ui_depth.c
  * @author  Long Liangmao
- * @brief   ToF depth grid heatmap and proximity alert banner
+ * @brief   ToF depth grid heatmap and person-distance alert banner
  ******************************************************************************
  * @attention
  *
@@ -178,7 +178,7 @@ void UI_DrawDepthGrid(const tof_depth_grid_t *grid,
 }
 
 /**
- * @brief  Draw hazard proximity alert banner on the camera view
+ * @brief  Draw person-distance alert banner on the camera view
  */
 void UI_DrawProximityAlertBanner(void) {
   uint32_t banner_y = DISPLAY_LETTERBOX_HEIGHT - 40;
@@ -188,6 +188,6 @@ void UI_DrawProximityAlertBanner(void) {
                     DISPLAY_LETTERBOX_WIDTH, 36, 0xC0FF0000);
   UTIL_LCD_SetTextColor(0xFFFFFFFF);
   UTIL_LCD_DisplayStringAt(
-      banner_x + (DISPLAY_LETTERBOX_WIDTH - 16 * 12) / 2,
-      banner_y + 10, (uint8_t *)"HAZARD ALERT", LEFT_MODE);
+      banner_x + (DISPLAY_LETTERBOX_WIDTH - 16 * 17) / 2,
+      banner_y + 10, (uint8_t *)"PERSON TOO CLOSE", LEFT_MODE);
 }

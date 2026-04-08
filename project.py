@@ -59,17 +59,9 @@ MODELS = {
         "sram_size_kb": 512,
         "inputs_ch_position": "chlast",
     },
-    "yolo26_320_fyp": {
-        "define": "MODEL_YOLO26_320_FYP_MERGED",
-        "model_file": "models/yolo26_320_quant_pc_ui_fyp_merged.tflite",
-        "network_name": "yolo26_320_fyp_merged",
-        "neural_art": "object_detection@my_neural_art.json",
-        "sram_size_kb": 512,
-        "inputs_ch_position": "chlast",
-    },
 }
 
-DEFAULT_MODEL = "yolo26_320_fyp"
+DEFAULT_MODEL = "yolo26_320"
 
 CAMERA_FPS_CHOICES = (10, 15, 20, 25, 30)
 DEFAULT_CAMERA_FPS = 30
