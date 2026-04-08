@@ -77,7 +77,8 @@ def create_gui(
     # --- ToF figure ---
     fig_tof = plt.figure("ToF Grids", figsize=(12, 4.5))
     fig_tof.set_facecolor(C_FIG_BG)
-    grid_tof = fig_tof.add_gridspec(1, 3, wspace=0.32)
+    fig_tof.subplots_adjust(left=0.025, right=0.94, top=0.90, bottom=0.06)
+    grid_tof = fig_tof.add_gridspec(1, 3, wspace=0.22)
     ax_tof_depth = fig_tof.add_subplot(grid_tof[0, 0])
     ax_tof_sigma = fig_tof.add_subplot(grid_tof[0, 1])
     ax_tof_signal = fig_tof.add_subplot(grid_tof[0, 2])
@@ -359,7 +360,6 @@ def create_gui(
 
     fig_timing.tight_layout()
     fig_cpu.tight_layout()
-    fig_tof.tight_layout()
     fig_power.tight_layout()
     fig_pm_mj.tight_layout()
     fig_info.tight_layout()
