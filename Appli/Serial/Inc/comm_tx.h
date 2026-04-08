@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#include "messages.pb.h"
+#include "messages_limits.h"
 #include <stdbool.h>
 #include <stdint.h>
 

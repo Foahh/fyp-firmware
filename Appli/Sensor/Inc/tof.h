@@ -24,6 +24,7 @@
 extern "C" {
 #endif
 
+#include "messages_limits.h"
 #include <stdint.h>
 
 #define TOF_GRID_SIZE 8
@@ -32,10 +33,13 @@ extern "C" {
 #define TOF_DEFAULT_ALERT_THRESHOLD_MM 1000
 
 /** Maximum detections per category */
-#define TOF_MAX_DETECTIONS 4
+#define TOF_MAX_DETECTIONS PROTO_TOF_ALERT_MAX_PERSON_MM
 
 /** Maximum allowed NN-to-ToF timestamp delta for fusion (ms) */
 #define FUSION_MAX_DT_MS 60
+
+_Static_assert(TOF_GRID_SIZE * TOF_GRID_SIZE == PROTO_TOF_ALERT_MAX_DEPTH_MM,
+               "TOF_GRID_SIZE * TOF_GRID_SIZE must match messages.proto TofAlert.depth_mm max_count");
 
 /* ============================================================================
  * Bounding box type (normalized NN coordinates [0,1])

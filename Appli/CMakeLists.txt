@@ -105,6 +105,8 @@ set(INCLUDE_DIRECTORIES
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Config/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Proto
+    ${EXTERNAL_ROOT}/nanopb
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc)
 
 # =============================================================================

@@ -31,8 +31,8 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 
-/* Maximum detections to display */
-#define DETECTION_MAX_BOXES MDL_PP_MAX_BOXES
+/* Maximum detections carried in detection_info_t and protobuf reports. */
+#define DETECTION_MAX_BOXES PROTO_DETECTION_RESULT_MAX_DETECTIONS
 
 typedef struct {
   float x_center;

@@ -39,7 +39,6 @@
 /* Post-processing */
 #define MDL_PP_TYPE           POSTPROCESS_OD_ST_YOLOX_UI
 #define MDL_PP_NB_CLASSES     1
-#define MDL_PP_MAX_BOXES      10
 #define MDL_PP_CONF_THRESHOLD 0.6f
 #define MDL_PP_IOU_THRESHOLD  0.5f
 #define MDL_PP_NB_ANCHORS     3
@@ -61,6 +60,9 @@ static const float32_t AI_OD_ST_YOLOX_PP_S_ANCHORS[2 * MDL_PP_NB_ANCHORS] = {7.5
 #define MDL_DISPLAY_NAME LL_ATON_ST_YOLO_X_480_PERSON_ORIGIN_MODEL_NAME
 
 /* Class labels */
-static const char *MDL_PP_CLASS_LABELS[] __attribute__((unused)) = {"person"};
+#define MDL_PP_CLASS_LABEL_COUNT 1
+#define MDL_PP_CLASS_LABEL_0     "person"
+
+static const char *MDL_PP_CLASS_LABELS[] __attribute__((unused)) = {MDL_PP_CLASS_LABEL_0};
 
 #endif /* MODEL_YOLOX_NANO_480_COCO_PERSON_H */

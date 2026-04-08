@@ -20,7 +20,7 @@
 #include "comm_tx.h"
 #include "cpu_load.h"
 #include "error.h"
-#include "messages.pb.h"
+#include "messages_limits.h"
 #include "pp.h"
 #include "stm32n6xx_hal.h"
 #include "thread_config.h"
@@ -63,9 +63,8 @@ static void comm_send_detection_result(const detection_info_t *info) {
   df->cpu_usage_percent = CPU_LoadGetUsageRatio() * 100.0f;
 
   int n = info->nb_detect;
-  int max_det = (int)(sizeof(df->detections) / sizeof(df->detections[0]));
-  if (n > max_det) {
-    n = max_det;
+  if (n > PROTO_DETECTION_RESULT_MAX_DETECTIONS) {
+    n = PROTO_DETECTION_RESULT_MAX_DETECTIONS;
   }
   df->detections_count = (pb_size_t)n;
   for (int i = 0; i < n; i++) {
@@ -79,9 +78,8 @@ static void comm_send_detection_result(const detection_info_t *info) {
   }
 
   int nt = info->nb_tracked;
-  int max_trk = (int)(sizeof(df->tracks) / sizeof(df->tracks[0]));
-  if (nt > max_trk) {
-    nt = max_trk;
+  if (nt > PROTO_DETECTION_RESULT_MAX_TRACKS) {
+    nt = PROTO_DETECTION_RESULT_MAX_TRACKS;
   }
   df->tracks_count = (pb_size_t)nt;
   for (int i = 0; i < nt; i++) {
@@ -98,8 +96,12 @@ static void comm_send_detection_result(const detection_info_t *info) {
   df->has_tof = true;
   uint32_t tof_flags = 0;
   if (alert != NULL) {
-    df->tof.person_mm_count = alert->nb_person_depths;
-    for (int i = 0; i < alert->nb_person_depths; i++) {
+    uint8_t person_depth_count = alert->nb_person_depths;
+    if (person_depth_count > PROTO_TOF_ALERT_MAX_PERSON_MM) {
+      person_depth_count = PROTO_TOF_ALERT_MAX_PERSON_MM;
+    }
+    df->tof.person_mm_count = person_depth_count;
+    for (uint8_t i = 0; i < person_depth_count; i++) {
       df->tof.person_mm[i] = alert->person_distances_mm[i];
     }
     if (alert->alert) {
@@ -111,7 +113,7 @@ static void comm_send_detection_result(const detection_info_t *info) {
   }
   df->tof.flags = tof_flags;
   if (grid != NULL && grid->valid) {
-    df->tof.depth_mm_count = TOF_GRID_SIZE * TOF_GRID_SIZE;
+    df->tof.depth_mm_count = PROTO_TOF_ALERT_MAX_DEPTH_MM;
     for (int r = 0; r < TOF_GRID_SIZE; r++) {
       for (int c = 0; c < TOF_GRID_SIZE; c++) {
         df->tof.depth_mm[r * TOF_GRID_SIZE + c] = (int32_t)grid->distance_mm[r][c];

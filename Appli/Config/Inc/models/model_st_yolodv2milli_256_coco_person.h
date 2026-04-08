@@ -30,7 +30,6 @@
 /* Post-processing */
 #define MDL_PP_TYPE           POSTPROCESS_OD_ST_YOLOD_UI
 #define MDL_PP_NB_CLASSES     1
-#define MDL_PP_MAX_BOXES      10
 #define MDL_PP_CONF_THRESHOLD 0.25f
 #define MDL_PP_IOU_THRESHOLD  0.5f
 /* Strides 8/16/32 → 32×32 + 16×16 + 8×8 = 1344 rows in raw output */
@@ -42,6 +41,9 @@
 #define MDL_DISPLAY_NAME LL_ATON_ST_YOLO_D_256_PERSON_ORIGIN_MODEL_NAME
 
 /* Class labels */
-static const char *MDL_PP_CLASS_LABELS[] __attribute__((unused)) = {"person"};
+#define MDL_PP_CLASS_LABEL_COUNT 1
+#define MDL_PP_CLASS_LABEL_0     "person"
+
+static const char *MDL_PP_CLASS_LABELS[] __attribute__((unused)) = {MDL_PP_CLASS_LABEL_0};
 
 #endif /* MODEL_ST_YOLODV2MILLI_256_COCO_PERSON_H */

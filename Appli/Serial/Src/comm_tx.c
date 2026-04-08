@@ -32,6 +32,15 @@
 #include "tx_api.h"
 #include <string.h>
 
+_Static_assert(sizeof(MDL_DISPLAY_NAME) <= PROTO_DEVICE_INFO_MODEL_NAME_CAPACITY,
+               "MDL_DISPLAY_NAME exceeds messages.proto DeviceInfo.model_name max_size");
+_Static_assert(MDL_PP_CLASS_LABEL_COUNT <= PROTO_DEVICE_INFO_CLASS_LABEL_COUNT_CAPACITY,
+               "MDL_PP_CLASS_LABELS exceeds messages.proto DeviceInfo.class_labels max_count");
+_Static_assert(sizeof(MDL_PP_CLASS_LABEL_0) <= PROTO_DEVICE_INFO_CLASS_LABEL_CAPACITY,
+               "MDL_PP_CLASS_LABELS entry exceeds messages.proto DeviceInfo.class_labels max_size");
+_Static_assert(sizeof(BUILD_TIMESTAMP) <= PROTO_DEVICE_INFO_BUILD_TIMESTAMP_CAPACITY,
+               "BUILD_TIMESTAMP exceeds messages.proto DeviceInfo.build_timestamp max_size");
+
 /* ============================================================================
  * Static resources
  * ============================================================================ */
@@ -145,8 +154,9 @@ void COM_Send_DeviceInfo(void) {
 
   /* Class labels */
   int n_labels = (int)(sizeof(MDL_PP_CLASS_LABELS) / sizeof(MDL_PP_CLASS_LABELS[0]));
-  if (n_labels > 10) {
-    n_labels = 10;
+  int max_class_labels = (int)(sizeof(di->class_labels) / sizeof(di->class_labels[0]));
+  if (n_labels > max_class_labels) {
+    n_labels = max_class_labels;
   }
   di->class_labels_count = (pb_size_t)n_labels;
   for (int i = 0; i < n_labels; i++) {
