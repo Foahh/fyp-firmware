@@ -23,8 +23,10 @@ extern "C" {
 #endif
 
 #include "bqueue.h"
+#include "model_config.h"
 #include "stai.h"
 #include "tx_api.h"
+#include "utils.h"
 #include <stdint.h>
 
 /**
@@ -35,6 +37,21 @@ typedef struct {
   uint32_t inference_us; /**< Inference duration */
   uint32_t frame_drops;  /**< Cumulative count of dropped/skipped frames */
 } nn_timing_t;
+
+enum {
+  NN_OUTPUT_FRAME_SIZE = MDL_NN_OUT_BUFFER_SIZE + sizeof(nn_timing_t),
+  NN_OUTPUT_FRAME_PADDING_SIZE =
+      ALIGN_VALUE(NN_OUTPUT_FRAME_SIZE, 32U) - NN_OUTPUT_FRAME_SIZE,
+};
+
+/**
+ * @brief  One published NN result frame: raw outputs plus timing metadata
+ */
+typedef struct {
+  uint8_t data[MDL_NN_OUT_BUFFER_SIZE];
+  nn_timing_t timing;
+  uint8_t padding[NN_OUTPUT_FRAME_PADDING_SIZE];
+} nn_output_frame_t ALIGN_32;
 
 #ifdef SNAPSHOT_MODE
 
@@ -61,15 +78,9 @@ bqueue_t *NN_GetInputQueue(void);
 
 /**
  * @brief  Get pointer to NN output buffer queue
- * @retval Pointer to output queue
+ * @retval Pointer to output queue carrying nn_output_frame_t buffers
  */
 bqueue_t *NN_GetOutputQueue(void);
-
-/**
- * @brief  Get current NN timing statistics
- * @param  timing: Pointer to timing structure to fill
- */
-void NN_GetTiming(nn_timing_t *timing);
 
 /**
  * @brief  Get number of NN outputs

@@ -158,7 +158,6 @@ static void pp_thread_entry(ULONG arg) {
   uint32_t pp_end_cycles;
   uint32_t trk_start_cycles;
   uint32_t trk_end_cycles;
-  nn_timing_t nn_timing;
   int ret;
   uint32_t applied_runtime_cfg_req_seq = 0;
 
@@ -190,6 +189,7 @@ static void pp_thread_entry(ULONG arg) {
   pp_apply_runtime_config(&default_runtime_cfg);
 
   while (1) {
+    nn_output_frame_t *output_frame;
     uint8_t *output_buffer;
     uint32_t seq_start;
     uint32_t seq_end;
@@ -197,8 +197,9 @@ static void pp_thread_entry(ULONG arg) {
     tof_person_detection_t person_detections = {0};
 
     /* Wait for NN output */
-    output_buffer = BQUE_GetReady(output_queue);
-    APP_REQUIRE(output_buffer != NULL);
+    output_frame = (nn_output_frame_t *)BQUE_GetReady(output_queue);
+    APP_REQUIRE(output_frame != NULL);
+    output_buffer = output_frame->data;
 
     /* Apply host-updated thresholds at a frame boundary. */
     do {
@@ -246,9 +247,6 @@ static void pp_thread_entry(ULONG arg) {
     trk_update(&trk_ctx, pp_output.nb_detect, trk_dboxes);
     trk_end_cycles = DWT->CYCCNT;
 
-    /* Get NN timing */
-    NN_GetTiming(&nn_timing);
-
     uint8_t detection_write_idx;
     detection_info_t *write_buf = NULL;
     if (RCU_WriteReserve(&detection_info_rcu, &detection_write_idx)) {
@@ -273,11 +271,11 @@ static void pp_thread_entry(ULONG arg) {
       }
     }
     if (write_buf != NULL) {
-      write_buf->nn_period_us = nn_timing.nn_period_us;
-      write_buf->inference_us = nn_timing.inference_us;
+      write_buf->nn_period_us = output_frame->timing.nn_period_us;
+      write_buf->inference_us = output_frame->timing.inference_us;
       write_buf->postprocess_us = CYCLES_TO_US(pp_end_cycles - pp_start_cycles);
       write_buf->tracker_us = CYCLES_TO_US(trk_end_cycles - trk_start_cycles);
-      write_buf->frame_drops = nn_timing.frame_drops;
+      write_buf->frame_drops = output_frame->timing.frame_drops;
       write_buf->timestamp_ms = person_detections.timestamp_ms;
 
       write_buf->nb_tracked = 0;

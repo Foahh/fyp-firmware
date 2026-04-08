@@ -72,16 +72,10 @@ static uint8_t nn_input_buffers[3][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
 
 /* NN output buffers */
 static bqueue_t nn_output_queue;
-static uint8_t nn_output_buffers[3][NN_OUT_BUFFER_SIZE] ALIGN_32;
+static nn_output_frame_t nn_output_buffers[3];
 
 /* Output sizes array */
 static const uint32_t nn_out_sizes[NN_OUT_NB] = MDL_NN_OUT_SIZES;
-
-/* Timing statistics published via double-buffered snapshots with seqlock. */
-static nn_timing_t nn_timing_buffers[2];
-static volatile uint32_t nn_timing_seq = 0;
-static volatile uint8_t nn_timing_published_idx = 0;
-static uint8_t nn_timing_write_idx = 1;
 
 #ifndef SNAPSHOT_MODE
 /* Frame drop counter (accumulated from bqueue skips in NN thread) */
@@ -138,6 +132,7 @@ static void nn_thread_entry(ULONG arg) {
   /* Main inference loop */
   while (1) {
     uint8_t *capture_buffer;
+    nn_output_frame_t *output_frame;
     uint8_t *output_buffer;
     stai_ptr out_ptrs[NN_OUT_NB];
     uint32_t inference_cycles;
@@ -161,8 +156,9 @@ static void nn_thread_entry(ULONG arg) {
 #endif
 
     /* Get output buffer (blocking) */
-    output_buffer = BQUE_GetFree(&nn_output_queue, 1);
-    APP_REQUIRE(output_buffer != NULL);
+    output_frame = (nn_output_frame_t *)BQUE_GetFree(&nn_output_queue, 1);
+    APP_REQUIRE(output_frame != NULL);
+    output_buffer = output_frame->data;
 
     /* Calculate output buffer pointers */
     out_ptrs[0] = output_buffer;
@@ -197,14 +193,7 @@ static void nn_thread_entry(ULONG arg) {
     timing_sample.frame_drops = 0;
 #endif
 
-    /* Publish coherent timing snapshot using seqlock. */
-    nn_timing_buffers[nn_timing_write_idx] = timing_sample;
-    nn_timing_seq++;
-    __DMB();
-    nn_timing_published_idx = nn_timing_write_idx;
-    nn_timing_write_idx ^= 1U;
-    __DMB();
-    nn_timing_seq++;
+    output_frame->timing = timing_sample;
 
     /* Prepare next inference outside the measured run window. */
     stai_ret = mdl_new_inference(nn_ctx_network);
@@ -255,27 +244,6 @@ bqueue_t *NN_GetInputQueue(void) {
  */
 bqueue_t *NN_GetOutputQueue(void) {
   return &nn_output_queue;
-}
-
-/**
- * @brief  Get current NN timing statistics
- * @param  timing: Pointer to timing structure to fill
- */
-void NN_GetTiming(nn_timing_t *timing) {
-  if (timing != NULL) {
-    uint32_t seq_start;
-    uint32_t seq_end;
-    uint8_t idx;
-
-    do {
-      seq_start = nn_timing_seq;
-      __DMB();
-      idx = nn_timing_published_idx;
-      *timing = nn_timing_buffers[idx];
-      __DMB();
-      seq_end = nn_timing_seq;
-    } while (((seq_start & 1U) != 0U) || (seq_start != seq_end));
-  }
 }
 
 /**
@@ -355,20 +323,17 @@ void NN_ThreadStart(void) {
 #endif
 
   /* Initialize output buffer queue */
-  uint8_t *out_bufs[3] = {nn_output_buffers[0], nn_output_buffers[1],
-                          nn_output_buffers[2]};
+  uint8_t *out_bufs[3] = {
+      (uint8_t *)&nn_output_buffers[0],
+      (uint8_t *)&nn_output_buffers[1],
+      (uint8_t *)&nn_output_buffers[2],
+  };
   ret = BQUE_Init(&nn_output_queue, 3, out_bufs);
   APP_REQUIRE(ret == 0);
 
   /* Clear output buffers */
   memset(nn_output_buffers, 0, sizeof(nn_output_buffers));
   SCB_CleanInvalidateDCache_by_Addr((void *)nn_output_buffers, sizeof(nn_output_buffers));
-
-  /* Initialize timing snapshot buffers */
-  memset(nn_timing_buffers, 0, sizeof(nn_timing_buffers));
-  nn_timing_seq = 0;
-  nn_timing_published_idx = 0;
-  nn_timing_write_idx = 1;
 
   /* Create NN thread */
   status = tx_thread_create(&nn_ctx.thread, "nn_inference",
