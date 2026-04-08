@@ -88,7 +88,6 @@ set(APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Serial/Src/comm_tx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/tof.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/tof_fusion.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/haptic.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Sensor/Src/power_measurement_sync.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/cpu_load.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Util/Src/tracex.c

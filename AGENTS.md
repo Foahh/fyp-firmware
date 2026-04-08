@@ -66,7 +66,6 @@ Two-stage boot: **FSBL** (First Stage Boot Loader) initializes external memory a
   - `Src/comm_tx.c` — TX encoding with double-buffered frames
 - `Sensor/` — External sensors
   - `Src/tof.c` — VL53L5CX 8x8 depth ranging; filters person detections and raises a distance alert when the nearest person is within threshold
-  - `Src/haptic.c` — Haptic motor GPIO control
   - `Src/power_measurement_sync.c` — GPIO sync for external power measurement
 - `Util/` — Utilities
   - `Src/error.c`, `Inc/error.h` — Application-level fatal error handling (`APP_REQUIRE`, `APP_Panic`)

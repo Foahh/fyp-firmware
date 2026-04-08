@@ -2,7 +2,7 @@
  ******************************************************************************
  * @file    tof_fusion.c
  * @author  Long Liangmao
- * @brief   Person-distance fusion thread: NN + ToF depth grid, alert, haptic.
+ * @brief   Person-distance fusion thread: NN + ToF depth grid, alert, LED.
  ******************************************************************************
  * @attention
  *
@@ -18,7 +18,6 @@
 
 #include "tof_fusion.h"
 #include "error.h"
-#include "haptic.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6xx_hal.h"
 #include "thread_config.h"
@@ -238,10 +237,8 @@ static void tof_fusion_thread_entry(ULONG arg) {
 
     if (fired) {
       BSP_LED_On(LED_RED);
-      HAPTIC_On();
     } else {
       BSP_LED_Off(LED_RED);
-      HAPTIC_Off();
     }
   }
 }

@@ -2,7 +2,7 @@
  ******************************************************************************
  * @file    tof_fusion.h
  * @author  Long Liangmao
- * @brief   ToF / NN person-detection fusion: alerts, haptic, LED
+ * @brief   ToF / NN person-detection fusion: alerts, LED
  ******************************************************************************
  * @attention
  *

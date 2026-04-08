@@ -20,7 +20,6 @@
 #include "cam_config.h"
 #include "cmw_camera.h"
 #include "error.h"
-#include "haptic.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6570_discovery_bus.h"
 #include "stm32n6xx_hal.h"
@@ -254,7 +253,6 @@ void TOF_Stop(void) {
   vl53l5cx_stop_ranging(&tof_obj.Dev);
   HAL_GPIO_WritePin(TOF_PWR_EN_PORT, TOF_PWR_EN_PIN, GPIO_PIN_RESET);
   BSP_LED_Off(LED_RED);
-  HAPTIC_Off();
 }
 
 void TOF_Resume(void) {

@@ -19,7 +19,6 @@
 #include "app_threadx.h"
 #include "cam.h"
 #include "display.h"
-#include "haptic.h"
 #include "init_clock.h"
 #include "init_mpu.h"
 #include "init_peripherals.h"
@@ -80,8 +79,6 @@ int main(void) {
   XSPI_Config();
 
   LED_Config();
-
-  HAPTIC_Init();
 
   Button_Config();
 
