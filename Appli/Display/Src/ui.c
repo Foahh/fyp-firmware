@@ -62,8 +62,6 @@ const uint16_t g_line_y[] = {
     UI_PANEL_LINE_Y(17), /* FPS value */
     UI_PANEL_LINE_Y(18), /* Drops label */
     UI_PANEL_LINE_Y(19), /* Drops value */
-    UI_PANEL_LINE_Y(20), /* Proximity label */
-    UI_PANEL_LINE_Y(21), /* Proximity value */
 };
 
 /* ============================================================================
@@ -122,6 +120,7 @@ static void ui_thread_entry(ULONG arg) {
   const detection_info_t *det_info = NULL;
   const nn_crop_info_display_t *roi_info = NULL;
   const tof_alert_t *tof_alert = NULL;
+  const tof_person_detection_t *person_det = NULL;
 
   /* Get NN crop ROI (constant after initialization) */
   roi_info = CAM_GetDisplayROI();
@@ -151,8 +150,10 @@ static void ui_thread_entry(ULONG arg) {
 
     rcu_read_token_t det_token = {0};
     rcu_read_token_t alert_token = {0};
+    rcu_read_token_t person_token = {0};
     det_info = PP_AcquireInfo(&det_token);
     tof_alert = TOF_AcquireAlert(&alert_token);
+    person_det = TOF_AcquirePersonDetections(&person_token);
 
     /* Render all UI elements */
     /* Draw diagnostic panel background (left side) */
@@ -202,13 +203,16 @@ static void ui_thread_entry(ULONG arg) {
     }
 
     if (tof_alert != NULL) {
-      UI_DrawProximitySection(tof_alert);
       if (tof_alert->alert) {
         UI_DrawProximityAlertBanner();
       }
     }
 
     UI_DrawCpuLoadSection();
+
+    if (tof_alert != NULL) {
+      UI_DrawProximitySection(tof_alert, person_det);
+    }
 
     /* Draw depth grid (toggled by user button) */
     if (cur_tof_overlay_visible) {
@@ -228,6 +232,7 @@ static void ui_thread_entry(ULONG arg) {
     LCD_ReloadUILayer(ui_buffer);
 
     TOF_ReleaseAlert(&alert_token);
+    TOF_ReleasePersonDetections(&person_token);
     PP_ReleaseInfo(&det_token);
 
     tx_thread_sleep(UI_UPDATE_SLEEP_TICKS);

@@ -89,6 +89,11 @@ extern "C" {
 #define UI_PANEL_LINE_Y(row) \
   ((uint16_t)(UI_TEXT_MARGIN_Y + (uint16_t)(row) * (uint16_t)UI_LINE_HEIGHT))
 
+/* Top-left text anchor inside the camera area */
+#define UI_CAMERA_TEXT_X0 (DISPLAY_LETTERBOX_X0 + UI_TEXT_MARGIN_X)
+#define UI_CAMERA_LINE_Y(row) \
+  ((uint16_t)(UI_TEXT_MARGIN_Y + (uint16_t)(row) * (uint16_t)UI_LINE_HEIGHT))
+
 /* ============================================================================
  * Extern Data
  * ============================================================================ */
@@ -109,7 +114,8 @@ void UI_DrawHeader(void);
 void UI_DrawRuntimeSection(void);
 void UI_DrawDetectionInfoSection(const detection_info_t *info);
 void UI_DrawCpuLoadSection(void);
-void UI_DrawProximitySection(const tof_alert_t *alert);
+void UI_DrawProximitySection(const tof_alert_t *alert,
+                             const tof_person_detection_t *detections);
 void UI_DrawBuildOptions(void);
 void UI_DrawBottomRightInfo(void);
 

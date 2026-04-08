@@ -206,38 +206,57 @@ void UI_DrawCpuLoadSection(void) {
 }
 
 /**
- * @brief  Draw person-distance info section in diagnostic panel
+ * @brief  Draw person-distance list at the top-left of the camera area
  */
-void UI_DrawProximitySection(const tof_alert_t *alert) {
+void UI_DrawProximitySection(const tof_alert_t *alert,
+                             const tof_person_detection_t *detections) {
   char text_buf[UI_TEXT_BUFFER_SIZE];
-  size_t used = 0;
+  int32_t nb_persons = 0;
+  uint32_t row = 0;
 
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-  UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[20],
+  UTIL_LCD_DisplayStringAt(UI_CAMERA_TEXT_X0, UI_CAMERA_LINE_Y(row++),
                            (uint8_t *)"Person Dist", LEFT_MODE);
 
-  if (!alert->has_person_depth) {
-    UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
-    UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[21],
-                             (uint8_t *)"--", LEFT_MODE);
-  } else {
-    uint32_t color = alert->alert ? 0xFFFF0000 : 0xFF00FF00;
-    UTIL_LCD_SetTextColor(color);
-
-    text_buf[0] = '\0';
-    for (int i = 0; i < TOF_MAX_DETECTIONS; i++) {
-      if (!alert->person_depth_valid[i]) {
-        continue;
-      }
-      int written = snprintf(text_buf + used, sizeof(text_buf) - used,
-                             "%s%.2fm", (used == 0U) ? "" : ",",
-                             alert->person_distances_mm[i] / 1000.0f);
-      if (written < 0 || (size_t)written >= (sizeof(text_buf) - used)) {
-        break;
-      }
-      used += (size_t)written;
+  if (detections != NULL) {
+    nb_persons = detections->nb_persons;
+    if (nb_persons < 0) {
+      nb_persons = 0;
+    } else if (nb_persons > TOF_MAX_DETECTIONS) {
+      nb_persons = TOF_MAX_DETECTIONS;
     }
-    UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[21],
+  }
+
+  if (nb_persons == 0) {
+    UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+    UTIL_LCD_DisplayStringAt(UI_CAMERA_TEXT_X0, UI_CAMERA_LINE_Y(row),
+                             (uint8_t *)"--", LEFT_MODE);
+    return;
+  }
+
+  for (int32_t i = 0; i < nb_persons; i++, row++) {
+    uint32_t color = UI_COLOR_LABEL;
+    uint16_t y = UI_CAMERA_LINE_Y(row);
+
+    if (y > (LCD_HEIGHT - UI_FONT_HEIGHT)) {
+      break;
+    }
+
+    if (alert != NULL && alert->person_depth_valid[i]) {
+      snprintf(text_buf, sizeof(text_buf), "Box %ld: %.2fm",
+               (long)(i + 1),
+               alert->person_distances_mm[i] / 1000.0f);
+      color = UI_COLOR_VALUE;
+      if (alert->alert &&
+          alert->person_distances_mm[i] == alert->person_distance_mm) {
+        color = 0xFFFF0000;
+      }
+    } else {
+      snprintf(text_buf, sizeof(text_buf), "Box %ld: --", (long)(i + 1));
+    }
+
+    UTIL_LCD_SetTextColor(color);
+    UTIL_LCD_DisplayStringAt(UI_CAMERA_TEXT_X0, y,
                              (uint8_t *)text_buf, LEFT_MODE);
   }
 }
