@@ -254,22 +254,33 @@ static void pp_thread_entry(ULONG arg) {
       write_buf->nb_detect = pp_output.nb_detect;
     }
 
-    person_detections.nb_persons = 0;
-    person_detections.timestamp_ms = HAL_GetTick();
     for (int i = 0; i < pp_output.nb_detect && i < DETECTION_MAX_BOXES; i++) {
       if (write_buf != NULL) {
         write_buf->detects[i] = pp_output.pOutBuff[i];
       }
-      if (pp_output.pOutBuff[i].class_index == 0 &&
-          person_detections.nb_persons < TOF_MAX_DETECTIONS) {
-        tof_bbox_t *bbox = &person_detections.persons[person_detections.nb_persons++];
-        bbox->x_center = pp_output.pOutBuff[i].x_center;
-        bbox->y_center = pp_output.pOutBuff[i].y_center;
-        bbox->width = pp_output.pOutBuff[i].width;
-        bbox->height = pp_output.pOutBuff[i].height;
-        bbox->conf = pp_output.pOutBuff[i].conf;
-      }
     }
+
+    /* Build person detections from active Kalman-smoothed tracks so that each
+     * entry carries a stable SORT track ID for per-track EMA in the fusion
+     * thread.  Raw detections without a matched track are excluded. */
+    person_detections.nb_persons = 0;
+    person_detections.timestamp_ms = HAL_GetTick();
+    for (int i = 0;
+         i < 2 * DETECTION_MAX_BOXES &&
+         person_detections.nb_persons < TOF_MAX_DETECTIONS;
+         i++) {
+      if (!trk_tboxes[i].is_tracking || trk_tboxes[i].tlost_cnt) {
+        continue;
+      }
+      tof_bbox_t *bbox = &person_detections.persons[person_detections.nb_persons++];
+      bbox->x_center = trk_tboxes[i].cx;
+      bbox->y_center = trk_tboxes[i].cy;
+      bbox->width = trk_tboxes[i].w;
+      bbox->height = trk_tboxes[i].h;
+      bbox->conf = 0.0f;
+      bbox->track_id = trk_tboxes[i].id;
+    }
+
     if (write_buf != NULL) {
       write_buf->nn_period_us = output_frame->timing.nn_period_us;
       write_buf->inference_us = output_frame->timing.inference_us;

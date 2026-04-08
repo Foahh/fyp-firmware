@@ -48,7 +48,7 @@
 
 /* Timeout for data-ready wait. Sensor runs at 15 Hz (~67 ms period);
  * if no interrupt arrives within this window, poll once as a fallback. */
-#define TOF_DATA_READY_TIMEOUT_MS 200
+#define TOF_DATA_READY_TIMEOUT_MS 133
 
 /* ============================================================================
  * Thread resources

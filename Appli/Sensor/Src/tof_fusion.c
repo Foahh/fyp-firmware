@@ -31,7 +31,7 @@
  * ============================================================================ */
 
 /* Depth data staleness threshold */
-#define TOF_STALENESS_MS 500
+#define TOF_STALENESS_MS 333
 
 /* FOV calibration: ToF FOV mapped to NN normalised [0,1] coordinates.
  * These are approximate and should be refined with physical calibration. */
@@ -39,6 +39,16 @@
 #define TOF_NN_Y0 -0.10f
 #define TOF_NN_X1 1.0f
 #define TOF_NN_Y1 0.90f
+
+/* Torso ROI: shrink bbox to center 50% of width and middle 50% of height
+ * (25%-75% of full box height). Avoids floor cells at the feet and background
+ * cells near the top/sides. */
+#define TOF_TORSO_HW_FACTOR 0.25f /* half-width = 25% of full bbox width */
+#define TOF_TORSO_HH_FACTOR 0.25f /* half-height = 25% of full bbox height */
+
+/* EMA smoothing per tracked person.  alpha=0.3 weights raw:filtered ≈ 30:70. */
+#define TOF_EMA_ALPHA      0.3f
+#define TOF_EMA_MAX_MISSED 5 /* evict a track after this many consecutive misses */
 
 /* ============================================================================
  * Thread resources
@@ -70,30 +80,46 @@ static uint32_t alert_threshold_mm = TOF_DEFAULT_ALERT_THRESHOLD_MM;
 static tof_person_detection_t person_detection_buffers[RCU_BUFFER_SLOT_COUNT];
 static rcu_buffer_t person_detection_rcu;
 
+/* Per-track EMA state.  track_id == 0 means the slot is free. */
+typedef struct {
+  uint32_t track_id;
+  float filtered_mm;
+  uint8_t missed;
+} tof_track_ema_t;
+
+static tof_track_ema_t ema_table[TOF_MAX_DETECTIONS];
+
 /* ============================================================================
  * Depth extraction helper
  * ============================================================================ */
 
 /**
- * @brief  Extract the minimum valid depth (mm) from the ToF grid cells that
- *         overlap a normalised bounding box.
- * @param  grid       Current depth grid
- * @param  bbox       Bounding box in NN normalised [0,1] coords
- * @param  out_mm     Output: minimum depth in mm (only written when valid)
+ * @brief  Extract a robust depth estimate (mm) from the ToF grid cells that
+ *         overlap a torso-centred inner ROI of the bounding box.
+ *
+ *         Uses the centre 50% of the bbox in both axes (25%-75% height,
+ *         centre ±25% width) to avoid floor and background cells.  Valid cell
+ *         depths are insertion-sorted and the 25th-percentile value is
+ *         returned — more stable than min() while still biased toward the
+ *         near side of the person.
+ *
+ * @param  grid    Current depth grid
+ * @param  bbox    Bounding box in NN normalised [0,1] coords
+ * @param  out_mm  Output: 25th-percentile depth in mm (written only when valid)
  * @retval 1 if at least one valid depth sample was found, 0 otherwise
  */
 static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
                                  const tof_bbox_t *bbox, uint32_t *out_mm) {
-  float hw = bbox->width * 0.5f;
-  float hh = bbox->height * 0.5f;
+  /* Torso ROI: centre 50% width × centre 50% height */
+  float hw = bbox->width * TOF_TORSO_HW_FACTOR;
+  float hh = bbox->height * TOF_TORSO_HH_FACTOR;
 
-  /* Bbox edges in NN coords */
   float bx0 = bbox->x_center - hw;
-  float by0 = bbox->y_center - hh;
   float bx1 = bbox->x_center + hw;
+  float by0 = bbox->y_center - hh;
   float by1 = bbox->y_center + hh;
 
-  /* Map NN coords → ToF grid indices [0..7] */
+  /* Map NN coords → ToF grid indices [0..TOF_GRID_SIZE-1] */
   float sx = (float)TOF_GRID_SIZE / (TOF_NN_X1 - TOF_NN_X0);
   float sy = (float)TOF_GRID_SIZE / (TOF_NN_Y1 - TOF_NN_Y0);
 
@@ -102,7 +128,6 @@ static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
   int gx1 = (int)((bx1 - TOF_NN_X0) * sx);
   int gy1 = (int)((by1 - TOF_NN_Y0) * sy);
 
-  /* Clamp to grid bounds */
   if (gx0 < 0) {
     gx0 = 0;
   }
@@ -119,8 +144,9 @@ static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
     return 0;
   }
 
-  uint32_t min_d = UINT32_MAX;
-  uint8_t found = 0;
+  /* Collect valid depths, kept sorted via insertion sort (max 64 cells). */
+  uint32_t depths[TOF_GRID_SIZE * TOF_GRID_SIZE];
+  uint8_t n = 0;
 
   for (int gy = gy0; gy <= gy1; gy++) {
     for (int gx = gx0; gx <= gx1; gx++) {
@@ -132,17 +158,24 @@ static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
       if (d <= 0) {
         continue;
       }
-      found = 1;
-      if ((uint32_t)d < min_d) {
-        min_d = (uint32_t)d;
+      uint32_t val = (uint32_t)d;
+      uint8_t j = n;
+      while (j > 0 && depths[j - 1] > val) {
+        depths[j] = depths[j - 1];
+        j--;
       }
+      depths[j] = val;
+      n++;
     }
   }
 
-  if (found) {
-    *out_mm = min_d;
+  if (n == 0) {
+    return 0;
   }
-  return found;
+
+  /* 25th-percentile: index n/4 into the sorted array. */
+  *out_mm = depths[n / 4];
+  return 1;
 }
 
 /* ============================================================================
@@ -150,14 +183,18 @@ static uint8_t tof_extract_depth(const tof_depth_grid_t *grid,
  * ============================================================================ */
 
 /**
- * @brief  Run person-distance fusion with temporal pairing.
+ * @brief  Run person-distance fusion with temporal pairing and per-track EMA.
  *
  *         Pairs the latest NN detection with the depth grid, checking the
- *         timestamp delta is within FUSION_MAX_DT_MS. Depth is sampled for
- *         each detected person bbox; the alert is asserted when the nearest
- *         sampled person is within the configured threshold.
+ *         timestamp delta is within FUSION_MAX_DT_MS.  For each person bbox
+ *         a torso-centred ROI is projected onto the 8x8 grid and the 25th-
+ *         percentile valid cell depth is taken as the raw estimate.  The raw
+ *         estimate is then smoothed via per-track EMA (alpha=TOF_EMA_ALPHA) to
+ *         suppress frame-to-frame jitter.  The alert fires when the nearest
+ *         smoothed person is within the configured threshold.
  *
  * @param  grid  Current depth grid snapshot
+ * @param  det   Latest person detections from the NN/tracker
  * @param  out   Alert state to populate
  */
 static void tof_run_fusion(const tof_depth_grid_t *grid,
@@ -188,19 +225,69 @@ static void tof_run_fusion(const tof_depth_grid_t *grid,
     }
   }
 
+  /* Track which EMA slots were updated this frame so we can age the rest. */
+  uint8_t ema_touched[TOF_MAX_DETECTIONS];
+  memset(ema_touched, 0, sizeof(ema_touched));
+
   uint32_t person_min = UINT32_MAX;
   for (int i = 0; i < det->nb_persons; i++) {
-    uint32_t d;
-    if (tof_extract_depth(grid, &det->persons[i], &d)) {
-      out->person_distances_mm[i] = d;
-      out->person_depth_valid[i] = 1U;
-      out->nb_person_depths++;
-      out->has_person_depth = 1;
-      if (d < person_min) {
-        person_min = d;
+    uint32_t raw_d;
+    if (!tof_extract_depth(grid, &det->persons[i], &raw_d)) {
+      continue;
+    }
+
+    /* Look up EMA slot by track ID; fall back to raw if untracked. */
+    uint32_t tid = det->persons[i].track_id;
+    uint32_t smoothed_d = raw_d;
+
+    if (tid != 0U) {
+      int slot = -1;
+      int free_slot = -1;
+      for (int j = 0; j < TOF_MAX_DETECTIONS; j++) {
+        if (ema_table[j].track_id == tid) {
+          slot = j;
+          break;
+        }
+        if (ema_table[j].track_id == 0U && free_slot < 0) {
+          free_slot = j;
+        }
+      }
+
+      if (slot >= 0) {
+        ema_table[slot].filtered_mm = TOF_EMA_ALPHA * (float)raw_d +
+                                      (1.0f - TOF_EMA_ALPHA) *
+                                          ema_table[slot].filtered_mm;
+        ema_table[slot].missed = 0;
+        ema_touched[slot] = 1;
+        smoothed_d = (uint32_t)ema_table[slot].filtered_mm;
+      } else if (free_slot >= 0) {
+        ema_table[free_slot].track_id = tid;
+        ema_table[free_slot].filtered_mm = (float)raw_d;
+        ema_table[free_slot].missed = 0;
+        ema_touched[free_slot] = 1;
+        smoothed_d = raw_d;
       }
     }
+
+    out->person_distances_mm[i] = smoothed_d;
+    out->person_depth_valid[i] = 1U;
+    out->nb_person_depths++;
+    out->has_person_depth = 1;
+    if (smoothed_d < person_min) {
+      person_min = smoothed_d;
+    }
   }
+
+  /* Age EMA entries that were not seen this frame; evict stale ones. */
+  for (int j = 0; j < TOF_MAX_DETECTIONS; j++) {
+    if (ema_table[j].track_id == 0U || ema_touched[j]) {
+      continue;
+    }
+    if (++ema_table[j].missed >= TOF_EMA_MAX_MISSED) {
+      ema_table[j].track_id = 0U;
+    }
+  }
+
   if (out->has_person_depth) {
     out->person_distance_mm = person_min;
     out->alert = (person_min < alert_threshold_mm) ? 1U : 0U;
@@ -269,6 +356,7 @@ void TOF_FUSION_ThreadStart(void) {
 
   memset(alerts, 0, sizeof(alerts));
   memset(person_detection_buffers, 0, sizeof(person_detection_buffers));
+  memset(ema_table, 0, sizeof(ema_table));
   RCU_BufferInit(&alert_rcu);
   RCU_BufferInit(&person_detection_rcu);
 

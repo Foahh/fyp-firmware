@@ -34,7 +34,7 @@ extern "C" {
 #define TOF_MAX_DETECTIONS PROTO_TOF_ALERT_MAX_PERSON_MM
 
 /** Maximum allowed NN-to-ToF timestamp delta for fusion (ms) */
-#define FUSION_MAX_DT_MS 60
+#define FUSION_MAX_DT_MS 167
 
 /* ============================================================================
  * Bounding box type (normalized NN coordinates [0,1])
@@ -49,6 +49,7 @@ typedef struct {
   float width;
   float height;
   float conf;
+  uint32_t track_id; /**< SORT track ID (0 = not associated with a track) */
 } tof_bbox_t;
 
 /* ============================================================================
