@@ -15,8 +15,7 @@ set(VL53L5CX_SOURCES
 target_include_directories(
   stm32_interface
   INTERFACE ${VL53L5CX_ROOT}
-            ${VL53L5CX_ROOT}/modules
-            ${VL53L5CX_ROOT}/porting)
+            ${VL53L5CX_ROOT}/modules)
 
 add_library(VL53L5CX STATIC ${VL53L5CX_SOURCES})
 target_link_libraries(VL53L5CX PUBLIC stm32_interface)

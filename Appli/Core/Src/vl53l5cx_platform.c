@@ -22,7 +22,7 @@
  ******************************************************************************
  */
 
-#include "platform.h"
+#include "vl53l5cx_platform.h"
 #include "stm32n6xx_hal.h"
 #include "timebase.h"
 #include "tx_api.h"
