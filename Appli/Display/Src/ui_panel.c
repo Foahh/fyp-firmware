@@ -214,9 +214,9 @@ void UI_DrawProximitySection(const tof_alert_t *alert,
   int32_t nb_persons = 0;
   uint32_t row = 0;
 
-  UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
+  UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   UTIL_LCD_DisplayStringAt(UI_CAMERA_TEXT_X0, UI_CAMERA_LINE_Y(row++),
-                           (uint8_t *)"Person Dist", LEFT_MODE);
+                           (uint8_t *)"Distances", LEFT_MODE);
 
   if (detections != NULL) {
     nb_persons = detections->nb_persons;
@@ -243,8 +243,7 @@ void UI_DrawProximitySection(const tof_alert_t *alert,
     }
 
     if (alert != NULL && alert->person_depth_valid[i]) {
-      snprintf(text_buf, sizeof(text_buf), "Box %ld: %.2fm",
-               (long)(i + 1),
+      snprintf(text_buf, sizeof(text_buf), "%.2fm",
                alert->person_distances_mm[i] / 1000.0f);
       color = UI_COLOR_VALUE;
       if (alert->alert &&
@@ -252,7 +251,7 @@ void UI_DrawProximitySection(const tof_alert_t *alert,
         color = 0xFFFF0000;
       }
     } else {
-      snprintf(text_buf, sizeof(text_buf), "Box %ld: --", (long)(i + 1));
+      snprintf(text_buf, sizeof(text_buf), "--");
     }
 
     UTIL_LCD_SetTextColor(color);
