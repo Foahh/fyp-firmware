@@ -72,7 +72,7 @@ static uint8_t nn_input_buffers[3][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
 
 /* NN output buffers */
 static bqueue_t nn_output_queue;
-static uint8_t nn_output_buffers[2][NN_OUT_BUFFER_SIZE] ALIGN_32;
+static uint8_t nn_output_buffers[3][NN_OUT_BUFFER_SIZE] ALIGN_32;
 
 /* Output sizes array */
 static const uint32_t nn_out_sizes[NN_OUT_NB] = MDL_NN_OUT_SIZES;
@@ -355,8 +355,9 @@ void NN_ThreadStart(void) {
 #endif
 
   /* Initialize output buffer queue */
-  uint8_t *out_bufs[2] = {nn_output_buffers[0], nn_output_buffers[1]};
-  ret = BQUE_Init(&nn_output_queue, 2, out_bufs);
+  uint8_t *out_bufs[3] = {nn_output_buffers[0], nn_output_buffers[1],
+                          nn_output_buffers[2]};
+  ret = BQUE_Init(&nn_output_queue, 3, out_bufs);
   APP_REQUIRE(ret == 0);
 
   /* Clear output buffers */
