@@ -18,6 +18,9 @@ PB_BIND(TofAlert, TofAlert, 2)
 PB_BIND(DetectionResult, DetectionResult, 2)
 
 
+PB_BIND(TofResult, TofResult, 2)
+
+
 PB_BIND(DeviceInfo, DeviceInfo, 2)
 
 

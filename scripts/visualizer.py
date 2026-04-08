@@ -307,19 +307,6 @@ def receiver_loop(
                         state.pm_period_mj_hist.append(state.pm_period_total_mj)
                         state.pm_period_mj_time_hist.append(now)
 
-                if result.HasField("tof"):
-                    tof = result.tof
-                    state.person_mm = [int(v) for v in tof.person_mm]
-                    fl = int(tof.flags)
-                    state.tof_alert = bool(fl & TOF_PB_FLAG_ALERT)
-                    state.tof_stale = bool(fl & TOF_PB_FLAG_STALE)
-                    if len(tof.depth_mm) == 64:
-                        state.tof_grid = np.array(
-                            tof.depth_mm, dtype=np.float32
-                        ).reshape(8, 8)
-                    else:
-                        state.tof_grid = np.full((8, 8), np.nan, dtype=np.float32)
-
             elif which == "device_info":
                 info = dev_msg.device_info
                 state.model_name = info.model_name or "unknown"
@@ -392,6 +379,20 @@ def receiver_loop(
                     desired = pending_display.popleft()
                     if ack.success:
                         state.display_enabled = desired
+
+            elif which == "tof_result":
+                tof_result = dev_msg.tof_result
+                tof = tof_result.tof
+                state.person_mm = [int(v) for v in tof.person_mm]
+                fl = int(tof.flags)
+                state.tof_alert = bool(fl & TOF_PB_FLAG_ALERT)
+                state.tof_stale = bool(fl & TOF_PB_FLAG_STALE)
+                if len(tof.depth_mm) == 64:
+                    state.tof_grid = np.array(
+                        tof.depth_mm, dtype=np.float32
+                    ).reshape(8, 8)
+                else:
+                    state.tof_grid = np.full((8, 8), np.nan, dtype=np.float32)
 
         except Exception as exc:
             state.last_error = str(exc)

@@ -29,6 +29,7 @@
 #include "power_mode.h"
 #include "stm32n6570_discovery.h"
 #include "stm32n6xx_hal.h"
+#include "tof.h"
 #include "tx_api.h"
 #include <string.h>
 
@@ -40,6 +41,10 @@ _Static_assert(sizeof(MDL_PP_CLASS_LABEL_0) <= PROTO_DEVICE_INFO_CLASS_LABEL_CAP
                "MDL_PP_CLASS_LABELS entry exceeds messages.proto DeviceInfo.class_labels max_size");
 _Static_assert(sizeof(BUILD_TIMESTAMP) <= PROTO_DEVICE_INFO_BUILD_TIMESTAMP_CAPACITY,
                "BUILD_TIMESTAMP exceeds messages.proto DeviceInfo.build_timestamp max_size");
+
+/* TofAlert.flags (protobuf); keep in sync with messages.proto */
+#define TOF_PB_FLAG_ALERT (1u << 0)
+#define TOF_PB_FLAG_STALE (1u << 1)
 
 /* ============================================================================
  * Static resources
@@ -216,6 +221,51 @@ void COM_Send_TraceXChunk(uint32_t offset, uint32_t total_size, const uint8_t *d
   memcpy(chunk->data.bytes, data, data_len);
   chunk->done = done;
   chunk->timestamp_ms = HAL_GetTick();
+
+  COM_TX_Send(&msg);
+}
+
+void COM_Send_TofResult(void) {
+  DeviceMessage msg = DeviceMessage_init_zero;
+  TofResult *tof_result;
+  const tof_alert_t *alert;
+  const tof_depth_grid_t *grid;
+  uint32_t tof_flags = 0;
+
+  msg.which_payload = DeviceMessage_tof_result_tag;
+  tof_result = &msg.payload.tof_result;
+  tof_result->timestamp_ms = HAL_GetTick();
+
+  alert = TOF_GetAlert();
+  grid = TOF_GetDepthGrid();
+
+  if (alert != NULL) {
+    uint8_t person_depth_count = alert->nb_person_depths;
+    if (person_depth_count > PROTO_TOF_ALERT_MAX_PERSON_MM) {
+      person_depth_count = PROTO_TOF_ALERT_MAX_PERSON_MM;
+    }
+    tof_result->tof.person_mm_count = person_depth_count;
+    for (uint8_t i = 0; i < person_depth_count; i++) {
+      tof_result->tof.person_mm[i] = alert->person_distances_mm[i];
+    }
+    if (alert->alert) {
+      tof_flags |= TOF_PB_FLAG_ALERT;
+    }
+    if (alert->stale) {
+      tof_flags |= TOF_PB_FLAG_STALE;
+    }
+  }
+
+  tof_result->tof.flags = tof_flags;
+  if (grid != NULL && grid->valid) {
+    tof_result->tof.depth_mm_count = PROTO_TOF_ALERT_MAX_DEPTH_MM;
+    for (int r = 0; r < TOF_GRID_SIZE; r++) {
+      for (int c = 0; c < TOF_GRID_SIZE; c++) {
+        tof_result->tof.depth_mm[r * TOF_GRID_SIZE + c] =
+            (int32_t)grid->distance_mm[r][c];
+      }
+    }
+  }
 
   COM_TX_Send(&msg);
 }

@@ -85,6 +85,7 @@ static struct {
 /* Event flag for interrupt-driven data-ready notification */
 #define TOF_EVT_DATA_READY 0x1U
 static TX_EVENT_FLAGS_GROUP tof_events;
+static TX_EVENT_FLAGS_GROUP tof_update_event_flags;
 
 /* ============================================================================
  * Sensor state
@@ -370,6 +371,7 @@ static void tof_thread_entry(ULONG arg) {
     /* Publish alert: ensure all writes visible before index swap. */
     __DMB();
     alert_read_idx = alert_write_idx;
+    tx_event_flags_set(&tof_update_event_flags, 0x01, TX_OR);
 
     /* Drive LED and haptic based on alert */
     if (alerts[alert_write_idx].alert) {
@@ -390,6 +392,9 @@ void TOF_ThreadStart(void) {
   UINT status = tx_event_flags_create(&tof_events, "tof_events");
   APP_REQUIRE(status == TX_SUCCESS);
 
+  status = tx_event_flags_create(&tof_update_event_flags, "tof_update");
+  APP_REQUIRE(status == TX_SUCCESS);
+
   status = tx_thread_create(&tof_ctx.thread, "tof_ranging",
                             tof_thread_entry, 0,
                             tof_ctx.stack, TOF_THREAD_STACK_SIZE,
@@ -408,6 +413,10 @@ const tof_alert_t *TOF_GetAlert(void) {
   uint8_t idx = alert_read_idx;
   __DMB();
   return &alerts[idx];
+}
+
+TX_EVENT_FLAGS_GROUP *TOF_GetUpdateEventFlags(void) {
+  return &tof_update_event_flags;
 }
 
 void TOF_SetAlertThreshold(uint32_t threshold_mm) {

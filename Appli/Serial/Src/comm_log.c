@@ -91,36 +91,6 @@ static void comm_send_detection_result(const detection_info_t *info) {
     df->tracks[i].track_id = tb->id;
   }
 
-  const tof_alert_t *alert = TOF_GetAlert();
-  const tof_depth_grid_t *grid = TOF_GetDepthGrid();
-  df->has_tof = true;
-  uint32_t tof_flags = 0;
-  if (alert != NULL) {
-    uint8_t person_depth_count = alert->nb_person_depths;
-    if (person_depth_count > PROTO_TOF_ALERT_MAX_PERSON_MM) {
-      person_depth_count = PROTO_TOF_ALERT_MAX_PERSON_MM;
-    }
-    df->tof.person_mm_count = person_depth_count;
-    for (uint8_t i = 0; i < person_depth_count; i++) {
-      df->tof.person_mm[i] = alert->person_distances_mm[i];
-    }
-    if (alert->alert) {
-      tof_flags |= TOF_PB_FLAG_ALERT;
-    }
-    if (alert->stale) {
-      tof_flags |= TOF_PB_FLAG_STALE;
-    }
-  }
-  df->tof.flags = tof_flags;
-  if (grid != NULL && grid->valid) {
-    df->tof.depth_mm_count = PROTO_TOF_ALERT_MAX_DEPTH_MM;
-    for (int r = 0; r < TOF_GRID_SIZE; r++) {
-      for (int c = 0; c < TOF_GRID_SIZE; c++) {
-        df->tof.depth_mm[r * TOF_GRID_SIZE + c] = (int32_t)grid->distance_mm[r][c];
-      }
-    }
-  }
-
   COM_TX_Send(&msg);
 }
 
@@ -132,18 +102,23 @@ static void comm_log_thread_entry(ULONG arg) {
   UNUSED(arg);
 
   TX_EVENT_FLAGS_GROUP *event_flags = PP_GetUpdateEventFlags();
+  TX_EVENT_FLAGS_GROUP *tof_event_flags = TOF_GetUpdateEventFlags();
   ULONG actual_flags;
+  ULONG tof_actual_flags;
 
   while (1) {
     UINT status = tx_event_flags_get(event_flags, 0x01, TX_OR_CLEAR,
-                                     &actual_flags, TX_WAIT_FOREVER);
-    if (status != TX_SUCCESS) {
-      continue;
+                                     &actual_flags, 1);
+    if (status == TX_SUCCESS) {
+      detection_info_t *info = PP_GetInfo();
+      if (info != NULL) {
+        comm_send_detection_result(info);
+      }
     }
 
-    detection_info_t *info = PP_GetInfo();
-    if (info != NULL) {
-      comm_send_detection_result(info);
+    while (tx_event_flags_get(tof_event_flags, 0x01, TX_OR_CLEAR,
+                              &tof_actual_flags, TX_NO_WAIT) == TX_SUCCESS) {
+      COM_Send_TofResult();
     }
   }
 }

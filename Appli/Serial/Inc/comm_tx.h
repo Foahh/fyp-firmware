@@ -60,6 +60,11 @@ void COM_Send_Ack(bool success);
  */
 void COM_Send_TraceXChunk(uint32_t offset, uint32_t total_size, const uint8_t *data, uint32_t data_len, bool done);
 
+/**
+ * @brief  Send the latest fused ToF payload
+ */
+void COM_Send_TofResult(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -50,7 +50,11 @@ message DetectionResult {
   float cpu_usage_percent = 8;
   repeated Detection detections = 9 [(nanopb).max_count = 10];
   repeated TrackedBox tracks = 10 [(nanopb).max_count = 10];
-  TofAlert tof = 11;
+}
+
+message TofResult {
+  uint32 timestamp_ms = 1;
+  TofAlert tof = 2;
 }
 
 /* Scalar fields first for compact C struct layout; strings last. */
@@ -134,6 +138,7 @@ message DeviceMessage {
     DeviceInfo device_info = 2;
     Ack ack = 3;
     TraceXChunk tracex_chunk = 4;
+    TofResult tof_result = 5;
   }
 }
 

@@ -52,9 +52,13 @@ typedef struct _DetectionResult {
     Detection detections[10];
     pb_size_t tracks_count;
     TrackedBox tracks[10];
+} DetectionResult;
+
+typedef struct _TofResult {
+    uint32_t timestamp_ms;
     bool has_tof;
     TofAlert tof;
-} DetectionResult;
+} TofResult;
 
 /* Scalar fields first for compact C struct layout; strings last. */
 typedef struct _DeviceInfo {
@@ -129,6 +133,7 @@ typedef struct _DeviceMessage {
         DeviceInfo device_info;
         Ack ack;
         TraceXChunk tracex_chunk;
+        TofResult tof_result;
     } payload;
 } DeviceMessage;
 
@@ -151,7 +156,8 @@ extern "C" {
 #define Detection_init_default                   {0, 0, 0, 0, 0, 0}
 #define TrackedBox_init_default                  {0, 0, 0, 0, 0}
 #define TofAlert_init_default                    {0, {0, 0, 0, 0}, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
-#define DetectionResult_init_default             {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, 0, {TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default}, false, TofAlert_init_default}
+#define DetectionResult_init_default             {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, 0, {TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default}}
+#define TofResult_init_default                   {0, false, TofAlert_init_default}
 #define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0}
 #define Ack_init_default                         {0, 0}
 #define TraceXChunk_init_default                 {0, 0, {0, {0}}, 0, 0}
@@ -164,7 +170,8 @@ extern "C" {
 #define Detection_init_zero                      {0, 0, 0, 0, 0, 0}
 #define TrackedBox_init_zero                     {0, 0, 0, 0, 0}
 #define TofAlert_init_zero                       {0, {0, 0, 0, 0}, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
-#define DetectionResult_init_zero                {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, 0, {TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero}, false, TofAlert_init_zero}
+#define DetectionResult_init_zero                {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, 0, {TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero}}
+#define TofResult_init_zero                      {0, false, TofAlert_init_zero}
 #define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0}
 #define Ack_init_zero                            {0, 0}
 #define TraceXChunk_init_zero                    {0, 0, {0, {0}}, 0, 0}
@@ -200,7 +207,8 @@ extern "C" {
 #define DetectionResult_cpu_usage_percent_tag    8
 #define DetectionResult_detections_tag           9
 #define DetectionResult_tracks_tag               10
-#define DetectionResult_tof_tag                  11
+#define TofResult_timestamp_ms_tag               1
+#define TofResult_tof_tag                        2
 #define DeviceInfo_timestamp_ms_tag              1
 #define DeviceInfo_display_width_px_tag          2
 #define DeviceInfo_display_height_px_tag         3
@@ -247,6 +255,7 @@ extern "C" {
 #define DeviceMessage_device_info_tag            2
 #define DeviceMessage_ack_tag                    3
 #define DeviceMessage_tracex_chunk_tag           4
+#define DeviceMessage_tof_result_tag             5
 #define HostMessage_set_display_enabled_tag      1
 #define HostMessage_get_device_info_tag          2
 #define HostMessage_get_tracex_dump_tag          3
@@ -289,13 +298,18 @@ X(a, STATIC,   SINGULAR, UINT32,   frame_drop_count,   6) \
 X(a, STATIC,   SINGULAR, UINT32,   tracker_us,        7) \
 X(a, STATIC,   SINGULAR, FLOAT,    cpu_usage_percent,   8) \
 X(a, STATIC,   REPEATED, MESSAGE,  detections,        9) \
-X(a, STATIC,   REPEATED, MESSAGE,  tracks,           10) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  tof,              11)
+X(a, STATIC,   REPEATED, MESSAGE,  tracks,           10)
 #define DetectionResult_CALLBACK NULL
 #define DetectionResult_DEFAULT NULL
 #define DetectionResult_detections_MSGTYPE Detection
 #define DetectionResult_tracks_MSGTYPE TrackedBox
-#define DetectionResult_tof_MSGTYPE TofAlert
+
+#define TofResult_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      1) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  tof,               2)
+#define TofResult_CALLBACK NULL
+#define TofResult_DEFAULT NULL
+#define TofResult_tof_MSGTYPE TofAlert
 
 #define DeviceInfo_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      1) \
@@ -371,13 +385,15 @@ X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      8)
 X(a, STATIC,   ONEOF,    MESSAGE,  (payload,detection_result,payload.detection_result),   1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (payload,device_info,payload.device_info),   2) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (payload,ack,payload.ack),   3) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (payload,tracex_chunk,payload.tracex_chunk),   4)
+X(a, STATIC,   ONEOF,    MESSAGE,  (payload,tracex_chunk,payload.tracex_chunk),   4) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (payload,tof_result,payload.tof_result),   5)
 #define DeviceMessage_CALLBACK NULL
 #define DeviceMessage_DEFAULT NULL
 #define DeviceMessage_payload_detection_result_MSGTYPE DetectionResult
 #define DeviceMessage_payload_device_info_MSGTYPE DeviceInfo
 #define DeviceMessage_payload_ack_MSGTYPE Ack
 #define DeviceMessage_payload_tracex_chunk_MSGTYPE TraceXChunk
+#define DeviceMessage_payload_tof_result_MSGTYPE TofResult
 
 #define HostMessage_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (command,set_display_enabled,command.set_display_enabled),   1) \
@@ -395,6 +411,7 @@ extern const pb_msgdesc_t Detection_msg;
 extern const pb_msgdesc_t TrackedBox_msg;
 extern const pb_msgdesc_t TofAlert_msg;
 extern const pb_msgdesc_t DetectionResult_msg;
+extern const pb_msgdesc_t TofResult_msg;
 extern const pb_msgdesc_t DeviceInfo_msg;
 extern const pb_msgdesc_t Ack_msg;
 extern const pb_msgdesc_t TraceXChunk_msg;
@@ -410,6 +427,7 @@ extern const pb_msgdesc_t HostMessage_msg;
 #define TrackedBox_fields &TrackedBox_msg
 #define TofAlert_fields &TofAlert_msg
 #define DetectionResult_fields &DetectionResult_msg
+#define TofResult_fields &TofResult_msg
 #define DeviceInfo_fields &DeviceInfo_msg
 #define Ack_fields &Ack_msg
 #define TraceXChunk_fields &TraceXChunk_msg
@@ -422,10 +440,10 @@ extern const pb_msgdesc_t HostMessage_msg;
 
 /* Maximum encoded size of messages (where known) */
 #define Ack_size                                 8
-#define DetectionResult_size                     1394
+#define DetectionResult_size                     657
 #define Detection_size                           31
 #define DeviceInfo_size                          535
-#define DeviceMessage_size                       1397
+#define DeviceMessage_size                       746
 #define GetDeviceInfo_size                       6
 #define GetTraceXDump_size                       12
 #define HostMessage_size                         44
@@ -433,6 +451,7 @@ extern const pb_msgdesc_t HostMessage_msg;
 #define SetDisplayEnabled_size                   8
 #define SetPostprocessConfig_size                42
 #define TofAlert_size                            734
+#define TofResult_size                           743
 #define TraceXChunk_size                         279
 #define TrackedBox_size                          26
 

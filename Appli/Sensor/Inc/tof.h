@@ -25,6 +25,7 @@ extern "C" {
 #endif
 
 #include "messages_limits.h"
+#include "tx_api.h"
 #include <stdint.h>
 
 #define TOF_GRID_SIZE 8
@@ -125,6 +126,11 @@ const tof_depth_grid_t *TOF_GetDepthGrid(void);
  * @brief  Get pointer to latest alert state (read-only, double-buffered).
  */
 const tof_alert_t *TOF_GetAlert(void);
+
+/**
+ * @brief  Get pointer to ToF update event flags group.
+ */
+TX_EVENT_FLAGS_GROUP *TOF_GetUpdateEventFlags(void);
 
 /**
  * @brief  Change the person-distance alert threshold at runtime.
