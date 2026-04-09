@@ -39,7 +39,7 @@
 /* Post-processing */
 #define MDL_PP_TYPE           POSTPROCESS_OD_ST_YOLOX_UI
 #define MDL_PP_NB_CLASSES     1
-#define MDL_PP_CONF_THRESHOLD 0.6f
+#define MDL_PP_CONF_THRESHOLD 0.5f
 #define MDL_PP_IOU_THRESHOLD  0.5f
 #define MDL_PP_NB_ANCHORS     3
 

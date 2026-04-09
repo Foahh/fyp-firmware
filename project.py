@@ -59,6 +59,14 @@ MODELS = {
         "sram_size_kb": 512,
         "inputs_ch_position": "chlast",
     },
+    "tinyv8_320": {
+        "define": "MODEL_TINYISSIMO_V8_320_PERSON",
+        "model_file": "models/tinyissimoyolo_v8_320_quant_pc_ui_coco_person.tflite",
+        "network_name": "tinyv8_320_person",
+        "neural_art": "object_detection@my_neural_art.json",
+        "sram_size_kb": 512,
+        "inputs_ch_position": "chlast",
+    },
 }
 
 DEFAULT_MODEL = "yolo26_320"
