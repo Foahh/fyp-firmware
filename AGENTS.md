@@ -116,24 +116,3 @@ Pass `module_ctx.stack` and the stack size in bytes to `tx_thread_create`. The c
 ### Networks
 
 Model config lives in `Networks/my_neural_art.json`. The `stedgeai` tool compiles TFLite models (from `models/`) into ATON NPU C sources placed in `Networks/` and a flashable HEX binary.
-
-### Cross-Thread Data Sharing Patterns
-
-Two lock-free patterns are used for single-writer / multi-reader data sharing. DWT cycle counter is enabled once in `app_threadx.c` via `Timebase_EnableDWT()` before any threads start.
-
-**Seqlock (for small copied structs)** — Used when readers must get a fully coherent copied snapshot. Writer increments a sequence counter (odd = in-progress, even = stable) with `__DMB()` barriers. Reader retries if it observes an odd or changed sequence. Used by: `nn_thread.c` (`nn_timing_t`) and the runtime config snapshots in `pp_thread.c`.
-
-```
-Writer:                           Reader:
-buf[write_idx] = data;            do {
-seq++;          /* odd */            s1 = seq; __DMB();
-__DMB();                            idx = published_idx;
-published_idx = write_idx;          copy = buf[idx];
-write_idx ^= 1;                     __DMB(); s2 = seq;
-__DMB();                          } while ((s1 & 1U) || (s1 != s2));
-seq++;          /* even */
-```
-
-**RCU-style buffer pool (for pointer-returned structs)** — Used when readers need zero-copy access to a published struct. Readers acquire the currently published slot and hold a short-lived token; writers publish into a non-published slot whose reader count is zero, then flip the published index with `__DMB()` fencing. Used by: `pp_thread.c` (`detection_info_t`), `tof.c` (`tof_depth_grid_t`), and `tof_fusion.c` (`tof_alert_t`, `tof_person_detection_t`) via `Appli/Util/Inc/rcu_buffer.h`.
-
-When adding new cross-thread shared state, use one of these patterns. Do not add bare `volatile` pointer/index swaps without explicit lifetime protection.
