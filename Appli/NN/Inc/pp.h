@@ -40,6 +40,8 @@ typedef struct {
   float y_center;
   float width;
   float height;
+  float conf;
+  int32_t class_index;
   uint32_t id;
 } tracked_box_t;
 

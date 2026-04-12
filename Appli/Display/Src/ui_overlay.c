@@ -67,6 +67,32 @@ static void clamp_point(int *x, int *y) {
 }
 
 /**
+ * @brief  Resolve an overlay color index safely
+ * @param  index: Requested palette index
+ * @retval Palette color
+ */
+static uint32_t overlay_color_from_index(int index) {
+  if (index < 0) {
+    index = 0;
+  }
+
+  return detection_colors[(uint32_t)index % NUMBER_COLORS];
+}
+
+/**
+ * @brief  Resolve a model class label safely
+ * @param  class_idx: Requested class index
+ * @retval Pointer to class label, or NULL when out of range
+ */
+static const char *overlay_class_label(int class_idx) {
+  if (class_idx < 0 || class_idx >= (int)NB_CLASSES) {
+    return NULL;
+  }
+
+  return MDL_PP_CLASS_LABELS[class_idx];
+}
+
+/**
  * @brief  Draw a single detection bounding box
  * @param  det: Pointer to detection result
  * @param  roi_x0: ROI top-left X coordinate (pre-computed, passed from caller)
@@ -110,15 +136,16 @@ static void draw_detection(const od_pp_outBuffer_t *det,
   x1 += DISPLAY_LETTERBOX_X0;
 
   class_idx = det->class_index;
-  color = detection_colors[class_idx % NUMBER_COLORS];
+  color = overlay_color_from_index(class_idx);
+  UTIL_LCD_SetTextColor(color);
 
   /* Draw bounding box */
   UTIL_LCD_DrawRect(x0, y0, x1 - x0, y1 - y0, color);
 
   /* Draw class label */
-  if (class_idx < (int)NB_CLASSES) {
-    UTIL_LCD_DisplayStringAt(x0 + 2, y0 + 2,
-                             (uint8_t *)MDL_PP_CLASS_LABELS[class_idx], LEFT_MODE);
+  const char *class_label = overlay_class_label(class_idx);
+  if (class_label != NULL) {
+    UTIL_LCD_DisplayStringAt(x0 + 2, y0 + 2, (uint8_t *)class_label, LEFT_MODE);
   }
 
   /* Draw confidence */
@@ -140,7 +167,9 @@ static void draw_tracked(const tracked_box_t *tb, int roi_x0, int roi_y0,
                          int roi_w, int roi_h) {
   int xc, yc, x0, y0, x1, y1, w, h;
   uint32_t color;
-  char id_str[16];
+  char label_str[40];
+  char conf_str[8];
+  const char *class_label;
 
   /* Skip coasting tracks whose predicted center has left the ROI */
   if (tb->x_center < 0.0f || tb->x_center > 1.0f ||
@@ -167,13 +196,25 @@ static void draw_tracked(const tracked_box_t *tb, int roi_x0, int roi_y0,
   x0 += DISPLAY_LETTERBOX_X0;
   x1 += DISPLAY_LETTERBOX_X0;
 
-  color = detection_colors[tb->id % NUMBER_COLORS];
+  color = overlay_color_from_index(tb->class_index >= 0 ? tb->class_index
+                                                        : (int)tb->id);
 
   UTIL_LCD_DrawRect(x0, y0, x1 - x0, y1 - y0, color);
 
   UTIL_LCD_SetTextColor(color);
-  snprintf(id_str, sizeof(id_str), "%u", (unsigned)tb->id);
-  UTIL_LCD_DisplayStringAt(x0 + 2, y0 + 2, (uint8_t *)id_str, LEFT_MODE);
+
+  class_label = overlay_class_label(tb->class_index);
+  if (class_label != NULL) {
+    snprintf(label_str, sizeof(label_str), "%s #%u", class_label,
+             (unsigned)tb->id);
+  } else {
+    snprintf(label_str, sizeof(label_str), "#%u", (unsigned)tb->id);
+  }
+  UTIL_LCD_DisplayStringAt(x0 + 2, y0 + 2, (uint8_t *)label_str, LEFT_MODE);
+
+  snprintf(conf_str, sizeof(conf_str), "%d%%",
+           (int)(tb->conf * 100.0f + 0.5f));
+  UTIL_LCD_DisplayStringAt(x1 - 40, y0 + 2, (uint8_t *)conf_str, LEFT_MODE);
 }
 
 /* ============================================================================

@@ -243,6 +243,7 @@ static void pp_thread_entry(ULONG arg) {
       trk_dboxes[i].w = pp_output.pOutBuff[i].width;
       trk_dboxes[i].h = pp_output.pOutBuff[i].height;
       trk_dboxes[i].conf = pp_output.pOutBuff[i].conf;
+      trk_dboxes[i].userdata = &pp_output.pOutBuff[i];
     }
     trk_update(&trk_ctx, pp_output.nb_detect, trk_dboxes);
     trk_end_cycles = DWT->CYCCNT;
@@ -295,10 +296,15 @@ static void pp_thread_entry(ULONG arg) {
           continue;
         }
         tracked_box_t *tb = &write_buf->tracked[write_buf->nb_tracked];
+        const od_pp_outBuffer_t *matched_det =
+            (const od_pp_outBuffer_t *)trk_tboxes[i].dbox_userdata;
         tb->x_center = (float)trk_tboxes[i].cx;
         tb->y_center = (float)trk_tboxes[i].cy;
         tb->width = (float)trk_tboxes[i].w;
         tb->height = (float)trk_tboxes[i].h;
+        tb->conf = (matched_det != NULL) ? matched_det->conf : 0.0f;
+        tb->class_index =
+            (matched_det != NULL) ? matched_det->class_index : -1;
         tb->id = trk_tboxes[i].id;
         write_buf->nb_tracked++;
         if (write_buf->nb_tracked >= DETECTION_MAX_BOXES) {
