@@ -93,8 +93,12 @@ void UI_DrawRuntimeSection(void) {
 /**
  * @brief  Draw detection information section in diagnostic panel
  */
-void UI_DrawDetectionInfoSection(const detection_info_t *info) {
+void UI_DrawDetectionInfoSection(const detection_info_t *info,
+                                 const tof_depth_grid_t *grid,
+                                 const tof_alert_t *alert) {
   char text_buf[UI_TEXT_BUFFER_SIZE];
+  uint32_t tof_period_us = (grid != NULL) ? grid->tof_period_us : 0U;
+  uint32_t fusion_period_us = (alert != NULL) ? alert->fusion_period_us : 0U;
 
   /* Objects count */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
@@ -114,21 +118,25 @@ void UI_DrawDetectionInfoSection(const detection_info_t *info) {
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[9],
                            (uint8_t *)text_buf, LEFT_MODE);
 
-  /* Postprocess time */
+  /* Postprocess / ToF publish period */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[10],
-                           (uint8_t *)"Postprocess", LEFT_MODE);
+                           (uint8_t *)"PP / ToF", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
-  snprintf(text_buf, sizeof(text_buf), "%luus", (unsigned long)info->postprocess_us);
+  snprintf(text_buf, sizeof(text_buf), "%lu / %lu",
+           (unsigned long)info->postprocess_us,
+           (unsigned long)tof_period_us);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[11],
                            (uint8_t *)text_buf, LEFT_MODE);
 
-  /* Tracker time */
+  /* Tracker / fusion publish period */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[12],
-                           (uint8_t *)"Tracker", LEFT_MODE);
+                           (uint8_t *)"Trk / Fus", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
-  snprintf(text_buf, sizeof(text_buf), "%luus", (unsigned long)info->tracker_us);
+  snprintf(text_buf, sizeof(text_buf), "%lu / %lu",
+           (unsigned long)info->tracker_us,
+           (unsigned long)fusion_period_us);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[13],
                            (uint8_t *)text_buf, LEFT_MODE);
 

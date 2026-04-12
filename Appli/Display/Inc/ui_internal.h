@@ -120,7 +120,9 @@ extern const uint16_t g_line_y[];
 void UI_DrawPanelBackground(void);
 void UI_DrawHeader(void);
 void UI_DrawRuntimeSection(void);
-void UI_DrawDetectionInfoSection(const detection_info_t *info);
+void UI_DrawDetectionInfoSection(const detection_info_t *info,
+                                 const tof_depth_grid_t *grid,
+                                 const tof_alert_t *alert);
 void UI_DrawCpuLoadSection(void);
 void UI_DrawProximitySection(const tof_alert_t *alert,
                              const tof_person_detection_t *detections);

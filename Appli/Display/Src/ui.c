@@ -151,9 +151,11 @@ static void ui_thread_entry(ULONG arg) {
     rcu_read_token_t det_token = {0};
     rcu_read_token_t alert_token = {0};
     rcu_read_token_t person_token = {0};
+    rcu_read_token_t depth_token = {0};
     det_info = PP_AcquireInfo(&det_token);
     tof_alert = TOF_AcquireAlert(&alert_token);
     person_det = TOF_AcquirePersonDetections(&person_token);
+    const tof_depth_grid_t *depth_grid = TOF_AcquireDepthGrid(&depth_token);
 
     /* Render all UI elements */
     /* Draw diagnostic panel background (left side) */
@@ -196,7 +198,7 @@ static void ui_thread_entry(ULONG arg) {
 
     /* Draw detection info in diagnostic panel if available */
     if (det_info != NULL) {
-      UI_DrawDetectionInfoSection(det_info);
+      UI_DrawDetectionInfoSection(det_info, depth_grid, tof_alert);
     }
 
     /* Draw detection overlays last so boxes appear on top of text */
@@ -218,12 +220,9 @@ static void ui_thread_entry(ULONG arg) {
 
     /* Draw depth grid (toggled by user button) */
     if (cur_tof_overlay_visible) {
-      rcu_read_token_t depth_token = {0};
-      const tof_depth_grid_t *depth_grid = TOF_AcquireDepthGrid(&depth_token);
       if (depth_grid != NULL && depth_grid->valid) {
         UI_DrawDepthGrid(depth_grid, roi_info, cur_tof_overlay_mode);
       }
-      TOF_ReleaseDepthGrid(&depth_token);
     }
 
     prev_had_detections = cur_has_detections;
@@ -235,6 +234,7 @@ static void ui_thread_entry(ULONG arg) {
 
     TOF_ReleaseAlert(&alert_token);
     TOF_ReleasePersonDetections(&person_token);
+    TOF_ReleaseDepthGrid(&depth_token);
     PP_ReleaseInfo(&det_token);
 
     tx_thread_sleep(UI_UPDATE_SLEEP_TICKS);
