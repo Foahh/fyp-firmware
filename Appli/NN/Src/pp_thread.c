@@ -168,11 +168,11 @@ static void pp_thread_entry(ULONG arg) {
   APP_REQUIRE(ret == 0);
 
   const trk_conf_t trk_cfg = {
-      .track_thresh = 0.25,
-      .det_thresh = 0.8,
-      .sim1_thresh = 0.8,
-      .sim2_thresh = 0.5,
-      .tlost_cnt = 30,
+      .track_thresh = PP_TRACK_DEFAULT_TRACK_THRESH,
+      .det_thresh = PP_TRACK_DEFAULT_DET_THRESH,
+      .sim1_thresh = PP_TRACK_DEFAULT_SIM1_THRESH,
+      .sim2_thresh = PP_TRACK_DEFAULT_SIM2_THRESH,
+      .tlost_cnt = PP_TRACK_DEFAULT_TLOST_CNT,
   };
   trk_init(&trk_ctx, (trk_conf_t *)&trk_cfg,
            2 * DETECTION_MAX_BOXES, trk_tboxes);
