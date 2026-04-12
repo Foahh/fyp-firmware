@@ -53,6 +53,7 @@ typedef struct _TofResult {
     uint32_t range_sigma_mm[64];
     pb_size_t signal_per_spad_count;
     uint32_t signal_per_spad[64];
+    uint32_t tof_period_us;
 } TofResult;
 
 /* flags: bit0 = person-distance alert, bit1 = measurement stale. */
@@ -61,6 +62,7 @@ typedef struct _TofAlertResult {
     uint32_t flags;
     pb_size_t person_mm_count;
     uint32_t person_mm[4];
+    uint32_t fusion_period_us;
 } TofAlertResult;
 
 /* Scalar fields first for compact C struct layout; strings last. */
@@ -160,8 +162,8 @@ extern "C" {
 #define Detection_init_default                   {0, 0, 0, 0, 0, 0}
 #define TrackedBox_init_default                  {0, 0, 0, 0, 0}
 #define DetectionResult_init_default             {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, 0, {TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default}}
-#define TofResult_init_default                   {0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
-#define TofAlertResult_init_default              {0, 0, 0, {0, 0, 0, 0}}
+#define TofResult_init_default                   {0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0}
+#define TofAlertResult_init_default              {0, 0, 0, {0, 0, 0, 0}, 0}
 #define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0}
 #define Ack_init_default                         {0, 0}
 #define TraceXChunk_init_default                 {0, 0, {0, {0}}, 0, 0}
@@ -174,8 +176,8 @@ extern "C" {
 #define Detection_init_zero                      {0, 0, 0, 0, 0, 0}
 #define TrackedBox_init_zero                     {0, 0, 0, 0, 0}
 #define DetectionResult_init_zero                {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, 0, {TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero}}
-#define TofResult_init_zero                      {0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
-#define TofAlertResult_init_zero                 {0, 0, 0, {0, 0, 0, 0}}
+#define TofResult_init_zero                      {0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0}
+#define TofAlertResult_init_zero                 {0, 0, 0, {0, 0, 0, 0}, 0}
 #define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0}
 #define Ack_init_zero                            {0, 0}
 #define TraceXChunk_init_zero                    {0, 0, {0, {0}}, 0, 0}
@@ -212,9 +214,11 @@ extern "C" {
 #define TofResult_depth_mm_tag                   2
 #define TofResult_range_sigma_mm_tag             3
 #define TofResult_signal_per_spad_tag            4
+#define TofResult_tof_period_us_tag              5
 #define TofAlertResult_timestamp_ms_tag          1
 #define TofAlertResult_flags_tag                 2
 #define TofAlertResult_person_mm_tag             3
+#define TofAlertResult_fusion_period_us_tag      4
 #define DeviceInfo_timestamp_ms_tag              1
 #define DeviceInfo_display_width_px_tag          2
 #define DeviceInfo_display_height_px_tag         3
@@ -308,14 +312,16 @@ X(a, STATIC,   REPEATED, MESSAGE,  tracks,           10)
 X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      1) \
 X(a, STATIC,   REPEATED, INT32,    depth_mm,          2) \
 X(a, STATIC,   REPEATED, UINT32,   range_sigma_mm,    3) \
-X(a, STATIC,   REPEATED, UINT32,   signal_per_spad,   4)
+X(a, STATIC,   REPEATED, UINT32,   signal_per_spad,   4) \
+X(a, STATIC,   SINGULAR, UINT32,   tof_period_us,     5)
 #define TofResult_CALLBACK NULL
 #define TofResult_DEFAULT NULL
 
 #define TofAlertResult_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      1) \
 X(a, STATIC,   SINGULAR, UINT32,   flags,             2) \
-X(a, STATIC,   REPEATED, UINT32,   person_mm,         3)
+X(a, STATIC,   REPEATED, UINT32,   person_mm,         3) \
+X(a, STATIC,   SINGULAR, UINT32,   fusion_period_us,   4)
 #define TofAlertResult_CALLBACK NULL
 #define TofAlertResult_DEFAULT NULL
 
@@ -453,15 +459,15 @@ extern const pb_msgdesc_t HostMessage_msg;
 #define DetectionResult_size                     657
 #define Detection_size                           31
 #define DeviceInfo_size                          535
-#define DeviceMessage_size                       1481
+#define DeviceMessage_size                       1487
 #define GetDeviceInfo_size                       6
 #define GetTraceXDump_size                       12
 #define HostMessage_size                         44
 #define MESSAGES_PB_H_MAX_SIZE                   DeviceMessage_size
 #define SetDisplayEnabled_size                   8
 #define SetPostprocessConfig_size                42
-#define TofAlertResult_size                      36
-#define TofResult_size                           1478
+#define TofAlertResult_size                      42
+#define TofResult_size                           1484
 #define TraceXChunk_size                         279
 #define TrackedBox_size                          26
 

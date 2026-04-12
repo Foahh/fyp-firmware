@@ -50,6 +50,7 @@ message TofResult {
   repeated int32 depth_mm = 2 [(nanopb).max_count = 64];
   repeated uint32 range_sigma_mm = 3 [(nanopb).max_count = 64];
   repeated uint32 signal_per_spad = 4 [(nanopb).max_count = 64];
+  uint32 tof_period_us = 5;
 }
 
 /* flags: bit0 = person-distance alert, bit1 = measurement stale. */
@@ -57,6 +58,7 @@ message TofAlertResult {
   uint32 timestamp_ms = 1;
   uint32 flags = 2;
   repeated uint32 person_mm = 3 [(nanopb).max_count = 4];
+  uint32 fusion_period_us = 4;
 }
 
 /* Scalar fields first for compact C struct layout; strings last. */

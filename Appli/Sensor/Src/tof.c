@@ -77,6 +77,7 @@ static rcu_buffer_t depth_grid_rcu;
 /* Precomputed zone remap for current CAMERA_FLIP setting */
 static uint8_t tof_zone_rows[TOF_GRID_SIZE * TOF_GRID_SIZE];
 static uint8_t tof_zone_cols[TOF_GRID_SIZE * TOF_GRID_SIZE];
+static volatile uint8_t tof_timing_reset_pending = 1U;
 
 /* ============================================================================
  * Hardware init & interrupt callback
@@ -163,6 +164,7 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin) {
 
 static void tof_thread_entry(ULONG arg) {
   UNUSED(arg);
+  uint32_t last_publish_cycles = 0U;
 
   /* Sensor already initialised and configured by TOF_Init(); start ranging. */
   uint8_t status = vl53l5cx_start_ranging(&tof_obj.Dev);
@@ -211,6 +213,16 @@ static void tof_thread_entry(ULONG arg) {
       grid->signal_per_spad[row][col] = results.signal_per_spad[zone];
     }
     grid->timestamp_ms = HAL_GetTick();
+    {
+      uint32_t publish_cycles = DWT->CYCCNT;
+      if (tof_timing_reset_pending || last_publish_cycles == 0U) {
+        grid->tof_period_us = 0U;
+        tof_timing_reset_pending = 0U;
+      } else {
+        grid->tof_period_us = CYCLES_TO_US(publish_cycles - last_publish_cycles);
+      }
+      last_publish_cycles = publish_cycles;
+    }
     grid->valid = 1;
 
     RCU_WritePublish(&depth_grid_rcu, write_idx);
@@ -233,6 +245,7 @@ void TOF_ThreadStart(void) {
 
   memset(depth_grids, 0, sizeof(depth_grids));
   RCU_BufferInit(&depth_grid_rcu);
+  tof_timing_reset_pending = 1U;
 
   status = tx_thread_create(&tof_ctx.thread, "tof_ranging", tof_thread_entry, 0,
                             tof_ctx.stack, TOF_THREAD_STACK_SIZE,
@@ -262,6 +275,7 @@ TX_EVENT_FLAGS_GROUP *TOF_GetResultUpdateEventFlags(void) {
 }
 
 void TOF_Stop(void) {
+  tof_timing_reset_pending = 1U;
   HAL_NVIC_DisableIRQ(EXTI0_IRQn);
   TOF_FUSION_Stop();
   tx_thread_suspend(&tof_ctx.thread);
@@ -271,6 +285,7 @@ void TOF_Stop(void) {
 }
 
 void TOF_Resume(void) {
+  tof_timing_reset_pending = 1U;
   HAL_GPIO_WritePin(TOF_PWR_EN_PORT, TOF_PWR_EN_PIN, GPIO_PIN_SET);
   tx_thread_sleep(MS_TO_TICKS(10)); /* 10ms power-up delay */
   vl53l5cx_start_ranging(&tof_obj.Dev);

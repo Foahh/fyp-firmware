@@ -77,6 +77,7 @@ typedef struct {
   uint32_t person_distances_mm[TOF_MAX_DETECTIONS];
   uint8_t person_depth_valid[TOF_MAX_DETECTIONS];
   uint32_t person_distance_mm; /**< Closest person depth in mm (0 = no data) */
+  uint32_t fusion_period_us;   /**< Period between consecutive fusion publishes */
   uint8_t has_person_depth;    /**< 1 if depth data overlapped with a person bbox */
   uint8_t alert;               /**< 1 if person is within threshold */
   uint8_t stale;               /**< 1 if suppressed due to timestamp mismatch */

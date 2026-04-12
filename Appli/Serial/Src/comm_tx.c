@@ -262,6 +262,7 @@ void COM_Send_TofResult(void) {
   }
 
   tof_result->timestamp_ms = grid->timestamp_ms;
+  tof_result->tof_period_us = grid->tof_period_us;
   tof_result->depth_mm_count = PROTO_TOF_RESULT_MAX_DEPTH_MM;
   tof_result->range_sigma_mm_count = PROTO_TOF_RESULT_MAX_RANGE_SIGMA_MM;
   tof_result->signal_per_spad_count = PROTO_TOF_RESULT_MAX_SIGNAL_PER_SPAD;
@@ -297,6 +298,7 @@ void COM_Send_TofAlertResult(void) {
   }
 
   tof_alert_result->timestamp_ms = HAL_GetTick();
+  tof_alert_result->fusion_period_us = alert->fusion_period_us;
 
   {
     uint8_t person_depth_count = alert->nb_person_depths;

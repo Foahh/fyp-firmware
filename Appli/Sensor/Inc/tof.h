@@ -60,6 +60,7 @@ typedef struct {
   uint32_t
       signal_per_spad[TOF_GRID_SIZE][TOF_GRID_SIZE]; /**< Return signal strength in kcps/spad */
   uint32_t timestamp_ms;
+  uint32_t tof_period_us; /**< Period between consecutive depth-grid publishes */
   uint8_t valid;
 } tof_depth_grid_t;
 

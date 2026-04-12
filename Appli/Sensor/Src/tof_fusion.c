@@ -95,6 +95,7 @@ typedef struct {
 } tof_track_ema_t;
 
 static tof_track_ema_t ema_table[TOF_MAX_DETECTIONS];
+static volatile uint8_t tof_fusion_timing_reset_pending = 1U;
 
 /* ============================================================================
  * Depth extraction helper
@@ -312,6 +313,7 @@ static void tof_run_fusion(const tof_depth_grid_t *grid,
 
 static void tof_fusion_thread_entry(ULONG arg) {
   UNUSED(arg);
+  uint32_t last_publish_cycles = 0U;
 
   while (1) {
     ULONG actual_flags;
@@ -342,6 +344,15 @@ static void tof_fusion_thread_entry(ULONG arg) {
 
     uint8_t fired = alert_out->alert;
     if (have_alert_slot) {
+      uint32_t publish_cycles = DWT->CYCCNT;
+      if (tof_fusion_timing_reset_pending || last_publish_cycles == 0U) {
+        alert_out->fusion_period_us = 0U;
+        tof_fusion_timing_reset_pending = 0U;
+      } else {
+        alert_out->fusion_period_us =
+            CYCLES_TO_US(publish_cycles - last_publish_cycles);
+      }
+      last_publish_cycles = publish_cycles;
       RCU_WritePublish(&alert_rcu, alert_write_idx);
       tx_event_flags_set(&tof_alert_update_event_flags, 0x01, TX_OR);
     }
@@ -371,6 +382,7 @@ void TOF_FUSION_ThreadStart(void) {
   memset(ema_table, 0, sizeof(ema_table));
   RCU_BufferInit(&alert_rcu);
   RCU_BufferInit(&person_detection_rcu);
+  tof_fusion_timing_reset_pending = 1U;
 
   status = tx_thread_create(&tof_fusion_ctx.thread, "tof_fusion",
                             tof_fusion_thread_entry, 0, tof_fusion_ctx.stack,
@@ -386,10 +398,12 @@ void TOF_FUSION_NotifyDepthReady(void) {
 }
 
 void TOF_FUSION_Stop(void) {
+  tof_fusion_timing_reset_pending = 1U;
   tx_thread_suspend(&tof_fusion_ctx.thread);
 }
 
 void TOF_FUSION_Resume(void) {
+  tof_fusion_timing_reset_pending = 1U;
   tx_thread_resume(&tof_fusion_ctx.thread);
 }
 
