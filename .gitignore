@@ -13,5 +13,5 @@ __pycache__/
 docs/
 .ruff_cache/
 tracex_dump.bin
-
+visualizer_screenshots/
 *.gen.ld

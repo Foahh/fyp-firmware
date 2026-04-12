@@ -1,5 +1,8 @@
 """GUI creation and styling for visualizer."""
 
+import os
+import re
+from datetime import datetime
 from queue import Queue
 from typing import Any
 
@@ -27,6 +30,24 @@ def _legend(ax, bg: str) -> None:
     )
     for text in leg.get_texts():
         text.set_color("#d0d0e0")
+
+
+def _figure_name(fig: plt.Figure) -> str:
+    """Return a stable filename stem for a figure."""
+    name = fig.get_label().strip() or "figure"
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_").lower()
+    return slug or "figure"
+
+
+def _save_all_figures(figures: list[plt.Figure]) -> str:
+    """Save all figures into a timestamped directory and return its path."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = os.path.abspath(os.path.join(os.getcwd(), "visualizer_screenshots", timestamp))
+    os.makedirs(output_dir, exist_ok=True)
+    for fig in figures:
+        fig.canvas.draw()
+        fig.savefig(os.path.join(output_dir, f"{_figure_name(fig)}.png"), dpi=180)
+    return output_dir
 
 
 def create_gui(
@@ -102,7 +123,7 @@ def create_gui(
     # --- Info figure ---
     fig_info = plt.figure("Device Info", figsize=(8, 7))
     fig_info.set_facecolor(C_FIG_BG)
-    grid_info = fig_info.add_gridspec(2, 1, height_ratios=[9, 0.5])
+    grid_info = fig_info.add_gridspec(2, 1, height_ratios=[9, 0.75])
     ax_text = fig_info.add_subplot(grid_info[0])
     ax_text.axis("off")
     ax_text.set_facecolor(C_FIG_BG)
@@ -136,15 +157,29 @@ def create_gui(
     # --- Buttons ---
     ax_btn_info = fig_info.add_subplot(grid_info[1])
     ax_btn_info.axis("off")
-    btn_ax1 = plt.axes([0.25, 0.02, 0.2, 0.04])
-    btn_ax2 = plt.axes([0.55, 0.02, 0.2, 0.04])
+    btn_ax1 = fig_info.add_axes([0.06, 0.035, 0.25, 0.05])
+    btn_ax2 = fig_info.add_axes([0.37, 0.035, 0.25, 0.05])
+    btn_ax3 = fig_info.add_axes([0.68, 0.035, 0.25, 0.05])
     btn_info = Button(btn_ax1, "Get Device Info", color="#252545", hovercolor="#35355a")
     btn_toggle = Button(
         btn_ax2, "Toggle Display", color="#252545", hovercolor="#35355a"
     )
-    for btn in (btn_info, btn_toggle):
+    btn_save_all = Button(
+        btn_ax3, "Save All Figures", color="#252545", hovercolor="#35355a"
+    )
+    for btn in (btn_info, btn_toggle, btn_save_all):
         btn.label.set_color(C_TEXT)
         btn.label.set_fontsize(10)
+    info_status = ax_btn_info.text(
+        0.99,
+        0.98,
+        "",
+        va="top",
+        ha="right",
+        fontsize=8.5,
+        color="#9898b8",
+        transform=ax_btn_info.transAxes,
+    )
 
     # --- Timing plot ---
     _style_axis(ax_timing, C_AX_BG)
@@ -370,9 +405,20 @@ def create_gui(
     def on_toggle_display(_event) -> None:
         cmd_queue.put(("set_display", not state.display_enabled))
 
+    def on_save_all(_event) -> None:
+        try:
+            output_dir = _save_all_figures(figures)
+            info_status.set_text(f"Saved screenshots to {output_dir}")
+            print(f"[gui] Saved screenshots to {output_dir}")
+        except Exception as exc:
+            info_status.set_text(f"Screenshot save failed: {exc}")
+            print(f"[gui] Screenshot save failed: {exc}")
+        fig_info.canvas.draw_idle()
+
     btn_info.on_clicked(on_get_info)
     btn_toggle.on_clicked(on_toggle_display)
-    fig_info._visualizer_widgets = (btn_info, btn_toggle)
+    btn_save_all.on_clicked(on_save_all)
+    fig_info._visualizer_widgets = (btn_info, btn_toggle, btn_save_all, info_status)
 
     # --- Runtime config controls ---
     cfg_labels = [
