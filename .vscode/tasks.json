@@ -4,7 +4,7 @@
         {
             "label": "Build Appli",
             "type": "shell",
-            "command": "python project.py build --appli --debug --mode overdrive -n yolo26_320_fyp",
+            "command": "python project.py build --appli --debug --mode overdrive",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
