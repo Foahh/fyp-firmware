@@ -172,6 +172,12 @@ void SystemClock_Config(void) {
   RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_TIM;
   RCC_PeriphCLKInitStruct.TIMPresSelection = RCC_TIMPRES_DIV1;
 
+  /* I2C clocks */
+  RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_I2C1;
+  RCC_PeriphCLKInitStruct.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+  RCC_PeriphCLKInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_I2C2;
+  RCC_PeriphCLKInitStruct.I2c2ClockSelection = RCC_I2C2CLKSOURCE_PCLK1;
+
   APP_REQUIRE(HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct) == HAL_OK);
 
   /* --- System / bus / NPU / SRAM clocks --- */
@@ -323,6 +329,8 @@ void ClockSleep_Config(void) {
   __HAL_RCC_USB2_OTG_HS_PHY_CLK_SLEEP_DISABLE();
 
   // APB1: no SPI, extra UART, I3C, I2C3, timers (except TIM2), or CAN
+  __HAL_RCC_I2C1_CLK_SLEEP_ENABLE();
+  __HAL_RCC_I2C2_CLK_SLEEP_ENABLE();
   __HAL_RCC_I2C3_CLK_SLEEP_DISABLE();
   __HAL_RCC_I3C1_CLK_SLEEP_DISABLE();
   __HAL_RCC_I3C2_CLK_SLEEP_DISABLE();

@@ -55,6 +55,8 @@
 #define I2C_SDADEL_MAX              16U
 #define I2C_SCLH_MAX                256U
 #define I2C_SCLL_MAX                256U
+#define I2C_TRANSFER_RETRY_COUNT    3U
+#define I2C_TRANSFER_RETRY_DELAY_MS 1U
 #define SEC2NSEC                    1000000000UL
 /**
  * @}
@@ -530,8 +532,15 @@ static void I2C1_MspDeInit(I2C_HandleTypeDef *phi2c) {
  * @retval BSP status
  */
 static int32_t I2C1_WriteReg(uint16_t DevAddr, uint16_t Reg, uint16_t MemAddSize, uint8_t *pData, uint16_t Length) {
-  if (HAL_I2C_Mem_Write(&hbus_i2c1, DevAddr, Reg, MemAddSize, pData, Length, 1000) == HAL_OK) {
-    return BSP_ERROR_NONE;
+  for (uint32_t attempt = 0; attempt < I2C_TRANSFER_RETRY_COUNT; attempt++) {
+    if (HAL_I2C_Mem_Write(&hbus_i2c1, DevAddr, Reg, MemAddSize, pData, Length, 1000) == HAL_OK) {
+      return BSP_ERROR_NONE;
+    }
+    if ((HAL_I2C_GetError(&hbus_i2c1) != HAL_I2C_ERROR_AF) ||
+        ((attempt + 1U) >= I2C_TRANSFER_RETRY_COUNT)) {
+      break;
+    }
+    HAL_Delay(I2C_TRANSFER_RETRY_DELAY_MS);
   }
 
   return BSP_ERROR_BUS_FAILURE;
@@ -547,8 +556,15 @@ static int32_t I2C1_WriteReg(uint16_t DevAddr, uint16_t Reg, uint16_t MemAddSize
  * @retval BSP status
  */
 static int32_t I2C1_ReadReg(uint16_t DevAddr, uint16_t Reg, uint16_t MemAddSize, uint8_t *pData, uint16_t Length) {
-  if (HAL_I2C_Mem_Read(&hbus_i2c1, DevAddr, Reg, MemAddSize, pData, Length, 1000) == HAL_OK) {
-    return BSP_ERROR_NONE;
+  for (uint32_t attempt = 0; attempt < I2C_TRANSFER_RETRY_COUNT; attempt++) {
+    if (HAL_I2C_Mem_Read(&hbus_i2c1, DevAddr, Reg, MemAddSize, pData, Length, 1000) == HAL_OK) {
+      return BSP_ERROR_NONE;
+    }
+    if ((HAL_I2C_GetError(&hbus_i2c1) != HAL_I2C_ERROR_AF) ||
+        ((attempt + 1U) >= I2C_TRANSFER_RETRY_COUNT)) {
+      break;
+    }
+    HAL_Delay(I2C_TRANSFER_RETRY_DELAY_MS);
   }
 
   return BSP_ERROR_BUS_FAILURE;
@@ -1081,8 +1097,15 @@ static void I2C2_MspDeInit(I2C_HandleTypeDef *phi2c) {
  * @retval BSP status
  */
 static int32_t I2C2_WriteReg(uint16_t DevAddr, uint16_t Reg, uint16_t MemAddSize, uint8_t *pData, uint16_t Length) {
-  if (HAL_I2C_Mem_Write(&hbus_i2c2, DevAddr, Reg, MemAddSize, pData, Length, 1000) == HAL_OK) {
-    return BSP_ERROR_NONE;
+  for (uint32_t attempt = 0; attempt < I2C_TRANSFER_RETRY_COUNT; attempt++) {
+    if (HAL_I2C_Mem_Write(&hbus_i2c2, DevAddr, Reg, MemAddSize, pData, Length, 1000) == HAL_OK) {
+      return BSP_ERROR_NONE;
+    }
+    if ((HAL_I2C_GetError(&hbus_i2c2) != HAL_I2C_ERROR_AF) ||
+        ((attempt + 1U) >= I2C_TRANSFER_RETRY_COUNT)) {
+      break;
+    }
+    HAL_Delay(I2C_TRANSFER_RETRY_DELAY_MS);
   }
 
   return BSP_ERROR_BUS_FAILURE;
@@ -1098,8 +1121,15 @@ static int32_t I2C2_WriteReg(uint16_t DevAddr, uint16_t Reg, uint16_t MemAddSize
  * @retval BSP status
  */
 static int32_t I2C2_ReadReg(uint16_t DevAddr, uint16_t Reg, uint16_t MemAddSize, uint8_t *pData, uint16_t Length) {
-  if (HAL_I2C_Mem_Read(&hbus_i2c2, DevAddr, Reg, MemAddSize, pData, Length, 1000) == HAL_OK) {
-    return BSP_ERROR_NONE;
+  for (uint32_t attempt = 0; attempt < I2C_TRANSFER_RETRY_COUNT; attempt++) {
+    if (HAL_I2C_Mem_Read(&hbus_i2c2, DevAddr, Reg, MemAddSize, pData, Length, 1000) == HAL_OK) {
+      return BSP_ERROR_NONE;
+    }
+    if ((HAL_I2C_GetError(&hbus_i2c2) != HAL_I2C_ERROR_AF) ||
+        ((attempt + 1U) >= I2C_TRANSFER_RETRY_COUNT)) {
+      break;
+    }
+    HAL_Delay(I2C_TRANSFER_RETRY_DELAY_MS);
   }
 
   return BSP_ERROR_BUS_FAILURE;
