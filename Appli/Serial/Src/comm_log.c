@@ -37,6 +37,11 @@ static struct {
   UCHAR stack[COMM_LOG_THREAD_STACK_SIZE];
 } comm_log_ctx;
 
+static TX_SEMAPHORE comm_log_wakeup_sem;
+static TX_EVENT_FLAGS_GROUP *comm_log_pp_event_flags;
+static TX_EVENT_FLAGS_GROUP *comm_log_tof_result_event_flags;
+static TX_EVENT_FLAGS_GROUP *comm_log_tof_alert_event_flags;
+
 /* ============================================================================
  * Internal helpers
  * ============================================================================ */
@@ -90,6 +95,39 @@ static void comm_send_detection_result(const detection_info_t *info) {
   COM_TX_Send(&msg);
 }
 
+static void comm_log_source_notify(TX_EVENT_FLAGS_GROUP *event_flags) {
+  UNUSED(event_flags);
+  tx_semaphore_put(&comm_log_wakeup_sem);
+}
+
+static void comm_log_drain_pending(void) {
+  ULONG actual_flags;
+  ULONG tof_result_actual_flags;
+  ULONG tof_alert_actual_flags;
+
+  while (tx_event_flags_get(comm_log_pp_event_flags, 0x01, TX_OR_CLEAR,
+                            &actual_flags, TX_NO_WAIT) == TX_SUCCESS) {
+    rcu_read_token_t info_token = {0};
+    const detection_info_t *info = PP_AcquireInfo(&info_token);
+    if (info != NULL) {
+      comm_send_detection_result(info);
+    }
+    PP_ReleaseInfo(&info_token);
+  }
+
+  while (tx_event_flags_get(comm_log_tof_result_event_flags, 0x01, TX_OR_CLEAR,
+                            &tof_result_actual_flags,
+                            TX_NO_WAIT) == TX_SUCCESS) {
+    COM_Send_TofResult();
+  }
+
+  while (tx_event_flags_get(comm_log_tof_alert_event_flags, 0x01, TX_OR_CLEAR,
+                            &tof_alert_actual_flags,
+                            TX_NO_WAIT) == TX_SUCCESS) {
+    COM_Send_TofAlertResult();
+  }
+}
+
 /* ============================================================================
  * Log thread entry
  * ============================================================================ */
@@ -97,34 +135,9 @@ static void comm_send_detection_result(const detection_info_t *info) {
 static void comm_log_thread_entry(ULONG arg) {
   UNUSED(arg);
 
-  TX_EVENT_FLAGS_GROUP *event_flags = PP_GetUpdateEventFlags();
-  TX_EVENT_FLAGS_GROUP *tof_result_event_flags = TOF_GetResultUpdateEventFlags();
-  TX_EVENT_FLAGS_GROUP *tof_alert_event_flags = TOF_GetAlertUpdateEventFlags();
-  ULONG actual_flags;
-  ULONG tof_result_actual_flags;
-  ULONG tof_alert_actual_flags;
-
   while (1) {
-    UINT status = tx_event_flags_get(event_flags, 0x01, TX_OR_CLEAR,
-                                     &actual_flags, 1);
-    if (status == TX_SUCCESS) {
-      rcu_read_token_t info_token = {0};
-      const detection_info_t *info = PP_AcquireInfo(&info_token);
-      if (info != NULL) {
-        comm_send_detection_result(info);
-      }
-      PP_ReleaseInfo(&info_token);
-    }
-
-    while (tx_event_flags_get(tof_result_event_flags, 0x01, TX_OR_CLEAR,
-                              &tof_result_actual_flags, TX_NO_WAIT) == TX_SUCCESS) {
-      COM_Send_TofResult();
-    }
-
-    while (tx_event_flags_get(tof_alert_event_flags, 0x01, TX_OR_CLEAR,
-                              &tof_alert_actual_flags, TX_NO_WAIT) == TX_SUCCESS) {
-      COM_Send_TofAlertResult();
-    }
+    comm_log_drain_pending();
+    tx_semaphore_get(&comm_log_wakeup_sem, TX_WAIT_FOREVER);
   }
 }
 
@@ -135,10 +148,29 @@ static void comm_log_thread_entry(ULONG arg) {
 void COM_Log_ThreadStart(void) {
   UINT status;
 
+  comm_log_pp_event_flags = PP_GetUpdateEventFlags();
+  comm_log_tof_result_event_flags = TOF_GetResultUpdateEventFlags();
+  comm_log_tof_alert_event_flags = TOF_GetAlertUpdateEventFlags();
+
+  status = tx_semaphore_create(&comm_log_wakeup_sem, "comm_log_wakeup", 0);
+  APP_REQUIRE(status == TX_SUCCESS);
+
+  status = tx_event_flags_set_notify(comm_log_pp_event_flags,
+                                     comm_log_source_notify);
+  APP_REQUIRE(status == TX_SUCCESS);
+  status = tx_event_flags_set_notify(comm_log_tof_result_event_flags,
+                                     comm_log_source_notify);
+  APP_REQUIRE(status == TX_SUCCESS);
+  status = tx_event_flags_set_notify(comm_log_tof_alert_event_flags,
+                                     comm_log_source_notify);
+  APP_REQUIRE(status == TX_SUCCESS);
+
   status =
       tx_thread_create(&comm_log_ctx.thread, "comm_log", comm_log_thread_entry, 0,
                        comm_log_ctx.stack, COMM_LOG_THREAD_STACK_SIZE,
                        COMM_LOG_THREAD_PRIORITY, COMM_LOG_THREAD_PRIORITY,
                        TX_NO_TIME_SLICE, TX_AUTO_START);
   APP_REQUIRE(status == TX_SUCCESS);
+
+  tx_semaphore_put(&comm_log_wakeup_sem);
 }

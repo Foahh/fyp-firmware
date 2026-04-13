@@ -70,13 +70,13 @@ UINT ThreadX_Start(VOID *memory_ptr) {
 
   CPU_LoadThreadStart();
 
-  COM_Log_ThreadStart();
-
   COM_RX_ThreadStart();
 
   UI_ThreadStart();
 
   TOF_ThreadStart();
+
+  COM_Log_ThreadStart();
 
   ret = tx_thread_create(&startup_ctx.thread, "startup",
                          startup_thread_entry, 0,

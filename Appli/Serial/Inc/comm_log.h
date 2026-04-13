@@ -25,7 +25,7 @@ extern "C" {
 
 /**
  * @brief  Create the comm log thread
- * @note   Must be called after COM_TX_Start()
+ * @note   Must be called after COM_TX_ThreadStart() and TOF_ThreadStart()
  */
 void COM_Log_ThreadStart(void);
 

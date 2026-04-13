@@ -231,7 +231,7 @@ void SystemClock_Config(void) {
 
 void ClockSleep_Config(void) {
   // Misc
-#if defined(CPU_IN_SECURE_STATE)
+#if defined(CPU_IN_SECURE_STATE) && defined(DEBUG)
   __HAL_RCC_DBG_CLK_SLEEP_ENABLE();
 #endif
   __HAL_RCC_XSPIPHYCOMP_CLK_SLEEP_ENABLE();

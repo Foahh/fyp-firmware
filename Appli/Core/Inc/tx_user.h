@@ -198,6 +198,10 @@
 
 /*#define TX_NOT_INTERRUPTABLE*/
 
+/* Enter WFI in the ThreadX idle loop so the MCU reaches Sleep mode whenever
+   no thread is runnable. */
+#define TX_ENABLE_WFI
+
 /* Determine if the trace event logging code should be enabled. This causes slight increases in
    code size and overhead, but provides the ability to generate system trace information which
    is available for viewing in TraceX.  */
