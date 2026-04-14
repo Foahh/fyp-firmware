@@ -806,7 +806,7 @@ def _update_bbox(_frame_idx, state, panel: BboxPanel, theme: Theme):
     ax.set_xlim(0.0, 1.0)
     ax.set_ylim(1.0, 0.0)
     ax.set_aspect("equal")
-    ax.set_title("Bounding Boxes (normalized)", color=theme.title, pad=12)
+    ax.set_title("Bounding Boxes", color=theme.title, pad=12)
     ax.set_xlabel("x (0 = left)")
     ax.set_ylabel("y (0 = top)")
     ax.yaxis.labelpad = 8
@@ -1000,67 +1000,69 @@ def create_gui(
     _wire_info_controls(state, cmd_queue, recorder, figures, info_panel, theme)
     _wire_config_controls(state, cmd_queue, config_panel)
 
+    interval = 33
+
     animations = [
         FuncAnimation(
             timing_panel.fig,
             lambda frame_idx: _update_timing(frame_idx, state, timing_panel),
-            interval=120,
+            interval=interval,
             blit=False,
             cache_frame_data=False,
         ),
         FuncAnimation(
             cpu_panel.fig,
             lambda frame_idx: _update_cpu(frame_idx, state, cpu_panel),
-            interval=120,
+            interval=interval,
             blit=False,
             cache_frame_data=False,
         ),
         FuncAnimation(
             tof_panel.fig,
             lambda frame_idx: _update_tof(frame_idx, state, tof_panel),
-            interval=120,
+            interval=interval,
             blit=False,
             cache_frame_data=False,
         ),
         FuncAnimation(
             power_panel.fig,
             lambda frame_idx: _update_power(frame_idx, state, power_panel),
-            interval=120,
+            interval=interval,
             blit=False,
             cache_frame_data=False,
         ),
         FuncAnimation(
             energy_panel.fig,
             lambda frame_idx: _update_energy(frame_idx, state, energy_panel),
-            interval=120,
+            interval=interval,
             blit=False,
             cache_frame_data=False,
         ),
         FuncAnimation(
             battery_panel.fig,
             lambda frame_idx: _update_battery(frame_idx, state, battery_panel),
-            interval=120,
+            interval=interval,
             blit=False,
             cache_frame_data=False,
         ),
         FuncAnimation(
             bbox_panel.fig,
             lambda frame_idx: _update_bbox(frame_idx, state, bbox_panel, theme),
-            interval=120,
+            interval=interval,
             blit=False,
             cache_frame_data=False,
         ),
         FuncAnimation(
             info_panel.fig,
             lambda frame_idx: _update_info(frame_idx, state, info_panel),
-            interval=120,
+            interval=interval,
             blit=False,
             cache_frame_data=False,
         ),
         FuncAnimation(
             config_panel.fig,
             lambda frame_idx: _update_config(frame_idx, state, config_panel),
-            interval=200,
+            interval=interval,
             blit=False,
             cache_frame_data=False,
         ),

@@ -114,6 +114,7 @@ void COM_TX_ThreadStart(void) {
 
 void COM_TX_Send(const DeviceMessage *msg) {
   if (tx_semaphore_get(&tx_free_sem, TX_NO_WAIT) != TX_SUCCESS) {
+    BSP_LED_Toggle(LED_GREEN);
     return;
   }
 
