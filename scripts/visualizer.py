@@ -218,6 +218,7 @@ class RecordingManager:
         self._ack_rows: list[dict[str, Any]] = []
         self._tof_rows: list[dict[str, Any]] = []
         self._tof_alert_rows: list[dict[str, Any]] = []
+        self._cpu_rows: list[dict[str, Any]] = []
         self._power_rows: list[dict[str, Any]] = []
 
     def _reset_rows_locked(self) -> None:
@@ -228,6 +229,7 @@ class RecordingManager:
         self._ack_rows = []
         self._tof_rows = []
         self._tof_alert_rows = []
+        self._cpu_rows = []
         self._power_rows = []
 
     def _base_row_locked(self, host_time_s: float) -> dict[str, Any]:
@@ -301,6 +303,7 @@ class RecordingManager:
                 "ack_rows": list(self._ack_rows),
                 "tof_rows": list(self._tof_rows),
                 "tof_alert_rows": list(self._tof_alert_rows),
+                "cpu_rows": list(self._cpu_rows),
                 "power_rows": list(self._power_rows),
             }
             if not snapshot["device_info_rows"] and state.firmware_recognized:
@@ -315,6 +318,7 @@ class RecordingManager:
         self,
         result: messages_pb2.DetectionResult,
         class_labels: list[str],
+        cpu_usage_percent: float,
     ) -> None:
         host_time_s = time.time()
         with self._lock:
@@ -335,7 +339,7 @@ class RecordingManager:
                     "nn_period_us": int(result.nn_period_us),
                     "fps": f"{fps:.6f}",
                     "frame_drop_count": int(result.frame_drop_count),
-                    "cpu_usage_percent": f"{float(result.cpu_usage_percent):.6f}",
+                    "cpu_usage_percent": f"{cpu_usage_percent:.6f}",
                     "detection_count": len(result.detections),
                     "tracked_box_count": len(result.tracks),
                 }
@@ -463,6 +467,19 @@ class RecordingManager:
             }
             row.update(_flatten_sequence("person_mm", list(tof_alert_result.person_mm), 4))
             self._tof_alert_rows.append(row)
+
+    def record_cpu_usage_sample(self, cpu_sample: messages_pb2.CpuUsageSample) -> None:
+        host_time_s = time.time()
+        with self._lock:
+            if not self._active:
+                return
+            self._cpu_rows.append(
+                {
+                    **self._base_row_locked(host_time_s),
+                    "timestamp_ms": int(cpu_sample.timestamp_ms),
+                    "cpu_usage_percent": f"{float(cpu_sample.cpu_usage_percent):.6f}",
+                }
+            )
 
     def record_power_sample(self, sample: power_sample_pb2.PowerSample) -> None:
         host_time_s = time.time()
@@ -618,6 +635,17 @@ class RecordingManager:
             snapshot["tof_alert_rows"],
         )
         self._write_csv(
+            os.path.join(session_dir, "cpu_usage.csv"),
+            [
+                "host_time_s",
+                "record_elapsed_s",
+                "recorded_at_iso",
+                "timestamp_ms",
+                "cpu_usage_percent",
+            ],
+            snapshot["cpu_rows"],
+        )
+        self._write_csv(
             os.path.join(session_dir, "power_sample.csv"),
             [
                 "host_time_s",
@@ -661,6 +689,7 @@ class RecordingManager:
             "ack": len(snapshot["ack_rows"]),
             "tof_result": len(snapshot["tof_rows"]),
             "tof_alert_result": len(snapshot["tof_alert_rows"]),
+            "cpu_usage": len(snapshot["cpu_rows"]),
             "power_sample": len(snapshot["power_rows"]),
         }
         lines = [
@@ -841,10 +870,6 @@ def receiver_loop(
                 state.timing_time_hist.append(now)
                 state.frame_drops = int(result.frame_drop_count)
 
-                state.cpu_usage_percent = float(result.cpu_usage_percent)
-                state.cpu_hist.append(state.cpu_usage_percent)
-                state.cpu_time_hist.append(now)
-
                 period_us_pm = (
                     state.pm_last_inf_duration_us + state.pm_last_idle_duration_us
                 )
@@ -862,7 +887,9 @@ def receiver_loop(
                         state.battery_time_hist.append(now)
                         state.pm_period_mj_hist.append(state.pm_period_total_mj)
                         state.pm_period_mj_time_hist.append(now)
-                recorder.record_detection_result(result, state.class_labels)
+                recorder.record_detection_result(
+                    result, state.class_labels, state.cpu_usage_percent
+                )
 
             elif which == "device_info":
                 info = dev_msg.device_info
@@ -953,6 +980,14 @@ def receiver_loop(
                 state.tof_alert = bool(fl & TOF_PB_FLAG_ALERT)
                 state.tof_stale = bool(fl & TOF_PB_FLAG_STALE)
                 recorder.record_tof_alert_result(tof_alert_result)
+
+            elif which == "cpu_usage_sample":
+                cpu_sample = dev_msg.cpu_usage_sample
+                now = time.time()
+                state.cpu_usage_percent = float(cpu_sample.cpu_usage_percent)
+                state.cpu_hist.append(state.cpu_usage_percent)
+                state.cpu_time_hist.append(now)
+                recorder.record_cpu_usage_sample(cpu_sample)
 
         except Exception as exc:
             state.last_error = str(exc)

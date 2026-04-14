@@ -66,6 +66,11 @@ void COM_Send_TraceXChunk(uint32_t offset, uint32_t total_size, const uint8_t *d
 void COM_Send_TofResult(void);
 
 /**
+ * @brief  Send the latest sampled CPU usage payload
+ */
+void COM_Send_CpuUsageSample(void);
+
+/**
  * @brief  Send the latest fused ToF alert payload
  */
 void COM_Send_TofAlertResult(void);

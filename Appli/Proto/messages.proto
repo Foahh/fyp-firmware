@@ -28,10 +28,6 @@ message TrackedBox {
  * Device payloads
  * ============================================================================ */
 
-/*
- * Timing fields are inlined (no submessage) to avoid extra protobuf length
- * delimiters and nanopb has_* submessage flags on the hot path.
- */
 message DetectionResult {
   uint32 sent_timestamp_ms = 1;
   uint32 frame_timestamp_ms = 2;
@@ -40,9 +36,13 @@ message DetectionResult {
   uint32 nn_period_us = 5;
   uint32 frame_drop_count = 6;
   uint32 tracker_us = 7;
-  float cpu_usage_percent = 8;
   repeated Detection detections = 9 [(nanopb).max_count = 10];
   repeated TrackedBox tracks = 10 [(nanopb).max_count = 10];
+}
+
+message CpuUsageSample {
+  uint32 timestamp_ms = 1;
+  float cpu_usage_percent = 2;
 }
 
 message TofResult {
@@ -144,6 +144,7 @@ message DeviceMessage {
     TraceXChunk tracex_chunk = 4;
     TofResult tof_result = 5;
     TofAlertResult tof_alert_result = 6;
+    CpuUsageSample cpu_usage_sample = 7;
   }
 }
 

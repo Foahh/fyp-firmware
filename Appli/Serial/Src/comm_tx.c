@@ -19,6 +19,7 @@
 #include "comm_tx.h"
 #include "build_timestamp.h"
 #include "cam_config.h"
+#include "cpu_load.h"
 #include "error.h"
 #include "init_clock.h"
 #include "lcd_config.h"
@@ -278,6 +279,23 @@ void COM_Send_TofResult(void) {
   }
 
   TOF_ReleaseDepthGrid(&grid_token);
+  COM_TX_Send(&msg);
+}
+
+void COM_Send_CpuUsageSample(void) {
+  DeviceMessage msg = DeviceMessage_init_zero;
+  CpuUsageSample *cpu_usage_sample;
+  cpu_load_sample_t sample;
+
+  if (!CPU_LoadGetLatestSample(&sample)) {
+    return;
+  }
+
+  msg.which_payload = DeviceMessage_cpu_usage_sample_tag;
+  cpu_usage_sample = &msg.payload.cpu_usage_sample;
+  cpu_usage_sample->timestamp_ms = sample.timestamp_ms;
+  cpu_usage_sample->cpu_usage_percent = sample.usage_ratio * 100.0f;
+
   COM_TX_Send(&msg);
 }
 

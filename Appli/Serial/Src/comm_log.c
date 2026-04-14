@@ -56,8 +56,6 @@ static void comm_send_detection_result(const detection_info_t *info) {
   df->nn_period_us = info->nn_period_us;
   df->frame_drop_count = info->frame_drops;
 
-  df->cpu_usage_percent = CPU_LoadGetUsageRatio() * 100.0f;
-
   int n = info->nb_detect;
   if (n > PROTO_DETECTION_RESULT_MAX_DETECTIONS) {
     n = PROTO_DETECTION_RESULT_MAX_DETECTIONS;
@@ -100,9 +98,11 @@ static void comm_log_thread_entry(ULONG arg) {
   TX_EVENT_FLAGS_GROUP *event_flags = PP_GetUpdateEventFlags();
   TX_EVENT_FLAGS_GROUP *tof_result_event_flags = TOF_GetResultUpdateEventFlags();
   TX_EVENT_FLAGS_GROUP *tof_alert_event_flags = TOF_GetAlertUpdateEventFlags();
+  TX_EVENT_FLAGS_GROUP *cpu_load_event_flags = CPU_LoadGetUpdateEventFlags();
   ULONG actual_flags;
   ULONG tof_result_actual_flags;
   ULONG tof_alert_actual_flags;
+  ULONG cpu_load_actual_flags;
 
   while (1) {
     UINT status = tx_event_flags_get(event_flags, 0x01, TX_OR_CLEAR,
@@ -124,6 +124,11 @@ static void comm_log_thread_entry(ULONG arg) {
     while (tx_event_flags_get(tof_alert_event_flags, 0x01, TX_OR_CLEAR,
                               &tof_alert_actual_flags, TX_NO_WAIT) == TX_SUCCESS) {
       COM_Send_TofAlertResult();
+    }
+
+    while (tx_event_flags_get(cpu_load_event_flags, 0x01, TX_OR_CLEAR,
+                              &cpu_load_actual_flags, TX_NO_WAIT) == TX_SUCCESS) {
+      COM_Send_CpuUsageSample();
     }
   }
 }

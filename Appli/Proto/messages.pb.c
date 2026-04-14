@@ -15,6 +15,9 @@ PB_BIND(TrackedBox, TrackedBox, AUTO)
 PB_BIND(DetectionResult, DetectionResult, 2)
 
 
+PB_BIND(CpuUsageSample, CpuUsageSample, AUTO)
+
+
 PB_BIND(TofResult, TofResult, 2)
 
 
