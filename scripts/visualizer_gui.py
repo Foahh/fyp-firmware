@@ -39,10 +39,15 @@ def _figure_name(fig: plt.Figure) -> str:
     return slug or "figure"
 
 
-def _save_all_figures(figures: list[plt.Figure]) -> str:
-    """Save all figures into a timestamped directory and return its path."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = os.path.abspath(os.path.join(os.getcwd(), "visualizer_screenshots", timestamp))
+def _save_all_figures(
+    figures: list[plt.Figure],
+    output_root: str,
+    output_dir: str | None = None,
+) -> str:
+    """Save all figures into a directory and return its path."""
+    if output_dir is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_dir = os.path.abspath(os.path.join(output_root, timestamp))
     os.makedirs(output_dir, exist_ok=True)
     for fig in figures:
         fig.canvas.draw()
@@ -53,6 +58,7 @@ def _save_all_figures(figures: list[plt.Figure]) -> str:
 def create_gui(
     state,
     cmd_queue: Queue[tuple[str, Any]],
+    recorder,
 ) -> tuple[list[plt.Figure], list[FuncAnimation]]:
     # --- Theme constants ---
     C_FIG_BG = "#000000"
@@ -157,17 +163,21 @@ def create_gui(
     # --- Buttons ---
     ax_btn_info = fig_info.add_subplot(grid_info[1])
     ax_btn_info.axis("off")
-    btn_ax1 = fig_info.add_axes([0.06, 0.035, 0.25, 0.05])
-    btn_ax2 = fig_info.add_axes([0.37, 0.035, 0.25, 0.05])
-    btn_ax3 = fig_info.add_axes([0.68, 0.035, 0.25, 0.05])
+    btn_ax1 = fig_info.add_axes([0.04, 0.035, 0.21, 0.05])
+    btn_ax2 = fig_info.add_axes([0.28, 0.035, 0.21, 0.05])
+    btn_ax3 = fig_info.add_axes([0.52, 0.035, 0.21, 0.05])
+    btn_ax4 = fig_info.add_axes([0.76, 0.035, 0.20, 0.05])
     btn_info = Button(btn_ax1, "Get Device Info", color="#252545", hovercolor="#35355a")
     btn_toggle = Button(
         btn_ax2, "Toggle Display", color="#252545", hovercolor="#35355a"
     )
-    btn_save_all = Button(
-        btn_ax3, "Save All Figures", color="#252545", hovercolor="#35355a"
+    btn_record = Button(
+        btn_ax3, "Start Recording", color="#7a2f2f", hovercolor="#964141"
     )
-    for btn in (btn_info, btn_toggle, btn_save_all):
+    btn_save_all = Button(
+        btn_ax4, "Save Figures", color="#252545", hovercolor="#35355a"
+    )
+    for btn in (btn_info, btn_toggle, btn_record, btn_save_all):
         btn.label.set_color(C_TEXT)
         btn.label.set_fontsize(10)
     info_status = ax_btn_info.text(
@@ -407,7 +417,7 @@ def create_gui(
 
     def on_save_all(_event) -> None:
         try:
-            output_dir = _save_all_figures(figures)
+            output_dir = _save_all_figures(figures, recorder.output_root)
             info_status.set_text(f"Saved screenshots to {output_dir}")
             print(f"[gui] Saved screenshots to {output_dir}")
         except Exception as exc:
@@ -415,10 +425,47 @@ def create_gui(
             print(f"[gui] Screenshot save failed: {exc}")
         fig_info.canvas.draw_idle()
 
+    def _refresh_record_button() -> None:
+        if recorder.is_recording():
+            btn_record.label.set_text("Stop Recording")
+            btn_record.color = "#2f7a43"
+            btn_record.hovercolor = "#3c9554"
+            btn_record.ax.set_facecolor("#2f7a43")
+        else:
+            btn_record.label.set_text("Start Recording")
+            btn_record.color = "#7a2f2f"
+            btn_record.hovercolor = "#964141"
+            btn_record.ax.set_facecolor("#7a2f2f")
+
+    def on_record(_event) -> None:
+        try:
+            if recorder.is_recording():
+                output_dir = recorder.stop(state)
+                _save_all_figures(figures, recorder.output_root, output_dir=output_dir)
+                info_status.set_text(f"Saved recording to {output_dir}")
+                print(f"[gui] Saved recording bundle to {output_dir}")
+            else:
+                output_dir = recorder.start(state)
+                info_status.set_text(f"Recording to {output_dir}")
+                print(f"[gui] Recording started: {output_dir}")
+        except Exception as exc:
+            info_status.set_text(f"Recording failed: {exc}")
+            print(f"[gui] Recording failed: {exc}")
+        _refresh_record_button()
+        fig_info.canvas.draw_idle()
+
     btn_info.on_clicked(on_get_info)
     btn_toggle.on_clicked(on_toggle_display)
+    btn_record.on_clicked(on_record)
     btn_save_all.on_clicked(on_save_all)
-    fig_info._visualizer_widgets = (btn_info, btn_toggle, btn_save_all, info_status)
+    _refresh_record_button()
+    fig_info._visualizer_widgets = (
+        btn_info,
+        btn_toggle,
+        btn_record,
+        btn_save_all,
+        info_status,
+    )
 
     # --- Runtime config controls ---
     cfg_labels = [
