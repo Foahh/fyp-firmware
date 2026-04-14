@@ -34,7 +34,7 @@ extern "C" {
 #define TOF_MAX_DETECTIONS PROTO_TOF_ALERT_MAX_PERSON_MM
 
 /** Maximum allowed NN-to-ToF timestamp delta for fusion (ms) */
-#define FUSION_MAX_DT_MS 100
+#define FUSION_MAX_DT_MS 133.4
 
 /* ============================================================================
  * Bounding box type (normalized NN coordinates [0,1])
