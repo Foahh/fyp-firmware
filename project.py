@@ -72,7 +72,7 @@ MODELS = {
 DEFAULT_MODEL = "tinyv8_320"
 
 CAMERA_FPS_CHOICES = (15, 20, 25, 30)
-DEFAULT_CAMERA_FPS = 30
+DEFAULT_CAMERA_FPS = 15
 
 
 def resolve_model(args):

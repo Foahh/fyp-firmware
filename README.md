@@ -62,7 +62,7 @@ python project.py tracex-parse           # Parse tracex_dump.bin and print threa
 
 **`build` options**
 
-- `--fps N` — camera frame rate; must be one of **15, 20, 25, 30** (default: 30).
+- `--fps N` — camera frame rate; must be one of **15, 20, 25, 30** (default: 15).
 - `--snapshot` — NN pipe uses single-frame camera snapshots instead of continuous capture.
 - `--mode {underdrive,nominal,overdrive}` — power/clock profile (default: **underdrive**).
 - `--force` / `-f` — re-sign even when the ELF hash matches the sign cache (ignored if not signing).

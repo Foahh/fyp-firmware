@@ -20,7 +20,7 @@
 
 /* Camera FPS: overridden by CMake (-DCAMERA_FPS=...) when using project.py build */
 #ifndef CAMERA_FPS
-#define CAMERA_FPS 30
+#define CAMERA_FPS 15
 #endif
 
 /* Define sensor orientation */
