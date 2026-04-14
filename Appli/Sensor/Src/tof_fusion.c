@@ -280,6 +280,7 @@ static void tof_run_fusion(const tof_depth_grid_t *grid,
 
     out->person_distances_mm[i] = smoothed_d;
     out->person_depth_valid[i] = 1U;
+    out->person_track_ids[i] = tid;
     out->nb_person_depths++;
     out->has_person_depth = 1;
     if (smoothed_d < person_min) {

@@ -97,7 +97,7 @@ class VisualizerState:
     fps_hist: deque[float] = field(default_factory=_history)
     timing_time_hist: deque[float] = field(default_factory=_history)
 
-    person_mm: list[int] = field(default_factory=list)
+    track_person_mm: dict[int, int] = field(default_factory=dict)
     tof_alert: bool = False
     tof_stale: bool = True
     tof_depth_grid: np.ndarray = field(

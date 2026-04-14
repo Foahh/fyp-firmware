@@ -246,7 +246,11 @@ def _handle_tof_alert_result(
     tof_alert_result: messages_pb2.TofAlertResult,
     recorder: RecordingManager,
 ) -> None:
-    state.person_mm = [int(value) for value in tof_alert_result.person_mm]
+    state.track_person_mm = {
+        int(person_distance.track_id): int(person_distance.distance_mm)
+        for person_distance in tof_alert_result.person_distances
+        if int(person_distance.track_id) > 0 and int(person_distance.distance_mm) > 0
+    }
     flags = int(tof_alert_result.flags)
     state.tof_alert = bool(flags & TOF_PB_FLAG_ALERT)
     state.tof_stale = bool(flags & TOF_PB_FLAG_STALE)

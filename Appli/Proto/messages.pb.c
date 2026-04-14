@@ -12,6 +12,9 @@ PB_BIND(Detection, Detection, AUTO)
 PB_BIND(TrackedBox, TrackedBox, AUTO)
 
 
+PB_BIND(PersonDistance, PersonDistance, AUTO)
+
+
 PB_BIND(DetectionResult, DetectionResult, 2)
 
 

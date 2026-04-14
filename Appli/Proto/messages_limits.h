@@ -20,7 +20,7 @@ enum {
   PROTO_TOF_RESULT_MAX_SIGNAL_PER_SPAD =
       (int)PB_MEMBER_ARRAY_COUNT(TofResult, signal_per_spad),
   PROTO_TOF_ALERT_MAX_PERSON_MM =
-      (int)PB_MEMBER_ARRAY_COUNT(TofAlertResult, person_mm),
+      (int)PB_MEMBER_ARRAY_COUNT(TofAlertResult, person_distances),
   PROTO_DEVICE_INFO_MODEL_NAME_CAPACITY =
       (int)PB_MEMBER_SIZE(DeviceInfo, model_name),
   PROTO_DEVICE_INFO_CLASS_LABEL_COUNT_CAPACITY =

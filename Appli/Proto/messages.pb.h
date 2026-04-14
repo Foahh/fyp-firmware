@@ -28,6 +28,11 @@ typedef struct _TrackedBox {
     uint32_t track_id;
 } TrackedBox;
 
+typedef struct _PersonDistance {
+    uint32_t track_id;
+    uint32_t distance_mm;
+} PersonDistance;
+
 typedef struct _DetectionResult {
     uint32_t sent_timestamp_ms;
     uint32_t frame_timestamp_ms;
@@ -63,8 +68,8 @@ typedef struct _TofResult {
 typedef struct _TofAlertResult {
     uint32_t timestamp_ms;
     uint32_t flags;
-    pb_size_t person_mm_count;
-    uint32_t person_mm[4];
+    pb_size_t person_distances_count;
+    PersonDistance person_distances[4];
     uint32_t fusion_period_us;
 } TofAlertResult;
 
@@ -165,10 +170,11 @@ extern "C" {
 /* Initializer values for message structs */
 #define Detection_init_default                   {0, 0, 0, 0, 0, 0}
 #define TrackedBox_init_default                  {0, 0, 0, 0, 0}
+#define PersonDistance_init_default              {0, 0}
 #define DetectionResult_init_default             {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default, Detection_init_default}, 0, {TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default, TrackedBox_init_default}}
 #define CpuUsageSample_init_default              {0, 0}
 #define TofResult_init_default                   {0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0}
-#define TofAlertResult_init_default              {0, 0, 0, {0, 0, 0, 0}, 0}
+#define TofAlertResult_init_default              {0, 0, 0, {PersonDistance_init_default, PersonDistance_init_default, PersonDistance_init_default, PersonDistance_init_default}, 0}
 #define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0}
 #define Ack_init_default                         {0, 0}
 #define TraceXChunk_init_default                 {0, 0, {0, {0}}, 0, 0}
@@ -180,10 +186,11 @@ extern "C" {
 #define HostMessage_init_default                 {0, {SetDisplayEnabled_init_default}}
 #define Detection_init_zero                      {0, 0, 0, 0, 0, 0}
 #define TrackedBox_init_zero                     {0, 0, 0, 0, 0}
+#define PersonDistance_init_zero                 {0, 0}
 #define DetectionResult_init_zero                {0, 0, 0, 0, 0, 0, 0, 0, 0, {Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero, Detection_init_zero}, 0, {TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero, TrackedBox_init_zero}}
 #define CpuUsageSample_init_zero                 {0, 0}
 #define TofResult_init_zero                      {0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0}
-#define TofAlertResult_init_zero                 {0, 0, 0, {0, 0, 0, 0}, 0}
+#define TofAlertResult_init_zero                 {0, 0, 0, {PersonDistance_init_zero, PersonDistance_init_zero, PersonDistance_init_zero, PersonDistance_init_zero}, 0}
 #define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0}
 #define Ack_init_zero                            {0, 0}
 #define TraceXChunk_init_zero                    {0, 0, {0, {0}}, 0, 0}
@@ -206,6 +213,8 @@ extern "C" {
 #define TrackedBox_w_tag                         3
 #define TrackedBox_h_tag                         4
 #define TrackedBox_track_id_tag                  5
+#define PersonDistance_track_id_tag              1
+#define PersonDistance_distance_mm_tag           2
 #define DetectionResult_sent_timestamp_ms_tag    1
 #define DetectionResult_frame_timestamp_ms_tag   2
 #define DetectionResult_inference_us_tag         3
@@ -225,7 +234,7 @@ extern "C" {
 #define TofResult_tof_period_us_tag              5
 #define TofAlertResult_timestamp_ms_tag          1
 #define TofAlertResult_flags_tag                 2
-#define TofAlertResult_person_mm_tag             3
+#define TofAlertResult_person_distances_tag      3
 #define TofAlertResult_fusion_period_us_tag      4
 #define DeviceInfo_timestamp_ms_tag              1
 #define DeviceInfo_display_width_px_tag          2
@@ -301,6 +310,12 @@ X(a, STATIC,   SINGULAR, UINT32,   track_id,          5)
 #define TrackedBox_CALLBACK NULL
 #define TrackedBox_DEFAULT NULL
 
+#define PersonDistance_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   track_id,          1) \
+X(a, STATIC,   SINGULAR, UINT32,   distance_mm,       2)
+#define PersonDistance_CALLBACK NULL
+#define PersonDistance_DEFAULT NULL
+
 #define DetectionResult_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   sent_timestamp_ms,   1) \
 X(a, STATIC,   SINGULAR, UINT32,   frame_timestamp_ms,   2) \
@@ -335,10 +350,11 @@ X(a, STATIC,   SINGULAR, UINT32,   tof_period_us,     5)
 #define TofAlertResult_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      1) \
 X(a, STATIC,   SINGULAR, UINT32,   flags,             2) \
-X(a, STATIC,   REPEATED, UINT32,   person_mm,         3) \
+X(a, STATIC,   REPEATED, MESSAGE,  person_distances,   3) \
 X(a, STATIC,   SINGULAR, UINT32,   fusion_period_us,   4)
 #define TofAlertResult_CALLBACK NULL
 #define TofAlertResult_DEFAULT NULL
+#define TofAlertResult_person_distances_MSGTYPE PersonDistance
 
 #define DeviceInfo_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      1) \
@@ -442,6 +458,7 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (command,set_postprocess_config,command.set_p
 
 extern const pb_msgdesc_t Detection_msg;
 extern const pb_msgdesc_t TrackedBox_msg;
+extern const pb_msgdesc_t PersonDistance_msg;
 extern const pb_msgdesc_t DetectionResult_msg;
 extern const pb_msgdesc_t CpuUsageSample_msg;
 extern const pb_msgdesc_t TofResult_msg;
@@ -459,6 +476,7 @@ extern const pb_msgdesc_t HostMessage_msg;
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define Detection_fields &Detection_msg
 #define TrackedBox_fields &TrackedBox_msg
+#define PersonDistance_fields &PersonDistance_msg
 #define DetectionResult_fields &DetectionResult_msg
 #define CpuUsageSample_fields &CpuUsageSample_msg
 #define TofResult_fields &TofResult_msg
@@ -484,9 +502,10 @@ extern const pb_msgdesc_t HostMessage_msg;
 #define GetTraceXDump_size                       12
 #define HostMessage_size                         44
 #define MESSAGES_PB_H_MAX_SIZE                   DeviceMessage_size
+#define PersonDistance_size                      12
 #define SetDisplayEnabled_size                   8
 #define SetPostprocessConfig_size                42
-#define TofAlertResult_size                      42
+#define TofAlertResult_size                      74
 #define TofResult_size                           1484
 #define TraceXChunk_size                         279
 #define TrackedBox_size                          26

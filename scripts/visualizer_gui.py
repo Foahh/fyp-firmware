@@ -822,6 +822,9 @@ def _update_bbox(_frame_idx, state, panel: BboxPanel, theme: Theme):
         clip_on=False,
     )
     labels = state.class_labels
+    nearest_track_distance = (
+        min(state.track_person_mm.values()) if state.track_person_mm else None
+    )
     for det in state.detection_boxes:
         x0 = det.cx - 0.5 * det.w
         y0 = det.cy - 0.5 * det.h
@@ -850,6 +853,16 @@ def _update_bbox(_frame_idx, state, panel: BboxPanel, theme: Theme):
     for track in state.track_boxes:
         x0 = track.cx - 0.5 * track.w
         y0 = track.cy - 0.5 * track.h
+        distance_mm = state.track_person_mm.get(track.track_id)
+        track_face = theme.track_box
+        track_alpha = 0.12
+        if distance_mm is not None:
+            if not state.tof_stale and nearest_track_distance == distance_mm:
+                track_face = "#C00000"
+                track_alpha = 0.18
+            elif not state.tof_stale:
+                track_face = theme.accent
+                track_alpha = 0.16
         ax.add_patch(
             Rectangle(
                 (x0, y0),
@@ -857,10 +870,35 @@ def _update_bbox(_frame_idx, state, panel: BboxPanel, theme: Theme):
                 track.h,
                 linewidth=2.0,
                 edgecolor=theme.track_box,
-                facecolor=theme.track_box,
-                alpha=0.12,
+                facecolor=track_face,
+                alpha=track_alpha,
             )
         )
+        if distance_mm is not None:
+            badge_h = min(track.h, max(0.04, min(0.07, track.h * 0.35)))
+            badge_color = theme.muted if state.tof_stale else track_face
+            badge_alpha = 0.28 if state.tof_stale else 0.42
+            ax.add_patch(
+                Rectangle(
+                    (x0, y0),
+                    track.w,
+                    badge_h,
+                    linewidth=0.0,
+                    facecolor=badge_color,
+                    alpha=badge_alpha,
+                )
+            )
+            ax.text(
+                x0 + 0.008,
+                y0 + 0.5 * badge_h,
+                f"ToF {distance_mm} mm",
+                ha="left",
+                va="center",
+                fontsize=8,
+                color=theme.title,
+                fontweight="bold",
+                clip_on=True,
+            )
         ax.text(
             track.cx,
             y0 - 0.02,
@@ -898,6 +936,15 @@ def _update_bbox(_frame_idx, state, panel: BboxPanel, theme: Theme):
     return ()
 
 
+def _build_tof_distance_summary(state) -> str:
+    if not state.track_person_mm:
+        return "--"
+    return ", ".join(
+        f"id {track_id}: {distance_mm} mm"
+        for track_id, distance_mm in sorted(state.track_person_mm.items())
+    )
+
+
 def _build_info_lines(state) -> str:
     sep = "\u2500" * 30
     status = "ALERT" if state.tof_alert else "OK"
@@ -909,7 +956,7 @@ def _build_info_lines(state) -> str:
     fw_baud = f"{state.firmware_baud}" if state.firmware_baud else "-"
     last_pp = state.post_hist[-1] if state.post_hist else 0.0
     last_trk = state.tracker_hist[-1] if state.tracker_hist else 0.0
-    tof_distances = ", ".join(f"{value} mm" for value in state.person_mm) or "--"
+    tof_distances = _build_tof_distance_summary(state)
     return "\n".join(
         [
             " Device",

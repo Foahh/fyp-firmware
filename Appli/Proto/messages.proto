@@ -24,6 +24,11 @@ message TrackedBox {
   uint32 track_id = 5;
 }
 
+message PersonDistance {
+  uint32 track_id = 1;
+  uint32 distance_mm = 2;
+}
+
 /* ============================================================================
  * Device payloads
  * ============================================================================ */
@@ -58,7 +63,7 @@ message TofResult {
 message TofAlertResult {
   uint32 timestamp_ms = 1;
   uint32 flags = 2;
-  repeated uint32 person_mm = 3 [(nanopb).max_count = 4];
+  repeated PersonDistance person_distances = 3 [(nanopb).max_count = 4];
   uint32 fusion_period_us = 4;
 }
 

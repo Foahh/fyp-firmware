@@ -144,7 +144,8 @@ TOF_ALERT_FIELDS = [
     "stale",
     "fusion_period_us",
     "person_count",
-    *[f"person_mm_{idx:02d}" for idx in range(4)],
+    *[f"person_track_id_{idx:02d}" for idx in range(4)],
+    *[f"person_distance_mm_{idx:02d}" for idx in range(4)],
 ]
 
 CPU_FIELDS = [
@@ -428,9 +429,22 @@ class RecordingManager:
                 "alert": bool(int(tof_alert_result.flags) & TOF_PB_FLAG_ALERT),
                 "stale": bool(int(tof_alert_result.flags) & TOF_PB_FLAG_STALE),
                 "fusion_period_us": int(tof_alert_result.fusion_period_us),
-                "person_count": len(tof_alert_result.person_mm),
+                "person_count": len(tof_alert_result.person_distances),
             }
-            row.update(_flatten_sequence("person_mm", list(tof_alert_result.person_mm), 4))
+            row.update(
+                _flatten_sequence(
+                    "person_track_id",
+                    [int(item.track_id) for item in tof_alert_result.person_distances],
+                    4,
+                )
+            )
+            row.update(
+                _flatten_sequence(
+                    "person_distance_mm",
+                    [int(item.distance_mm) for item in tof_alert_result.person_distances],
+                    4,
+                )
+            )
             self._tof_alert_rows.append(row)
 
     def record_cpu_usage_sample(self, cpu_sample: messages_pb2.CpuUsageSample) -> None:

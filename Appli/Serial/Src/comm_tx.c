@@ -320,14 +320,22 @@ void COM_Send_TofAlertResult(void) {
   tof_alert_result->fusion_period_us = alert->fusion_period_us;
 
   {
-    uint8_t person_depth_count = alert->nb_person_depths;
-    if (person_depth_count > PROTO_TOF_ALERT_MAX_PERSON_MM) {
-      person_depth_count = PROTO_TOF_ALERT_MAX_PERSON_MM;
+    uint8_t person_depth_count = 0U;
+    for (uint8_t i = 0; i < TOF_MAX_DETECTIONS; i++) {
+      if (!alert->person_depth_valid[i]) {
+        continue;
+      }
+      if (person_depth_count >= PROTO_TOF_ALERT_MAX_PERSON_MM) {
+        break;
+      }
+
+      tof_alert_result->person_distances[person_depth_count].track_id =
+          alert->person_track_ids[i];
+      tof_alert_result->person_distances[person_depth_count].distance_mm =
+          alert->person_distances_mm[i];
+      person_depth_count++;
     }
-    tof_alert_result->person_mm_count = person_depth_count;
-    for (uint8_t i = 0; i < person_depth_count; i++) {
-      tof_alert_result->person_mm[i] = alert->person_distances_mm[i];
-    }
+    tof_alert_result->person_distances_count = person_depth_count;
   }
 
   if (alert->alert) {
