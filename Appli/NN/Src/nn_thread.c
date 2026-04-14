@@ -314,7 +314,7 @@ void NN_ThreadStart(void) {
   memset(nn_input_buffer, 0, sizeof(nn_input_buffer));
   SCB_CleanInvalidateDCache_by_Addr((void *)nn_input_buffer, sizeof(nn_input_buffer));
 #else
-  /* Initialize input buffer queue - using 3 buffers to handle 30 FPS pipeline latency */
+  /* Initialize input buffer queue - keep 3 buffers for pipeline headroom and earlier high-rate characterization */
   uint8_t *in_bufs[3] = {nn_input_buffers[0], nn_input_buffers[1], nn_input_buffers[2]};
   ret = BQUE_Init(&nn_input_queue, 3, in_bufs);
   APP_REQUIRE(ret == 0);

@@ -167,7 +167,7 @@ endif()
 
 set(CAMERA_FPS_ALLOWED 10 15 20 25 30)
 set(CAMERA_FPS
-    30
+    15
     CACHE STRING "Camera frame rate (Hz); sensor supports 10/15/20/25/30 only")
 set_property(CACHE CAMERA_FPS PROPERTY STRINGS ${CAMERA_FPS_ALLOWED})
 if(NOT CAMERA_FPS IN_LIST CAMERA_FPS_ALLOWED)
