@@ -582,7 +582,6 @@ class RecordingManager:
             "[device]",
             f"model_name: {state.model_name}",
             f"build_timestamp: {state.build_timestamp}",
-            f"display_enabled: {state.display_enabled}",
             f"display_size_px: {state.display_width}x{state.display_height}",
             f"letterbox_size_px: {state.letterbox_width}x{state.letterbox_height}",
             f"nn_size_px: {state.nn_width}x{state.nn_height}",
