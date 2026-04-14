@@ -54,6 +54,7 @@ static void comm_send_detection_result(const detection_info_t *info) {
   df->postprocess_us = info->postprocess_us;
   df->tracker_us = info->tracker_us;
   df->nn_period_us = info->nn_period_us;
+  df->nn_idle_us = info->nn_idle_us;
   df->frame_drop_count = info->frame_drops;
 
   int n = info->nb_detect;

@@ -284,6 +284,7 @@ static void pp_thread_entry(ULONG arg) {
 
     if (write_buf != NULL) {
       write_buf->nn_period_us = output_frame->timing.nn_period_us;
+      write_buf->nn_idle_us = output_frame->timing.nn_idle_us;
       write_buf->inference_us = output_frame->timing.inference_us;
       write_buf->postprocess_us = CYCLES_TO_US(pp_end_cycles - pp_start_cycles);
       write_buf->tracker_us = CYCLES_TO_US(trk_end_cycles - trk_start_cycles);

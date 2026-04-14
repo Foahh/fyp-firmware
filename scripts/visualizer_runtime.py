@@ -148,6 +148,7 @@ def _handle_detection_result(
     state.period_hist.append(period_us)
     state.fps_hist.append(fps)
     state.timing_time_hist.append(now)
+    state.nn_idle_us = int(result.nn_idle_us)
     state.frame_drops = int(result.frame_drop_count)
     _record_period_metrics(state, now)
     recorder.record_detection_result(result, state.class_labels)

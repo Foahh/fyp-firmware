@@ -140,17 +140,20 @@ void UI_DrawDetectionInfoSection(const detection_info_t *info,
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[13],
                            (uint8_t *)text_buf, LEFT_MODE);
 
-  /* Overhead time */
+  /* Overhead / NN idle time */
   UTIL_LCD_SetTextColor(UI_COLOR_LABEL);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[14],
-                           (uint8_t *)"Overhead", LEFT_MODE);
+                           (uint8_t *)"Over / Idle", LEFT_MODE);
   UTIL_LCD_SetTextColor(UI_COLOR_VALUE);
   uint32_t work_us =
       info->inference_us + info->postprocess_us + info->tracker_us;
   uint32_t period_us = info->nn_period_us;
+  uint32_t idle_us = info->nn_idle_us;
   uint32_t overhead_us =
-      (work_us < period_us) ? (period_us - work_us) : 0U;
-  snprintf(text_buf, sizeof(text_buf), "%luus", (unsigned long)overhead_us);
+      (work_us + idle_us < period_us) ? (period_us - work_us - idle_us) : 0U;
+  snprintf(text_buf, sizeof(text_buf), "%lu / %lu",
+           (unsigned long)overhead_us,
+           (unsigned long)idle_us);
   UTIL_LCD_DisplayStringAt(UI_TEXT_MARGIN_X, g_line_y[15],
                            (uint8_t *)text_buf, LEFT_MODE);
 

@@ -84,6 +84,7 @@ class VisualizerState:
     pp_cfg_status_text: str = ""
     pp_cfg_pending_device_info: int = 0
 
+    nn_idle_us: int = 0
     frame_drops: int = 0
     cpu_usage_percent: float = 0.0
     cpu_hist: deque[float] = field(default_factory=_history)

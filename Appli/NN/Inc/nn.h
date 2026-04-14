@@ -34,6 +34,7 @@ extern "C" {
  */
 typedef struct {
   uint32_t nn_period_us; /**< End-to-end period between inference completions */
+  uint32_t nn_idle_us;   /**< Time blocked waiting for the next input frame */
   uint32_t inference_us; /**< Inference duration */
   uint32_t frame_drops;  /**< Cumulative count of dropped/skipped frames */
 } nn_timing_t;

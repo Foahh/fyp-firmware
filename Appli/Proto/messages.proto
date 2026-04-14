@@ -36,6 +36,7 @@ message DetectionResult {
   uint32 nn_period_us = 5;
   uint32 frame_drop_count = 6;
   uint32 tracker_us = 7;
+  uint32 nn_idle_us = 8;
   repeated Detection detections = 9 [(nanopb).max_count = 10];
   repeated TrackedBox tracks = 10 [(nanopb).max_count = 10];
 }

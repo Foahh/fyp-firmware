@@ -933,7 +933,7 @@ def _build_info_lines(state) -> str:
             " Stats",
             sep,
             f"  Frames  {state.frame_count}   Drops: {state.frame_drops}",
-            f"  Timing  PP: {last_pp:.0f} us   Trk: {last_trk:.0f} us",
+            f"  Timing  PP: {last_pp:.0f} us   Trk: {last_trk:.0f} us   Idle: {state.nn_idle_us} us",
             f"  Timestamp  msg: {state.last_timestamp} ms   detection: {state.detection_timestamp} ms   info: {state.device_info_timestamp} ms   ack: {state.last_ack_timestamp} ms",
             f"  Labels  {class_labels}",
             f"  ACK     {state.last_ack}",

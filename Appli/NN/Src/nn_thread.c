@@ -135,12 +135,15 @@ static void nn_thread_entry(ULONG arg) {
     nn_output_frame_t *output_frame;
     uint8_t *output_buffer;
     stai_ptr out_ptrs[NN_OUT_NB];
+    uint32_t idle_start_cycles;
+    uint32_t idle_cycles;
     uint32_t inference_cycles;
     uint32_t inference_end_cycles;
     uint32_t period_cycles;
-    nn_timing_t timing_sample;
+    nn_timing_t timing_sample = {0};
     int i;
 
+    idle_start_cycles = DWT->CYCCNT;
 #ifdef SNAPSHOT_MODE
     /* Wait for snapshot frame */
     ULONG actual_flags;
@@ -154,6 +157,7 @@ static void nn_thread_entry(ULONG arg) {
     nn_frame_drop_count += skipped;
     APP_REQUIRE(capture_buffer != NULL);
 #endif
+    idle_cycles = DWT->CYCCNT - idle_start_cycles;
 
     /* Get output buffer (blocking) */
     output_frame = (nn_output_frame_t *)BQUE_GetFree(&nn_output_queue, 1);
@@ -185,6 +189,7 @@ static void nn_thread_entry(ULONG arg) {
     inference_end_cycles = DWT->CYCCNT;
     period_cycles = inference_end_cycles - last_inference_end_cycles;
     timing_sample.nn_period_us = CYCLES_TO_US(period_cycles);
+    timing_sample.nn_idle_us = CYCLES_TO_US(idle_cycles);
     last_inference_end_cycles = inference_end_cycles;
 
 #ifndef SNAPSHOT_MODE
