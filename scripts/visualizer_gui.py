@@ -9,6 +9,8 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
+from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
 from matplotlib.widgets import Button, TextBox
 
 
@@ -82,6 +84,7 @@ def create_gui(
     C_POWER_MJ = "#4ECDC4"
     C_CPU = "#6AA84F"
     C_BATTERY = "#B565D8"
+    C_TRACK_BOX = "#70AD47"
     LW = 2.2
 
     plt.style.use("dark_background")
@@ -150,23 +153,25 @@ def create_gui(
     ax_cfg = fig_cfg.add_subplot(111)
     ax_cfg.axis("off")
     cfg_title = ax_cfg.text(
-        0.02,
-        0.98,
+        0.04,
+        0.97,
         "Runtime PP / Tracker Config",
         va="top",
         ha="left",
         fontsize=12,
         color=C_TITLE,
         fontweight="semibold",
+        clip_on=False,
     )
     cfg_status = ax_cfg.text(
-        0.02,
-        0.93,
+        0.04,
+        0.92,
         "",
         va="top",
         ha="left",
         fontsize=8.5,
         color="#9898b8",
+        clip_on=False,
     )
 
     # --- Buttons ---
@@ -337,6 +342,11 @@ def create_gui(
             "alpha": 0.92,
         },
     )
+
+    # --- Bounding boxes (normalized NN input space, center + size) ---
+    fig_bbox = plt.figure("Bounding Boxes", figsize=(7, 7))
+    fig_bbox.set_facecolor(C_FIG_BG)
+    ax_bbox = fig_bbox.add_subplot(111)
     ax_tb_batt = fig_battery.add_axes([0.12, 0.03, 0.32, 0.065])
     tb_battery = TextBox(
         ax_tb_batt,
@@ -389,22 +399,26 @@ def create_gui(
 
     # --- Text box ---
     text_box = ax_text.text(
-        0.0,
-        1.0,
+        0.03,
+        0.99,
         "",
+        transform=ax_text.transAxes,
         va="top",
         ha="left",
         family="monospace",
         fontsize=8.5,
         color=C_TEXT,
         linespacing=1.35,
+        clip_on=False,
     )
 
     fig_timing.tight_layout()
     fig_cpu.tight_layout()
     fig_power.tight_layout()
     fig_pm_mj.tight_layout()
+    fig_bbox.subplots_adjust(left=0.14, right=0.96, top=0.90, bottom=0.10)
     fig_info.tight_layout()
+    fig_info.subplots_adjust(left=0.05, right=0.98, top=0.98)
 
     def on_get_info(_event) -> None:
         cmd_queue.put(("get_info", None))
@@ -657,6 +671,107 @@ def create_gui(
         ax_battery.autoscale_view()
         return (line_battery_hours, battery_stats)
 
+    def update_bbox(_frame_idx):
+        ax_bbox.clear()
+        _style_axis(ax_bbox, C_AX_BG)
+        ax_bbox.set_xlim(0.0, 1.0)
+        ax_bbox.set_ylim(1.0, 0.0)
+        ax_bbox.set_aspect("equal")
+        ax_bbox.set_title("Bounding Boxes (normalized)", color=C_TITLE, pad=12)
+        ax_bbox.set_xlabel("x (0 = left)")
+        ax_bbox.set_ylabel("y (0 = top)")
+        ax_bbox.yaxis.labelpad = 8
+        ts = int(state.detection_timestamp)
+        ax_bbox.text(
+            0.04,
+            0.04,
+            f"frame t = {ts} ms   det: {state.detection_count}   trk: {state.tracked_box_count}",
+            transform=ax_bbox.transAxes,
+            ha="left",
+            va="bottom",
+            fontsize=9,
+            color="#9898b8",
+            clip_on=False,
+        )
+        labels = state.class_labels
+        for d in state.detection_boxes:
+            x0 = d.cx - 0.5 * d.w
+            y0 = d.cy - 0.5 * d.h
+            ax_bbox.add_patch(
+                Rectangle(
+                    (x0, y0),
+                    d.w,
+                    d.h,
+                    linewidth=1.8,
+                    edgecolor=C_INFER,
+                    facecolor=C_INFER,
+                    alpha=0.14,
+                )
+            )
+            cid = int(d.class_id)
+            name = str(cid)
+            if 0 <= cid < len(labels):
+                name = labels[cid]
+            ax_bbox.text(
+                x0,
+                y0 - 0.02,
+                f"{name} {d.score:.2f}",
+                ha="left",
+                va="bottom",
+                fontsize=8,
+                color=C_INFER,
+                clip_on=False,
+            )
+        for t in state.track_boxes:
+            x0 = t.cx - 0.5 * t.w
+            y0 = t.cy - 0.5 * t.h
+            ax_bbox.add_patch(
+                Rectangle(
+                    (x0, y0),
+                    t.w,
+                    t.h,
+                    linewidth=2.0,
+                    edgecolor=C_TRACK_BOX,
+                    facecolor=C_TRACK_BOX,
+                    alpha=0.12,
+                )
+            )
+            ax_bbox.text(
+                t.cx,
+                y0 - 0.02,
+                f"id {t.track_id}",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+                color=C_TRACK_BOX,
+                clip_on=False,
+            )
+        if not state.detection_boxes and not state.track_boxes:
+            ax_bbox.text(
+                0.5,
+                0.5,
+                "No boxes in last frame",
+                ha="center",
+                va="center",
+                fontsize=11,
+                color="#9898b8",
+                transform=ax_bbox.transAxes,
+            )
+        leg = ax_bbox.legend(
+            handles=[
+                Line2D([0], [0], color=C_INFER, lw=2.4, label="Detections (PP)"),
+                Line2D([0], [0], color=C_TRACK_BOX, lw=2.4, label="Tracks"),
+            ],
+            loc="upper right",
+            fontsize=9,
+            framealpha=0.85,
+            edgecolor="none",
+            facecolor=C_AX_BG,
+        )
+        for text in leg.get_texts():
+            text.set_color("#d0d0e0")
+        return ()
+
     def update_info(_frame_idx):
         status = "ALERT" if state.tof_alert else "OK"
         stale = "stale" if state.tof_stale else "fresh"
@@ -665,18 +780,8 @@ def create_gui(
         recog_fw_host = "yes" if state.firmware_recognized else "no"
         fw_path = state.firmware_port_path or "-"
         fw_baud = f"{state.firmware_baud}" if state.firmware_baud else "-"
-        detections_text = state.detections_text or "  -"
         last_pp = state.post_hist[-1] if state.post_hist else 0.0
         last_trk = state.tracker_hist[-1] if state.tracker_hist else 0.0
-        last_fps = state.fps_hist[-1] if state.fps_hist else 0.0
-        last_period_mw = (
-            f"{float(state.battery_p_avg_mw_hist[-1]):.0f} mW"
-            if state.battery_p_avg_mw_hist
-            else "-"
-        )
-        last_period_mj = (
-            f"{state.pm_period_total_mj:.2f} mJ" if state.pm_period_total_mj > 0.0 else "-"
-        )
         tof_distances = ", ".join(f"{value} mm" for value in state.person_mm) or "--"
 
         lines = [
@@ -697,27 +802,17 @@ def create_gui(
             f" Sensors",
             SEP,
             f"  ToF     persons {tof_distances}   {status} ({stale})",
-            f"  Power   period {last_period_mw}",
-            f"          energy {last_period_mj}",
             f"  ESP32   {'connected' if state.power_connected else 'disconnected'}",
             "",
             f" Stats",
             SEP,
-            f"  Frames  {state.frame_count}   Drops: {state.frame_drops}   FPS: {last_fps:.1f}",
+            f"  Frames  {state.frame_count}   Drops: {state.frame_drops}",
             f"  Timing  PP: {last_pp:.0f} us   Trk: {last_trk:.0f} us",
-            f"  CPU     {state.cpu_usage_percent:.1f}%",
             f"  Timestamp  msg: {state.last_timestamp} ms   detection: {state.detection_timestamp} ms   info: {state.device_info_timestamp} ms   ack: {state.last_ack_timestamp} ms",
             f"  Labels  {class_labels}",
-            f"  PP cfg  conf={state.pp_conf_threshold:.3f} iou={state.pp_iou_threshold:.3f}",
-            f"          track={state.track_thresh:.3f} det={state.det_thresh:.3f} "
-            f"sim1={state.sim1_thresh:.3f} sim2={state.sim2_thresh:.3f} tlost={state.tlost_cnt}",
             f"  ACK     {state.last_ack}",
             f"  Err     {state.last_error or '-'}",
             f"  PwrErr  {state.last_power_error or '-'}",
-            "",
-            f" Detections ({state.detection_count})   Tracked ({state.tracked_box_count})",
-            SEP,
-            f"  {detections_text}",
         ]
         text_box.set_text("\n".join(lines))
         return (text_box,)
@@ -740,6 +835,9 @@ def create_gui(
     anim_battery = FuncAnimation(
         fig_battery, update_battery, interval=120, blit=False, cache_frame_data=False
     )
+    anim_bbox = FuncAnimation(
+        fig_bbox, update_bbox, interval=120, blit=False, cache_frame_data=False
+    )
     anim_info = FuncAnimation(
         fig_info, update_info, interval=120, blit=False, cache_frame_data=False
     )
@@ -759,6 +857,7 @@ def create_gui(
         fig_power,
         fig_pm_mj,
         fig_battery,
+        fig_bbox,
         fig_info,
         fig_cfg,
     ]
@@ -769,6 +868,7 @@ def create_gui(
         anim_power,
         anim_pm_mj,
         anim_battery,
+        anim_bbox,
         anim_info,
         anim_cfg,
     ]

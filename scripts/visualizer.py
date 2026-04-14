@@ -42,6 +42,29 @@ except ImportError:
     from visualizer_serial import PowerLink, SerialLink, probe_power_monitor_pm_ping  # noqa: E402
 
 
+@dataclass(frozen=True)
+class DetBox:
+    """Normalized detection in NN input space (center x,y, size w,h), same as firmware."""
+
+    cx: float
+    cy: float
+    w: float
+    h: float
+    score: float
+    class_id: int
+
+
+@dataclass(frozen=True)
+class TrkBox:
+    """Normalized tracked box (center x,y, size w,h)."""
+
+    cx: float
+    cy: float
+    w: float
+    h: float
+    track_id: int
+
+
 @dataclass
 class VisualizerState:
     frame_count: int = 0
@@ -50,6 +73,8 @@ class VisualizerState:
     detection_count: int = 0
     tracked_box_count: int = 0
     detections_text: str = "No detections yet."
+    detection_boxes: list[DetBox] = field(default_factory=list)
+    track_boxes: list[TrkBox] = field(default_factory=list)
 
     model_name: str = "unknown"
     class_labels: list[str] = field(default_factory=list)
@@ -862,6 +887,27 @@ def receiver_loop(
                 state.detection_count = len(result.detections)
                 state.tracked_box_count = len(result.tracks)
                 state.detections_text = build_detection_text(result, state.class_labels)
+                state.detection_boxes = [
+                    DetBox(
+                        float(d.x),
+                        float(d.y),
+                        float(d.w),
+                        float(d.h),
+                        float(d.score),
+                        int(d.class_id),
+                    )
+                    for d in result.detections
+                ]
+                state.track_boxes = [
+                    TrkBox(
+                        float(t.x),
+                        float(t.y),
+                        float(t.w),
+                        float(t.h),
+                        int(t.track_id),
+                    )
+                    for t in result.tracks
+                ]
 
                 period_us = float(result.nn_period_us)
                 fps = (1_000_000.0 / period_us) if period_us > 0.0 else 0.0
