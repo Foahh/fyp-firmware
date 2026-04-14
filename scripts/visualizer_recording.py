@@ -39,6 +39,16 @@ def _flatten_sequence(prefix: str, values: list[Any], width: int) -> dict[str, A
     return row
 
 
+def _format_grid_array(values: list[Any], row_width: int = 8) -> str:
+    if not values:
+        return "[]"
+    rows = [
+        "[" + ",".join(str(value) for value in values[idx : idx + row_width]) + "]"
+        for idx in range(0, len(values), row_width)
+    ]
+    return "[" + ",".join(rows) + "]"
+
+
 DETECTION_RESULT_FIELDS = [
     "host_time_s",
     "record_elapsed_s",
@@ -130,9 +140,9 @@ TOF_FIELDS = [
     "recorded_at_iso",
     "timestamp_ms",
     "tof_period_us",
-    *[f"depth_mm_{idx:02d}" for idx in range(64)],
-    *[f"range_sigma_mm_{idx:02d}" for idx in range(64)],
-    *[f"signal_per_spad_{idx:02d}" for idx in range(64)],
+    "depth_mm",
+    "range_sigma_mm",
+    "signal_per_spad",
 ]
 
 TOF_ALERT_FIELDS = [
@@ -145,8 +155,8 @@ TOF_ALERT_FIELDS = [
     "stale",
     "fusion_period_us",
     "person_count",
-    *[f"person_track_id_{idx:02d}" for idx in range(4)],
-    *[f"person_distance_mm_{idx:02d}" for idx in range(4)],
+    "track_id",
+    "distance_mm",
 ]
 
 CPU_FIELDS = [
@@ -405,16 +415,14 @@ class RecordingManager:
                 **self._base_row_locked(host_time_s),
                 "timestamp_ms": int(tof_result.timestamp_ms),
                 "tof_period_us": int(tof_result.tof_period_us),
+                "depth_mm": _format_grid_array(list(tof_result.depth_mm)),
+                "range_sigma_mm": _format_grid_array(
+                    list(tof_result.range_sigma_mm)
+                ),
+                "signal_per_spad": _format_grid_array(
+                    list(tof_result.signal_per_spad)
+                ),
             }
-            row.update(_flatten_sequence("depth_mm", list(tof_result.depth_mm), 64))
-            row.update(
-                _flatten_sequence(
-                    "range_sigma_mm", list(tof_result.range_sigma_mm), 64
-                )
-            )
-            row.update(
-                _flatten_sequence("signal_per_spad", list(tof_result.signal_per_spad), 64)
-            )
             self._tof_rows.append(row)
 
     def record_tof_alert_result(
@@ -433,21 +441,15 @@ class RecordingManager:
                 "stale": bool(int(tof_alert_result.flags) & TOF_PB_FLAG_STALE),
                 "fusion_period_us": int(tof_alert_result.fusion_period_us),
                 "person_count": len(tof_alert_result.person_distances),
-            }
-            row.update(
-                _flatten_sequence(
-                    "person_track_id",
+                "track_id": _format_grid_array(
                     [int(item.track_id) for item in tof_alert_result.person_distances],
-                    4,
-                )
-            )
-            row.update(
-                _flatten_sequence(
-                    "person_distance_mm",
+                    row_width=4,
+                ),
+                "distance_mm": _format_grid_array(
                     [int(item.distance_mm) for item in tof_alert_result.person_distances],
-                    4,
-                )
-            )
+                    row_width=4,
+                ),
+            }
             self._tof_alert_rows.append(row)
 
     def record_cpu_usage_sample(self, cpu_sample: messages_pb2.CpuUsageSample) -> None:
