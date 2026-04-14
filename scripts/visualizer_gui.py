@@ -831,9 +831,6 @@ def _update_bbox(_frame_idx, state, panel: BboxPanel, theme: Theme):
         clip_on=False,
     )
     labels = state.class_labels
-    nearest_track_distance = (
-        min(state.track_person_mm.values()) if state.track_person_mm else None
-    )
     for det in state.detection_boxes:
         x0 = det.cx - 0.5 * det.w
         y0 = det.cy - 0.5 * det.h
@@ -866,7 +863,7 @@ def _update_bbox(_frame_idx, state, panel: BboxPanel, theme: Theme):
         track_face = theme.track_box
         track_alpha = 0.12
         if distance_mm is not None:
-            if not state.tof_stale and nearest_track_distance == distance_mm:
+            if not state.tof_stale and distance_mm <= state.alert_threshold_mm:
                 track_face = "#C00000"
                 track_alpha = 0.18
             elif not state.tof_stale:
@@ -884,9 +881,9 @@ def _update_bbox(_frame_idx, state, panel: BboxPanel, theme: Theme):
             )
         )
         if distance_mm is not None:
-            badge_h = min(track.h, max(0.04, min(0.07, track.h * 0.35)))
+            badge_h = min(track.h, max(0.026, min(0.045, track.h * 0.22)))
             badge_color = theme.muted if state.tof_stale else track_face
-            badge_alpha = 0.28 if state.tof_stale else 0.42
+            badge_alpha = 0.24 if state.tof_stale else 0.34
             ax.add_patch(
                 Rectangle(
                     (x0, y0),
@@ -898,7 +895,7 @@ def _update_bbox(_frame_idx, state, panel: BboxPanel, theme: Theme):
                 )
             )
             ax.text(
-                x0 + 0.008,
+                x0 + 0.006,
                 y0 + 0.5 * badge_h,
                 f"ToF {distance_mm} mm",
                 ha="left",
