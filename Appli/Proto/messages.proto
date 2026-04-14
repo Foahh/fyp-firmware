@@ -94,6 +94,7 @@ message DeviceInfo {
   float sim1_thresh = 20;
   float sim2_thresh = 21;
   uint32 tlost_cnt = 22;
+  uint32 alert_threshold_mm = 23;
 }
 
 message Ack {
@@ -127,7 +128,7 @@ message GetTraceXDump {
   uint32 timestamp_ms = 2;
 }
 
-message SetPostprocessConfig {
+message SetAppConfig {
   float pp_conf_threshold = 1;
   float pp_iou_threshold = 2;
   float track_thresh = 3;
@@ -135,7 +136,8 @@ message SetPostprocessConfig {
   float sim1_thresh = 5;
   float sim2_thresh = 6;
   uint32 tlost_cnt = 7;
-  uint32 timestamp_ms = 8;
+  uint32 alert_threshold_mm = 8;
+  uint32 timestamp_ms = 9;
 }
 
 /* ============================================================================
@@ -159,6 +161,6 @@ message HostMessage {
     SetDisplayEnabled set_display_enabled = 1;
     GetDeviceInfo get_device_info = 2;
     GetTraceXDump get_tracex_dump = 3;
-    SetPostprocessConfig set_postprocess_config = 4;
+    SetAppConfig set_app_config = 4;
   }
 }

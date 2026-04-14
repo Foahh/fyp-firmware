@@ -490,7 +490,7 @@ def _create_info_panel(theme: Theme) -> InfoPanel:
 
 
 def _create_config_panel(state, theme: Theme) -> ConfigPanel:
-    fig = plt.figure("Runtime PP/Tracker Config", figsize=(6.5, 6.0))
+    fig = plt.figure("Runtime App Config", figsize=(6.5, 6.4))
     fig.set_facecolor(theme.fig_bg)
     fig.subplots_adjust(left=0.05, right=0.95, top=0.97, bottom=0.03)
     ax = fig.add_subplot(111)
@@ -498,7 +498,7 @@ def _create_config_panel(state, theme: Theme) -> ConfigPanel:
     title = ax.text(
         0.04,
         0.97,
-        "Runtime PP / Tracker Config",
+        "Runtime App Config",
         va="top",
         ha="left",
         fontsize=12,
@@ -525,6 +525,7 @@ def _create_config_panel(state, theme: Theme) -> ConfigPanel:
         ("Sim1 thresh", "sim1_thresh"),
         ("Sim2 thresh", "sim2_thresh"),
         ("Tlost cnt", "tlost_cnt"),
+        ("Alert threshold mm", "alert_threshold_mm"),
     ]
     textboxes: dict[str, TextBox] = {}
     y0 = 0.78
@@ -532,7 +533,11 @@ def _create_config_panel(state, theme: Theme) -> ConfigPanel:
     for idx, (label, key) in enumerate(labels):
         y = y0 - idx * dy
         ax_tb = fig.add_axes([0.38, y, 0.22, 0.055])
-        initial = f"{getattr(state, key):.4f}" if key != "tlost_cnt" else f"{int(state.tlost_cnt)}"
+        initial = (
+            f"{getattr(state, key):.4f}"
+            if key not in ("tlost_cnt", "alert_threshold_mm")
+            else f"{int(getattr(state, key))}"
+        )
         tb = TextBox(
             ax_tb,
             f"{label}: ",
@@ -596,9 +601,10 @@ def _populate_cfg_boxes(state, config_panel: ConfigPanel) -> None:
     config_panel.textboxes["sim1_thresh"].set_val(f"{state.sim1_thresh:.4f}")
     config_panel.textboxes["sim2_thresh"].set_val(f"{state.sim2_thresh:.4f}")
     config_panel.textboxes["tlost_cnt"].set_val(f"{int(state.tlost_cnt)}")
+    config_panel.textboxes["alert_threshold_mm"].set_val(f"{int(state.alert_threshold_mm)}")
 
 
-def _read_cfg_boxes(config_panel: ConfigPanel) -> dict[str, float]:
+def _read_cfg_boxes(config_panel: ConfigPanel) -> dict[str, float | int]:
     return {
         "pp_conf_threshold": float(config_panel.textboxes["pp_conf_threshold"].text.strip()),
         "pp_iou_threshold": float(config_panel.textboxes["pp_iou_threshold"].text.strip()),
@@ -606,7 +612,10 @@ def _read_cfg_boxes(config_panel: ConfigPanel) -> dict[str, float]:
         "det_thresh": float(config_panel.textboxes["det_thresh"].text.strip()),
         "sim1_thresh": float(config_panel.textboxes["sim1_thresh"].text.strip()),
         "sim2_thresh": float(config_panel.textboxes["sim2_thresh"].text.strip()),
-        "tlost_cnt": float(config_panel.textboxes["tlost_cnt"].text.strip()),
+        "tlost_cnt": int(config_panel.textboxes["tlost_cnt"].text.strip()),
+        "alert_threshold_mm": int(
+            config_panel.textboxes["alert_threshold_mm"].text.strip()
+        ),
     }
 
 
@@ -692,11 +701,11 @@ def _wire_config_controls(
         try:
             cfg = _read_cfg_boxes(config_panel)
             state.pp_cfg_status_text = (
-                "Sent set_postprocess_config. Waiting for ACK/DeviceInfo..."
+                "Sent set_app_config. Waiting for ACK/DeviceInfo..."
             )
             state.pp_cfg_pending_device_info += 1
             config_panel.status_text.set_text(state.pp_cfg_status_text)
-            cmd_queue.put(("set_pp_config", cfg))
+            cmd_queue.put(("set_app_config", cfg))
             cmd_queue.put(("get_info", None))
         except ValueError:
             state.pp_cfg_status_text = (
@@ -975,6 +984,7 @@ def _build_info_lines(state) -> str:
             " Sensors",
             sep,
             f"  ToF     persons {tof_distances}   {status} ({stale})",
+            f"          alert threshold {state.alert_threshold_mm} mm",
             f"  ESP32   {'connected' if state.power_connected else 'disconnected'}",
             "",
             " Stats",

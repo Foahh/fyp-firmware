@@ -211,6 +211,7 @@ void COM_Send_DeviceInfo(void) {
     di->sim2_thresh = 0.5f;
     di->tlost_cnt = 30U;
   }
+  di->alert_threshold_mm = TOF_GetAlertThreshold();
 
   di->timestamp_ms = HAL_GetTick();
 

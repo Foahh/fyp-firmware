@@ -121,6 +121,12 @@ TX_EVENT_FLAGS_GROUP *TOF_GetAlertUpdateEventFlags(void);
 void TOF_SetAlertThreshold(uint32_t threshold_mm);
 
 /**
+ * @brief  Get the active person-distance alert threshold.
+ * @retval Alert threshold in mm
+ */
+uint32_t TOF_GetAlertThreshold(void);
+
+/**
  * @brief  Publish latest person detections for ToF fusion.
  * @param  detections: Pointer to cached person detections
  */

@@ -83,8 +83,8 @@ def _drain_host_commands(
             state.host_introduced = True
             pending_display.append(bool(value))
             pending_ack_types.append("display")
-        elif command == "set_pp_config" and isinstance(value, dict):
-            cfg = msg.set_postprocess_config
+        elif command == "set_app_config" and isinstance(value, dict):
+            cfg = msg.set_app_config
             cfg.pp_conf_threshold = float(value["pp_conf_threshold"])
             cfg.pp_iou_threshold = float(value["pp_iou_threshold"])
             cfg.track_thresh = float(value["track_thresh"])
@@ -92,9 +92,10 @@ def _drain_host_commands(
             cfg.sim1_thresh = float(value["sim1_thresh"])
             cfg.sim2_thresh = float(value["sim2_thresh"])
             cfg.tlost_cnt = int(value["tlost_cnt"])
+            cfg.alert_threshold_mm = int(value["alert_threshold_mm"])
             cfg.timestamp_ms = int(time.time() * 1000) & 0xFFFFFFFF
             state.host_introduced = True
-            pending_ack_types.append("pp_config")
+            pending_ack_types.append("app_config")
         else:
             continue
 
@@ -194,6 +195,7 @@ def _handle_device_info(
     state.sim1_thresh = float(info.sim1_thresh)
     state.sim2_thresh = float(info.sim2_thresh)
     state.tlost_cnt = int(info.tlost_cnt)
+    state.alert_threshold_mm = int(info.alert_threshold_mm)
     if state.pp_cfg_pending_device_info > 0:
         state.pp_cfg_status_text = (
             state.pp_cfg_status_text.rstrip() + "\nDeviceInfo received."
@@ -218,8 +220,8 @@ def _handle_ack(
                 desired = pending_display.popleft()
                 if ack.success:
                     state.display_enabled = desired
-        elif kind == "pp_config":
-            base = state.pp_cfg_status_text.strip() or "Sent set_postprocess_config."
+        elif kind == "app_config":
+            base = state.pp_cfg_status_text.strip() or "Sent set_app_config."
             state.pp_cfg_status_text = (
                 base + "\n" + f"ACK success={ack.success} (t={int(ack.timestamp_ms)} ms)"
             )

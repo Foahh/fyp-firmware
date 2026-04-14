@@ -81,6 +81,7 @@ class VisualizerState:
     sim1_thresh: float = 0.8
     sim2_thresh: float = 0.5
     tlost_cnt: int = 30
+    alert_threshold_mm: int = 1000
     pp_cfg_status_text: str = ""
     pp_cfg_pending_device_info: int = 0
 

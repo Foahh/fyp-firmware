@@ -425,6 +425,10 @@ void TOF_SetAlertThreshold(uint32_t threshold_mm) {
   alert_threshold_mm = threshold_mm;
 }
 
+uint32_t TOF_GetAlertThreshold(void) {
+  return alert_threshold_mm;
+}
+
 void TOF_SetPersonDetections(const tof_person_detection_t *detections) {
   uint8_t write_idx;
 

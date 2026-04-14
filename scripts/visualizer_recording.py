@@ -113,6 +113,7 @@ DEVICE_INFO_FIELDS = [
     "sim1_thresh",
     "sim2_thresh",
     "tlost_cnt",
+    "alert_threshold_mm",
 ]
 
 ACK_FIELDS = [
@@ -232,6 +233,7 @@ class RecordingManager:
             "sim1_thresh": f"{state.sim1_thresh:.6f}",
             "sim2_thresh": f"{state.sim2_thresh:.6f}",
             "tlost_cnt": int(state.tlost_cnt),
+            "alert_threshold_mm": int(state.alert_threshold_mm),
         }
 
     def start(self, state: Optional[VisualizerState] = None) -> str:
@@ -377,6 +379,7 @@ class RecordingManager:
                     "sim1_thresh": f"{float(info.sim1_thresh):.6f}",
                     "sim2_thresh": f"{float(info.sim2_thresh):.6f}",
                     "tlost_cnt": int(info.tlost_cnt),
+                    "alert_threshold_mm": int(info.alert_threshold_mm),
                 }
             )
 
@@ -595,6 +598,7 @@ class RecordingManager:
             f"sim1_thresh: {state.sim1_thresh:.6f}",
             f"sim2_thresh: {state.sim2_thresh:.6f}",
             f"tlost_cnt: {state.tlost_cnt}",
+            f"alert_threshold_mm: {state.alert_threshold_mm}",
             f"battery_capacity_mah: {state.battery_capacity_mah:.3f}",
             f"battery_supply_voltage_v: {state.battery_supply_voltage_v:.3f}",
             "",

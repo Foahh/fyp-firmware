@@ -23,6 +23,7 @@
 #include "pp.h"
 #include "stm32n6570_discovery_lcd.h"
 #include "stm32n6xx_hal.h"
+#include "tof_fusion.h"
 #include "tracex.h"
 #include "ui.h"
 
@@ -108,7 +109,7 @@ static void handle_get_tracex_dump(const GetTraceXDump *cmd) {
   COM_Send_Ack(offset == total_size);
 }
 
-static void handle_set_postprocess_config(const SetPostprocessConfig *cmd) {
+static void handle_set_app_config(const SetAppConfig *cmd) {
   pp_runtime_config_t cfg = {
       .pp_conf_threshold = cmd->pp_conf_threshold,
       .pp_iou_threshold = cmd->pp_iou_threshold,
@@ -119,6 +120,11 @@ static void handle_set_postprocess_config(const SetPostprocessConfig *cmd) {
       .tlost_cnt = cmd->tlost_cnt,
   };
   bool ok = PP_RequestRuntimeConfig(&cfg);
+  if (ok && cmd->alert_threshold_mm > 0U) {
+    TOF_SetAlertThreshold(cmd->alert_threshold_mm);
+  } else if (cmd->alert_threshold_mm == 0U) {
+    ok = false;
+  }
   COM_Send_Ack(ok);
 }
 
@@ -143,10 +149,10 @@ void COM_Cmd_Dispatch(const HostMessage *msg) {
     host_last_seen_tick = HAL_GetTick();
     handle_get_tracex_dump(&msg->command.get_tracex_dump);
     break;
-  case HostMessage_set_postprocess_config_tag:
+  case HostMessage_set_app_config_tag:
     host_recognized = true;
     host_last_seen_tick = HAL_GetTick();
-    handle_set_postprocess_config(&msg->command.set_postprocess_config);
+    handle_set_app_config(&msg->command.set_app_config);
     break;
   default:
     COM_Send_Ack(false);

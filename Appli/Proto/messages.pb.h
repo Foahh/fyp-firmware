@@ -98,6 +98,7 @@ typedef struct _DeviceInfo {
     float sim1_thresh;
     float sim2_thresh;
     uint32_t tlost_cnt;
+    uint32_t alert_threshold_mm;
 } DeviceInfo;
 
 typedef struct _Ack {
@@ -128,7 +129,7 @@ typedef struct _GetTraceXDump {
     uint32_t timestamp_ms;
 } GetTraceXDump;
 
-typedef struct _SetPostprocessConfig {
+typedef struct _SetAppConfig {
     float pp_conf_threshold;
     float pp_iou_threshold;
     float track_thresh;
@@ -136,8 +137,9 @@ typedef struct _SetPostprocessConfig {
     float sim1_thresh;
     float sim2_thresh;
     uint32_t tlost_cnt;
+    uint32_t alert_threshold_mm;
     uint32_t timestamp_ms;
-} SetPostprocessConfig;
+} SetAppConfig;
 
 typedef struct _DeviceMessage {
     pb_size_t which_payload;
@@ -158,7 +160,7 @@ typedef struct _HostMessage {
         SetDisplayEnabled set_display_enabled;
         GetDeviceInfo get_device_info;
         GetTraceXDump get_tracex_dump;
-        SetPostprocessConfig set_postprocess_config;
+        SetAppConfig set_app_config;
     } command;
 } HostMessage;
 
@@ -175,13 +177,13 @@ extern "C" {
 #define CpuUsageSample_init_default              {0, 0}
 #define TofResult_init_default                   {0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0}
 #define TofAlertResult_init_default              {0, 0, 0, {PersonDistance_init_default, PersonDistance_init_default, PersonDistance_init_default, PersonDistance_init_default}, 0}
-#define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0}
+#define DeviceInfo_init_default                  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0, 0}
 #define Ack_init_default                         {0, 0}
 #define TraceXChunk_init_default                 {0, 0, {0, {0}}, 0, 0}
 #define SetDisplayEnabled_init_default           {0, 0}
 #define GetDeviceInfo_init_default               {0}
 #define GetTraceXDump_init_default               {0, 0}
-#define SetPostprocessConfig_init_default        {0, 0, 0, 0, 0, 0, 0, 0}
+#define SetAppConfig_init_default                {0, 0, 0, 0, 0, 0, 0, 0, 0}
 #define DeviceMessage_init_default               {0, {DetectionResult_init_default}}
 #define HostMessage_init_default                 {0, {SetDisplayEnabled_init_default}}
 #define Detection_init_zero                      {0, 0, 0, 0, 0, 0}
@@ -191,13 +193,13 @@ extern "C" {
 #define CpuUsageSample_init_zero                 {0, 0}
 #define TofResult_init_zero                      {0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0}
 #define TofAlertResult_init_zero                 {0, 0, 0, {PersonDistance_init_zero, PersonDistance_init_zero, PersonDistance_init_zero, PersonDistance_init_zero}, 0}
-#define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0}
+#define DeviceInfo_init_zero                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, {"", "", "", "", "", "", "", "", "", ""}, "", 0, 0, 0, 0, 0, 0, 0, 0}
 #define Ack_init_zero                            {0, 0}
 #define TraceXChunk_init_zero                    {0, 0, {0, {0}}, 0, 0}
 #define SetDisplayEnabled_init_zero              {0, 0}
 #define GetDeviceInfo_init_zero                  {0}
 #define GetTraceXDump_init_zero                  {0, 0}
-#define SetPostprocessConfig_init_zero           {0, 0, 0, 0, 0, 0, 0, 0}
+#define SetAppConfig_init_zero                   {0, 0, 0, 0, 0, 0, 0, 0, 0}
 #define DeviceMessage_init_zero                  {0, {DetectionResult_init_zero}}
 #define HostMessage_init_zero                    {0, {SetDisplayEnabled_init_zero}}
 
@@ -258,6 +260,7 @@ extern "C" {
 #define DeviceInfo_sim1_thresh_tag               20
 #define DeviceInfo_sim2_thresh_tag               21
 #define DeviceInfo_tlost_cnt_tag                 22
+#define DeviceInfo_alert_threshold_mm_tag        23
 #define Ack_success_tag                          1
 #define Ack_timestamp_ms_tag                     2
 #define TraceXChunk_offset_bytes_tag             1
@@ -270,14 +273,15 @@ extern "C" {
 #define GetDeviceInfo_timestamp_ms_tag           1
 #define GetTraceXDump_chunk_size_bytes_tag       1
 #define GetTraceXDump_timestamp_ms_tag           2
-#define SetPostprocessConfig_pp_conf_threshold_tag 1
-#define SetPostprocessConfig_pp_iou_threshold_tag 2
-#define SetPostprocessConfig_track_thresh_tag    3
-#define SetPostprocessConfig_det_thresh_tag      4
-#define SetPostprocessConfig_sim1_thresh_tag     5
-#define SetPostprocessConfig_sim2_thresh_tag     6
-#define SetPostprocessConfig_tlost_cnt_tag       7
-#define SetPostprocessConfig_timestamp_ms_tag    8
+#define SetAppConfig_pp_conf_threshold_tag       1
+#define SetAppConfig_pp_iou_threshold_tag        2
+#define SetAppConfig_track_thresh_tag            3
+#define SetAppConfig_det_thresh_tag              4
+#define SetAppConfig_sim1_thresh_tag             5
+#define SetAppConfig_sim2_thresh_tag             6
+#define SetAppConfig_tlost_cnt_tag               7
+#define SetAppConfig_alert_threshold_mm_tag      8
+#define SetAppConfig_timestamp_ms_tag            9
 #define DeviceMessage_detection_result_tag       1
 #define DeviceMessage_device_info_tag            2
 #define DeviceMessage_ack_tag                    3
@@ -288,7 +292,7 @@ extern "C" {
 #define HostMessage_set_display_enabled_tag      1
 #define HostMessage_get_device_info_tag          2
 #define HostMessage_get_tracex_dump_tag          3
-#define HostMessage_set_postprocess_config_tag   4
+#define HostMessage_set_app_config_tag           4
 
 /* Struct field encoding specification for nanopb */
 #define Detection_FIELDLIST(X, a) \
@@ -378,7 +382,8 @@ X(a, STATIC,   SINGULAR, FLOAT,    track_thresh,     18) \
 X(a, STATIC,   SINGULAR, FLOAT,    det_thresh,       19) \
 X(a, STATIC,   SINGULAR, FLOAT,    sim1_thresh,      20) \
 X(a, STATIC,   SINGULAR, FLOAT,    sim2_thresh,      21) \
-X(a, STATIC,   SINGULAR, UINT32,   tlost_cnt,        22)
+X(a, STATIC,   SINGULAR, UINT32,   tlost_cnt,        22) \
+X(a, STATIC,   SINGULAR, UINT32,   alert_threshold_mm,  23)
 #define DeviceInfo_CALLBACK NULL
 #define DeviceInfo_DEFAULT NULL
 
@@ -414,7 +419,7 @@ X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      2)
 #define GetTraceXDump_CALLBACK NULL
 #define GetTraceXDump_DEFAULT NULL
 
-#define SetPostprocessConfig_FIELDLIST(X, a) \
+#define SetAppConfig_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, FLOAT,    pp_conf_threshold,   1) \
 X(a, STATIC,   SINGULAR, FLOAT,    pp_iou_threshold,   2) \
 X(a, STATIC,   SINGULAR, FLOAT,    track_thresh,      3) \
@@ -422,9 +427,10 @@ X(a, STATIC,   SINGULAR, FLOAT,    det_thresh,        4) \
 X(a, STATIC,   SINGULAR, FLOAT,    sim1_thresh,       5) \
 X(a, STATIC,   SINGULAR, FLOAT,    sim2_thresh,       6) \
 X(a, STATIC,   SINGULAR, UINT32,   tlost_cnt,         7) \
-X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      8)
-#define SetPostprocessConfig_CALLBACK NULL
-#define SetPostprocessConfig_DEFAULT NULL
+X(a, STATIC,   SINGULAR, UINT32,   alert_threshold_mm,   8) \
+X(a, STATIC,   SINGULAR, UINT32,   timestamp_ms,      9)
+#define SetAppConfig_CALLBACK NULL
+#define SetAppConfig_DEFAULT NULL
 
 #define DeviceMessage_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (payload,detection_result,payload.detection_result),   1) \
@@ -448,13 +454,13 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (payload,cpu_usage_sample,payload.cpu_usage_s
 X(a, STATIC,   ONEOF,    MESSAGE,  (command,set_display_enabled,command.set_display_enabled),   1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (command,get_device_info,command.get_device_info),   2) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (command,get_tracex_dump,command.get_tracex_dump),   3) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (command,set_postprocess_config,command.set_postprocess_config),   4)
+X(a, STATIC,   ONEOF,    MESSAGE,  (command,set_app_config,command.set_app_config),   4)
 #define HostMessage_CALLBACK NULL
 #define HostMessage_DEFAULT NULL
 #define HostMessage_command_set_display_enabled_MSGTYPE SetDisplayEnabled
 #define HostMessage_command_get_device_info_MSGTYPE GetDeviceInfo
 #define HostMessage_command_get_tracex_dump_MSGTYPE GetTraceXDump
-#define HostMessage_command_set_postprocess_config_MSGTYPE SetPostprocessConfig
+#define HostMessage_command_set_app_config_MSGTYPE SetAppConfig
 
 extern const pb_msgdesc_t Detection_msg;
 extern const pb_msgdesc_t TrackedBox_msg;
@@ -469,7 +475,7 @@ extern const pb_msgdesc_t TraceXChunk_msg;
 extern const pb_msgdesc_t SetDisplayEnabled_msg;
 extern const pb_msgdesc_t GetDeviceInfo_msg;
 extern const pb_msgdesc_t GetTraceXDump_msg;
-extern const pb_msgdesc_t SetPostprocessConfig_msg;
+extern const pb_msgdesc_t SetAppConfig_msg;
 extern const pb_msgdesc_t DeviceMessage_msg;
 extern const pb_msgdesc_t HostMessage_msg;
 
@@ -487,7 +493,7 @@ extern const pb_msgdesc_t HostMessage_msg;
 #define SetDisplayEnabled_fields &SetDisplayEnabled_msg
 #define GetDeviceInfo_fields &GetDeviceInfo_msg
 #define GetTraceXDump_fields &GetTraceXDump_msg
-#define SetPostprocessConfig_fields &SetPostprocessConfig_msg
+#define SetAppConfig_fields &SetAppConfig_msg
 #define DeviceMessage_fields &DeviceMessage_msg
 #define HostMessage_fields &HostMessage_msg
 
@@ -496,15 +502,15 @@ extern const pb_msgdesc_t HostMessage_msg;
 #define CpuUsageSample_size                      11
 #define DetectionResult_size                     658
 #define Detection_size                           31
-#define DeviceInfo_size                          535
+#define DeviceInfo_size                          542
 #define DeviceMessage_size                       1487
 #define GetDeviceInfo_size                       6
 #define GetTraceXDump_size                       12
-#define HostMessage_size                         44
+#define HostMessage_size                         50
 #define MESSAGES_PB_H_MAX_SIZE                   DeviceMessage_size
 #define PersonDistance_size                      12
+#define SetAppConfig_size                        48
 #define SetDisplayEnabled_size                   8
-#define SetPostprocessConfig_size                42
 #define TofAlertResult_size                      74
 #define TofResult_size                           1484
 #define TraceXChunk_size                         279
