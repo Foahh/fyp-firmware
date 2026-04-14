@@ -230,6 +230,7 @@ static void tof_run_fusion(const tof_depth_grid_t *grid,
                       : (det->timestamp_ms - grid->timestamp_ms);
     if (dt > FUSION_MAX_DT_MS) {
       out->stale = 1;
+      // BSP_LED_Toggle(LED_GREEN);
       return;
     }
   }
