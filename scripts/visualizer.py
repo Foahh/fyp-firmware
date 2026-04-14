@@ -113,6 +113,8 @@ class VisualizerState:
     last_error: str = ""
     last_power_error: str = ""
     last_rx_time: float = 0.0
+    # Wall-clock origin for GUI time axes (set on first sample in any stream).
+    plot_epoch_s: Optional[float] = None
     firmware_connected: bool = False
     firmware_port_path: str = ""
     firmware_baud: int = 0
@@ -182,6 +184,11 @@ def build_detection_text(
             f"xywh=({det.x:0.2f}, {det.y:0.2f}, {det.w:0.2f}, {det.h:0.2f})"
         )
     return "\n".join(lines)
+
+
+def _touch_plot_epoch(state: VisualizerState, now: float) -> None:
+    if state.plot_epoch_s is None:
+        state.plot_epoch_s = now
 
 
 def reshape_tof_grid(values: Any) -> np.ndarray:
@@ -862,6 +869,7 @@ def receiver_loop(
                 period_us = float(result.nn_period_us)
                 fps = (1_000_000.0 / period_us) if period_us > 0.0 else 0.0
                 now = time.time()
+                _touch_plot_epoch(state, now)
                 state.infer_hist.append(float(result.inference_us))
                 state.post_hist.append(float(result.postprocess_us))
                 state.tracker_hist.append(float(result.tracker_us))
@@ -984,6 +992,7 @@ def receiver_loop(
             elif which == "cpu_usage_sample":
                 cpu_sample = dev_msg.cpu_usage_sample
                 now = time.time()
+                _touch_plot_epoch(state, now)
                 state.cpu_usage_percent = float(cpu_sample.cpu_usage_percent)
                 state.cpu_hist.append(state.cpu_usage_percent)
                 state.cpu_time_hist.append(now)
@@ -1040,6 +1049,7 @@ def power_receiver_loop(
             state.power_in_inference = is_inference
             state.power_timestamp_us = timestamp_us
             now = time.time()
+            _touch_plot_epoch(state, now)
             duration_s = duration_us * 1e-6
             avg_mw = (energy_j / duration_s) * 1000.0 if duration_s > 0.0 else 0.0
 

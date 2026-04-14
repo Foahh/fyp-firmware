@@ -12,6 +12,16 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Button, TextBox
 
 
+def _series_secs(state, abs_times) -> np.ndarray:
+    """Seconds on plot x-axis; shared origin with other charts (state.plot_epoch_s)."""
+    if not abs_times:
+        return np.array([])
+    t0 = state.plot_epoch_s
+    if t0 is None:
+        t0 = abs_times[0]
+    return np.array([float(t) - float(t0) for t in abs_times])
+
+
 def _style_axis(ax, bg: str) -> None:
     """Apply consistent professional styling to an axes."""
     ax.set_facecolor(bg)
@@ -69,6 +79,7 @@ def create_gui(
     C_INFER = "#5B9BD5"
     C_PERIOD = "#ED7D31"
     C_POWER_PERIOD = "#FFC000"
+    C_POWER_MJ = "#4ECDC4"
     C_CPU = "#6AA84F"
     C_BATTERY = "#B565D8"
     LW = 2.2
@@ -265,7 +276,7 @@ def create_gui(
         [],
         [],
         label="Period",
-        color=C_POWER_PERIOD,
+        color=C_POWER_MJ,
         linewidth=LW,
         linestyle="--",
         zorder=3,
@@ -282,7 +293,7 @@ def create_gui(
         ha="right",
         va="top",
         fontsize=10,
-        color=C_ACCENT,
+        color=C_POWER_MJ,
     )
 
     # --- Battery runtime: mAh × V_supply → mWh, then / P_avg mW → h ---
@@ -553,11 +564,7 @@ def create_gui(
     SEP = "\u2500" * 30
 
     def update_timing(_frame_idx):
-        if state.timing_time_hist:
-            t0 = state.timing_time_hist[0]
-            x = np.array([t - t0 for t in state.timing_time_hist])
-        else:
-            x = np.array([])
+        x = _series_secs(state, state.timing_time_hist)
         line_inf.set_data(x, np.array(state.infer_hist))
         line_period.set_data(x, np.array(state.period_hist))
         ax_timing.relim()
@@ -568,11 +575,7 @@ def create_gui(
         pct = state.cpu_usage_percent
         mcu_mhz = int(state.mcu_freq_mhz)
         cpu_usage_mhz = (pct / 100.0) * float(mcu_mhz) if mcu_mhz > 0 else 0.0
-        if state.cpu_time_hist:
-            t0_cpu = state.cpu_time_hist[0]
-            x_cpu = np.array([t - t0_cpu for t in state.cpu_time_hist])
-        else:
-            x_cpu = np.array([])
+        x_cpu = _series_secs(state, state.cpu_time_hist)
         line_cpu.set_data(x_cpu, np.array(state.cpu_hist))
         ax_cpu.relim()
         ax_cpu.autoscale_view()
@@ -593,9 +596,8 @@ def create_gui(
         return (img_tof_depth, img_tof_sigma, img_tof_signal)
 
     def update_power(_frame_idx):
-        t0_power = state.battery_time_hist[0] if state.battery_time_hist else 0.0
         if state.battery_time_hist and state.battery_p_avg_mw_hist:
-            x_period = np.array([t - t0_power for t in state.battery_time_hist])
+            x_period = _series_secs(state, state.battery_time_hist)
             y_period = np.array(state.battery_p_avg_mw_hist, dtype=float)
         else:
             x_period = np.array([])
@@ -618,8 +620,7 @@ def create_gui(
 
     def update_pm_mj(_frame_idx):
         if state.pm_period_mj_time_hist:
-            t0_mj = state.pm_period_mj_time_hist[0]
-            x_period_mj = np.array([t - t0_mj for t in state.pm_period_mj_time_hist])
+            x_period_mj = _series_secs(state, state.pm_period_mj_time_hist)
             y_period_mj = np.array(state.pm_period_mj_hist, dtype=float)
         else:
             x_period_mj = np.array([])
@@ -639,8 +640,7 @@ def create_gui(
         v_supply = float(state.battery_supply_voltage_v)
         energy_mwh = cap_mah * v_supply
         if state.battery_time_hist and state.battery_p_avg_mw_hist:
-            t0 = state.battery_time_hist[0]
-            x = np.array([t - t0 for t in state.battery_time_hist])
+            x = _series_secs(state, state.battery_time_hist)
             p = np.array(state.battery_p_avg_mw_hist, dtype=float)
             hours = energy_mwh / p
             line_battery_hours.set_data(x, hours)
@@ -705,6 +705,7 @@ def create_gui(
             SEP,
             f"  Frames  {state.frame_count}   Drops: {state.frame_drops}   FPS: {last_fps:.1f}",
             f"  Timing  PP: {last_pp:.0f} us   Trk: {last_trk:.0f} us",
+            f"  CPU     {state.cpu_usage_percent:.1f}%",
             f"  Timestamp  msg: {state.last_timestamp} ms   detection: {state.detection_timestamp} ms   info: {state.device_info_timestamp} ms   ack: {state.last_ack_timestamp} ms",
             f"  Labels  {class_labels}",
             f"  PP cfg  conf={state.pp_conf_threshold:.3f} iou={state.pp_iou_threshold:.3f}",
