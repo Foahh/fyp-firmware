@@ -1,7 +1,10 @@
-"""GUI creation and styling for visualizer."""
+"""GUI creation and styling for the visualizer."""
+
+from __future__ import annotations
 
 import os
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from queue import Queue
 from typing import Any
@@ -14,6 +17,110 @@ from matplotlib.patches import Rectangle
 from matplotlib.widgets import Button, TextBox
 
 
+@dataclass(frozen=True)
+class Theme:
+    fig_bg: str = "#000000"
+    ax_bg: str = "#0a0a14"
+    text: str = "#d8d8e8"
+    title: str = "#e8e8f0"
+    accent: str = "#ED7D31"
+    infer: str = "#5B9BD5"
+    period: str = "#ED7D31"
+    power_period: str = "#FFC000"
+    power_mj: str = "#4ECDC4"
+    cpu: str = "#6AA84F"
+    battery: str = "#B565D8"
+    track_box: str = "#70AD47"
+    muted: str = "#9898b8"
+    legend_text: str = "#d0d0e0"
+    spine: str = "#3a3a5c"
+    tick: str = "#b0b0c8"
+    widget_bg: str = "#252545"
+    widget_hover: str = "#35355a"
+    record_off: str = "#7a2f2f"
+    record_off_hover: str = "#964141"
+    record_on: str = "#2f7a43"
+    record_on_hover: str = "#3c9554"
+    panel_box: str = "#12121c"
+    linewidth: float = 2.2
+
+
+@dataclass
+class TimingPanel:
+    fig: plt.Figure
+    ax: Any
+    line_inf: Any
+    line_period: Any
+
+
+@dataclass
+class CpuPanel:
+    fig: plt.Figure
+    ax: Any
+    line_cpu: Any
+    cpu_percent_text: Any
+    cpu_freq_text: Any
+
+
+@dataclass
+class TofPanel:
+    fig: plt.Figure
+    img_depth: Any
+    img_sigma: Any
+    img_signal: Any
+
+
+@dataclass
+class PowerPanel:
+    fig: plt.Figure
+    ax: Any
+    line_period: Any
+    peak_text: Any
+
+
+@dataclass
+class EnergyPanel:
+    fig: plt.Figure
+    ax: Any
+    line_period_mj: Any
+    stats_text: Any
+
+
+@dataclass
+class BatteryPanel:
+    fig: plt.Figure
+    ax: Any
+    line_hours: Any
+    stats_text: Any
+    battery_box: TextBox
+
+
+@dataclass
+class InfoPanel:
+    fig: plt.Figure
+    text_box: Any
+    status_text: Any
+    btn_info: Button
+    btn_toggle: Button
+    btn_record: Button
+    btn_save_all: Button
+
+
+@dataclass
+class ConfigPanel:
+    fig: plt.Figure
+    status_text: Any
+    textboxes: dict[str, TextBox]
+    btn_load: Button
+    btn_apply: Button
+
+
+@dataclass
+class BboxPanel:
+    fig: plt.Figure
+    ax: Any
+
+
 def _series_secs(state, abs_times) -> np.ndarray:
     """Seconds on plot x-axis; shared origin with other charts (state.plot_epoch_s)."""
     if not abs_times:
@@ -24,28 +131,29 @@ def _series_secs(state, abs_times) -> np.ndarray:
     return np.array([float(t) - float(t0) for t in abs_times])
 
 
-def _style_axis(ax, bg: str) -> None:
-    """Apply consistent professional styling to an axes."""
+def _style_axis(ax, bg: str, theme: Theme) -> None:
     ax.set_facecolor(bg)
     for spine in ("top", "right"):
         ax.spines[spine].set_visible(False)
     for spine in ("bottom", "left"):
-        ax.spines[spine].set_color("#3a3a5c")
-    ax.tick_params(colors="#b0b0c8", labelsize=9)
+        ax.spines[spine].set_color(theme.spine)
+    ax.tick_params(colors=theme.tick, labelsize=9)
     ax.grid(True, linestyle=":", alpha=0.15, color="white")
 
 
-def _legend(ax, bg: str) -> None:
-    """Add a clean legend to an axes."""
+def _legend(ax, bg: str, theme: Theme) -> None:
     leg = ax.legend(
-        loc="upper left", fontsize=9, framealpha=0.85, edgecolor="none", facecolor=bg
+        loc="upper left",
+        fontsize=9,
+        framealpha=0.85,
+        edgecolor="none",
+        facecolor=bg,
     )
     for text in leg.get_texts():
-        text.set_color("#d0d0e0")
+        text.set_color(theme.legend_text)
 
 
 def _figure_name(fig: plt.Figure) -> str:
-    """Return a stable filename stem for a figure."""
     name = fig.get_label().strip() or "figure"
     slug = re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_").lower()
     return slug or "figure"
@@ -56,7 +164,6 @@ def _save_all_figures(
     output_root: str,
     output_dir: str | None = None,
 ) -> str:
-    """Save all figures into a directory and return its path."""
     if output_dir is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir = os.path.abspath(os.path.join(output_root, timestamp))
@@ -67,26 +174,7 @@ def _save_all_figures(
     return output_dir
 
 
-def create_gui(
-    state,
-    cmd_queue: Queue[tuple[str, Any]],
-    recorder,
-) -> tuple[list[plt.Figure], list[FuncAnimation]]:
-    # --- Theme constants ---
-    C_FIG_BG = "#000000"
-    C_AX_BG = "#0a0a14"
-    C_TEXT = "#d8d8e8"
-    C_TITLE = "#e8e8f0"
-    C_ACCENT = "#ED7D31"
-    C_INFER = "#5B9BD5"
-    C_PERIOD = "#ED7D31"
-    C_POWER_PERIOD = "#FFC000"
-    C_POWER_MJ = "#4ECDC4"
-    C_CPU = "#6AA84F"
-    C_BATTERY = "#B565D8"
-    C_TRACK_BOX = "#70AD47"
-    LW = 2.2
-
+def _apply_theme(theme: Theme) -> None:
     plt.style.use("dark_background")
     plt.rcParams.update(
         {
@@ -94,310 +182,262 @@ def create_gui(
             "axes.titlesize": 13,
             "axes.titleweight": "semibold",
             "axes.labelsize": 10,
-            "figure.facecolor": C_FIG_BG,
-            "axes.facecolor": C_AX_BG,
-            "text.color": C_TEXT,
-            "axes.labelcolor": C_TEXT,
-            "xtick.color": "#b0b0c8",
-            "ytick.color": "#b0b0c8",
+            "figure.facecolor": theme.fig_bg,
+            "axes.facecolor": theme.ax_bg,
+            "text.color": theme.text,
+            "axes.labelcolor": theme.text,
+            "xtick.color": theme.tick,
+            "ytick.color": theme.tick,
         }
     )
 
-    # --- Timing figure ---
-    fig_timing = plt.figure("Performance Timing", figsize=(8, 5))
-    fig_timing.set_facecolor(C_FIG_BG)
-    ax_timing = fig_timing.add_subplot(111)
 
-    # --- CPU figure ---
-    fig_cpu = plt.figure("CPU Utilisation", figsize=(6, 5))
-    fig_cpu.set_facecolor(C_FIG_BG)
-    ax_cpu = fig_cpu.add_subplot(111)
+def _create_timing_panel(theme: Theme) -> TimingPanel:
+    fig = plt.figure("Performance Timing", figsize=(8, 5))
+    fig.set_facecolor(theme.fig_bg)
+    ax = fig.add_subplot(111)
+    _style_axis(ax, theme.ax_bg, theme)
+    (line_inf,) = ax.plot(
+        [], [], label="Inference", color=theme.infer, linewidth=theme.linewidth
+    )
+    (line_period,) = ax.plot(
+        [], [], label="NN Period", color=theme.period, linewidth=theme.linewidth
+    )
+    ax.set_title("Performance Timing", color=theme.title, pad=10)
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Microseconds")
+    _legend(ax, theme.ax_bg, theme)
+    fig.tight_layout()
+    return TimingPanel(fig=fig, ax=ax, line_inf=line_inf, line_period=line_period)
 
-    # --- ToF figure ---
-    fig_tof = plt.figure("ToF Grids", figsize=(12, 4.5))
-    fig_tof.set_facecolor(C_FIG_BG)
-    fig_tof.subplots_adjust(left=0.025, right=0.94, top=0.90, bottom=0.06)
-    grid_tof = fig_tof.add_gridspec(1, 3, wspace=0.22)
-    ax_tof_depth = fig_tof.add_subplot(grid_tof[0, 0])
-    ax_tof_sigma = fig_tof.add_subplot(grid_tof[0, 1])
-    ax_tof_signal = fig_tof.add_subplot(grid_tof[0, 2])
 
-    # --- Power figure ---
-    fig_power = plt.figure("Power Consumption", figsize=(8, 5))
-    fig_power.set_facecolor(C_FIG_BG)
-    ax_power = fig_power.add_subplot(111)
-
-    # --- Power energy (mJ) figure ---
-    fig_pm_mj = plt.figure("Power Energy (mJ)", figsize=(8, 5))
-    fig_pm_mj.set_facecolor(C_FIG_BG)
-    ax_pm_mj = fig_pm_mj.add_subplot(111)
-
-    # --- Battery estimate figure ---
-    fig_battery = plt.figure("Battery Life Estimate", figsize=(8, 5))
-    fig_battery.set_facecolor(C_FIG_BG)
-    fig_battery.subplots_adjust(bottom=0.18)
-    ax_battery = fig_battery.add_subplot(111)
-
-    # --- Info figure ---
-    fig_info = plt.figure("Device Info", figsize=(8, 7))
-    fig_info.set_facecolor(C_FIG_BG)
-    grid_info = fig_info.add_gridspec(2, 1, height_ratios=[9, 0.75])
-    ax_text = fig_info.add_subplot(grid_info[0])
-    ax_text.axis("off")
-    ax_text.set_facecolor(C_FIG_BG)
-
-    # --- Runtime PP config figure ---
-    fig_cfg = plt.figure("Runtime PP/Tracker Config", figsize=(6.5, 6.0))
-    fig_cfg.set_facecolor(C_FIG_BG)
-    fig_cfg.subplots_adjust(left=0.05, right=0.95, top=0.97, bottom=0.03)
-    ax_cfg = fig_cfg.add_subplot(111)
-    ax_cfg.axis("off")
-    cfg_title = ax_cfg.text(
-        0.04,
-        0.97,
-        "Runtime PP / Tracker Config",
-        va="top",
-        ha="left",
-        fontsize=12,
-        color=C_TITLE,
-        fontweight="semibold",
-        clip_on=False,
+def _create_cpu_panel(theme: Theme) -> CpuPanel:
+    fig = plt.figure("CPU Utilisation", figsize=(6, 5))
+    fig.set_facecolor(theme.fig_bg)
+    ax = fig.add_subplot(111)
+    _style_axis(ax, theme.ax_bg, theme)
+    (line_cpu,) = ax.plot(
+        [], [], label="CPU %", color=theme.cpu, linewidth=theme.linewidth
     )
-    cfg_status = ax_cfg.text(
-        0.04,
-        0.92,
-        "",
-        va="top",
-        ha="left",
-        fontsize=8.5,
-        color="#9898b8",
-        clip_on=False,
-    )
-
-    # --- Buttons ---
-    ax_btn_info = fig_info.add_subplot(grid_info[1])
-    ax_btn_info.axis("off")
-    btn_ax1 = fig_info.add_axes([0.04, 0.035, 0.21, 0.05])
-    btn_ax2 = fig_info.add_axes([0.28, 0.035, 0.21, 0.05])
-    btn_ax3 = fig_info.add_axes([0.52, 0.035, 0.21, 0.05])
-    btn_ax4 = fig_info.add_axes([0.76, 0.035, 0.20, 0.05])
-    btn_info = Button(btn_ax1, "Get Device Info", color="#252545", hovercolor="#35355a")
-    btn_toggle = Button(
-        btn_ax2, "Toggle Display", color="#252545", hovercolor="#35355a"
-    )
-    btn_record = Button(
-        btn_ax3, "Start Recording", color="#7a2f2f", hovercolor="#964141"
-    )
-    btn_save_all = Button(
-        btn_ax4, "Save Figures", color="#252545", hovercolor="#35355a"
-    )
-    for btn in (btn_info, btn_toggle, btn_record, btn_save_all):
-        btn.label.set_color(C_TEXT)
-        btn.label.set_fontsize(10)
-    info_status = ax_btn_info.text(
-        0.99,
-        0.98,
-        "",
-        va="top",
-        ha="right",
-        fontsize=8.5,
-        color="#9898b8",
-        transform=ax_btn_info.transAxes,
-    )
-
-    # --- Timing plot ---
-    _style_axis(ax_timing, C_AX_BG)
-    (line_inf,) = ax_timing.plot([], [], label="Inference", color=C_INFER, linewidth=LW)
-    (line_period,) = ax_timing.plot(
-        [], [], label="NN Period", color=C_PERIOD, linewidth=LW
-    )
-    ax_timing.set_title("Performance Timing", color=C_TITLE, pad=10)
-    ax_timing.set_xlabel("Time (s)")
-    ax_timing.set_ylabel("Microseconds")
-    _legend(ax_timing, C_AX_BG)
-
-    def _create_tof_heatmap(ax, title: str, cmap: str, vmin: float, vmax: float, cbar_label: str):
-        ax.set_facecolor(C_AX_BG)
-        img = ax.imshow(
-            np.full((8, 8), np.nan),
-            cmap=cmap,
-            interpolation="nearest",
-            vmin=vmin,
-            vmax=vmax,
-        )
-        cbar = fig_tof.colorbar(img, ax=ax, fraction=0.046, pad=0.04)
-        cbar.set_label(cbar_label, rotation=270, labelpad=15, color=C_TEXT)
-        cbar.ax.yaxis.set_tick_params(color="#b0b0c8")
-        for label in cbar.ax.get_yticklabels():
-            label.set_color("#b0b0c8")
-        ax.set_title(title, color=C_TITLE, pad=10)
-        ax.set_xticks(np.arange(-0.5, 8, 1), minor=True)
-        ax.set_yticks(np.arange(-0.5, 8, 1), minor=True)
-        ax.grid(which="minor", color="w", linestyle="-", linewidth=0.5, alpha=0.15)
-        ax.tick_params(which="minor", bottom=False, left=False)
-        ax.set_xticks([])
-        ax.set_yticks([])
-        return img
-
-    img_tof_depth = _create_tof_heatmap(
-        ax_tof_depth, "Distance", "magma", 0, 2000, "Distance (mm)"
-    )
-    img_tof_sigma = _create_tof_heatmap(
-        ax_tof_sigma, "Range Sigma", "viridis", 0, 80, "Sigma (mm)"
-    )
-    img_tof_signal = _create_tof_heatmap(
-        ax_tof_signal, "Signal / SPAD", "cividis", 0, 300, "kcps / spad"
-    )
-
-    # --- Power plot ---
-    _style_axis(ax_power, C_AX_BG)
-    (line_power_period,) = ax_power.plot(
-        [],
-        [],
-        label="Period",
-        color=C_POWER_PERIOD,
-        linewidth=LW,
-        linestyle="--",
-        zorder=3,
-    )
-    ax_power.set_title("Power Consumption", color=C_TITLE, pad=10)
-    ax_power.set_xlabel("Time (s)")
-    ax_power.set_ylabel("mW")
-    _legend(ax_power, C_AX_BG)
-    power_peak_text = ax_power.text(
-        0.98,
-        0.95,
-        "",
-        transform=ax_power.transAxes,
-        ha="right",
-        va="top",
-        fontsize=10,
-        color=C_ACCENT,
-    )
-
-    # --- Power energy (mJ) line chart ---
-    _style_axis(ax_pm_mj, C_AX_BG)
-    (line_pm_period_mj,) = ax_pm_mj.plot(
-        [],
-        [],
-        label="Period",
-        color=C_POWER_MJ,
-        linewidth=LW,
-        linestyle="--",
-        zorder=3,
-    )
-    ax_pm_mj.set_title("Power Energy", color=C_TITLE, pad=10)
-    ax_pm_mj.set_xlabel("Time (s)")
-    ax_pm_mj.set_ylabel("mJ")
-    _legend(ax_pm_mj, C_AX_BG)
-    pm_mj_stats_text = ax_pm_mj.text(
-        0.98,
-        0.95,
-        "",
-        transform=ax_pm_mj.transAxes,
-        ha="right",
-        va="top",
-        fontsize=10,
-        color=C_POWER_MJ,
-    )
-
-    # --- Battery runtime: mAh × V_supply → mWh, then / P_avg mW → h ---
-    _style_axis(ax_battery, C_AX_BG)
-    (line_battery_hours,) = ax_battery.plot(
-        [], [], label="Est. runtime", color=C_BATTERY, linewidth=LW
-    )
-    ax_battery.set_title(
-        "Battery Life Estimate",
-        color=C_TITLE,
-        pad=10,
-    )
-    ax_battery.set_xlabel("Time (s)")
-    ax_battery.set_ylabel("Hours")
-    _legend(ax_battery, C_AX_BG)
-    battery_note = ax_battery.text(
-        0.02,
-        0.02,
-        "mWh = mAh × V_supply; hours = mWh / P_avg.  "
-        "P_avg uses period energy over the paired monitor-window duration.",
-        transform=ax_battery.transAxes,
-        ha="left",
-        va="bottom",
-        fontsize=8,
-        color="#9898b8",
-    )
-    battery_stats = ax_battery.text(
-        0.98,
-        0.98,
-        "",
-        transform=ax_battery.transAxes,
-        ha="right",
-        va="top",
-        fontsize=10,
-        color=C_TITLE,
-        linespacing=1.2,
-        bbox={
-            "boxstyle": "round,pad=0.35",
-            "facecolor": "#12121c",
-            "edgecolor": "#3a3a5c",
-            "alpha": 0.92,
-        },
-    )
-
-    # --- Bounding boxes (normalized NN input space, center + size) ---
-    fig_bbox = plt.figure("Bounding Boxes", figsize=(7, 7))
-    fig_bbox.set_facecolor(C_FIG_BG)
-    ax_bbox = fig_bbox.add_subplot(111)
-    ax_tb_batt = fig_battery.add_axes([0.12, 0.03, 0.32, 0.065])
-    tb_battery = TextBox(
-        ax_tb_batt,
-        "mAh ",
-        initial=f"{state.battery_capacity_mah:g}",
-        color="#252545",
-        hovercolor="#35355a",
-    )
-    tb_battery.text_disp.set_color(C_TEXT)
-    tb_battery.label.set_color(C_TEXT)
-
-    def on_battery_mah(text: str) -> None:
-        try:
-            v = float(str(text).strip().replace(",", ""))
-            if v > 0.0:
-                state.battery_capacity_mah = v
-        except ValueError:
-            pass
-
-    tb_battery.on_submit(on_battery_mah)
-
-    # --- CPU line chart ---
-    _style_axis(ax_cpu, C_AX_BG)
-    (line_cpu,) = ax_cpu.plot([], [], label="CPU %", color=C_CPU, linewidth=LW)
-    ax_cpu.set_ylim(auto=True)
-    ax_cpu.set_title("CPU Utilisation", color=C_TITLE, pad=10)
-    ax_cpu.set_xlabel("Time (s)")
-    ax_cpu.set_ylabel("%")
-    cpu_percent_text = ax_cpu.text(
+    ax.set_ylim(auto=True)
+    ax.set_title("CPU Utilisation", color=theme.title, pad=10)
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("%")
+    cpu_percent_text = ax.text(
         0.98,
         0.95,
         "0%",
-        transform=ax_cpu.transAxes,
+        transform=ax.transAxes,
         ha="right",
         va="top",
         fontsize=15,
         fontweight="bold",
-        color=C_TEXT,
+        color=theme.text,
     )
-    cpu_freq_text = ax_cpu.text(
+    cpu_freq_text = ax.text(
         0.98,
         0.05,
         "",
-        transform=ax_cpu.transAxes,
+        transform=ax.transAxes,
         ha="right",
         va="bottom",
         fontsize=9,
-        color="#9898b8",
+        color=theme.muted,
+    )
+    fig.tight_layout()
+    return CpuPanel(
+        fig=fig,
+        ax=ax,
+        line_cpu=line_cpu,
+        cpu_percent_text=cpu_percent_text,
+        cpu_freq_text=cpu_freq_text,
     )
 
-    # --- Text box ---
+
+def _create_tof_heatmap(fig: plt.Figure, ax, title: str, cmap: str, vmin: float, vmax: float, cbar_label: str, theme: Theme):
+    ax.set_facecolor(theme.ax_bg)
+    img = ax.imshow(
+        np.full((8, 8), np.nan),
+        cmap=cmap,
+        interpolation="nearest",
+        vmin=vmin,
+        vmax=vmax,
+    )
+    cbar = fig.colorbar(img, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label(cbar_label, rotation=270, labelpad=15, color=theme.text)
+    cbar.ax.yaxis.set_tick_params(color=theme.tick)
+    for label in cbar.ax.get_yticklabels():
+        label.set_color(theme.tick)
+    ax.set_title(title, color=theme.title, pad=10)
+    ax.set_xticks(np.arange(-0.5, 8, 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, 8, 1), minor=True)
+    ax.grid(which="minor", color="w", linestyle="-", linewidth=0.5, alpha=0.15)
+    ax.tick_params(which="minor", bottom=False, left=False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    return img
+
+
+def _create_tof_panel(theme: Theme) -> TofPanel:
+    fig = plt.figure("ToF Grids", figsize=(12, 4.5))
+    fig.set_facecolor(theme.fig_bg)
+    fig.subplots_adjust(left=0.025, right=0.94, top=0.90, bottom=0.06)
+    grid = fig.add_gridspec(1, 3, wspace=0.22)
+    ax_depth = fig.add_subplot(grid[0, 0])
+    ax_sigma = fig.add_subplot(grid[0, 1])
+    ax_signal = fig.add_subplot(grid[0, 2])
+    return TofPanel(
+        fig=fig,
+        img_depth=_create_tof_heatmap(
+            fig, ax_depth, "Distance", "magma", 0, 2000, "Distance (mm)", theme
+        ),
+        img_sigma=_create_tof_heatmap(
+            fig, ax_sigma, "Range Sigma", "viridis", 0, 80, "Sigma (mm)", theme
+        ),
+        img_signal=_create_tof_heatmap(
+            fig,
+            ax_signal,
+            "Signal / SPAD",
+            "cividis",
+            0,
+            300,
+            "kcps / spad",
+            theme,
+        ),
+    )
+
+
+def _create_power_panel(theme: Theme) -> PowerPanel:
+    fig = plt.figure("Power Consumption", figsize=(8, 5))
+    fig.set_facecolor(theme.fig_bg)
+    ax = fig.add_subplot(111)
+    _style_axis(ax, theme.ax_bg, theme)
+    (line_period,) = ax.plot(
+        [],
+        [],
+        label="Period",
+        color=theme.power_period,
+        linewidth=theme.linewidth,
+        linestyle="--",
+        zorder=3,
+    )
+    ax.set_title("Power Consumption", color=theme.title, pad=10)
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("mW")
+    peak_text = ax.text(
+        0.98,
+        0.95,
+        "",
+        transform=ax.transAxes,
+        ha="right",
+        va="top",
+        fontsize=10,
+        color=theme.accent,
+    )
+    _legend(ax, theme.ax_bg, theme)
+    fig.tight_layout()
+    return PowerPanel(fig=fig, ax=ax, line_period=line_period, peak_text=peak_text)
+
+
+def _create_energy_panel(theme: Theme) -> EnergyPanel:
+    fig = plt.figure("Power Energy (mJ)", figsize=(8, 5))
+    fig.set_facecolor(theme.fig_bg)
+    ax = fig.add_subplot(111)
+    _style_axis(ax, theme.ax_bg, theme)
+    (line_period_mj,) = ax.plot(
+        [],
+        [],
+        label="Period",
+        color=theme.power_mj,
+        linewidth=theme.linewidth,
+        linestyle="--",
+        zorder=3,
+    )
+    ax.set_title("Power Energy", color=theme.title, pad=10)
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("mJ")
+    stats_text = ax.text(
+        0.98,
+        0.95,
+        "",
+        transform=ax.transAxes,
+        ha="right",
+        va="top",
+        fontsize=10,
+        color=theme.power_mj,
+    )
+    _legend(ax, theme.ax_bg, theme)
+    fig.tight_layout()
+    return EnergyPanel(fig=fig, ax=ax, line_period_mj=line_period_mj, stats_text=stats_text)
+
+
+def _create_battery_panel(state, theme: Theme) -> BatteryPanel:
+    fig = plt.figure("Battery Life Estimate", figsize=(8, 5))
+    fig.set_facecolor(theme.fig_bg)
+    fig.subplots_adjust(bottom=0.18)
+    ax = fig.add_subplot(111)
+    _style_axis(ax, theme.ax_bg, theme)
+    (line_hours,) = ax.plot(
+        [], [], label="Est. runtime", color=theme.battery, linewidth=theme.linewidth
+    )
+    ax.set_title("Battery Life Estimate", color=theme.title, pad=10)
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Hours")
+    ax.text(
+        0.02,
+        0.02,
+        "mWh = mAh × V_supply; hours = mWh / P_avg.  P_avg uses period energy over the paired monitor-window duration.",
+        transform=ax.transAxes,
+        ha="left",
+        va="bottom",
+        fontsize=8,
+        color=theme.muted,
+    )
+    stats_text = ax.text(
+        0.98,
+        0.98,
+        "",
+        transform=ax.transAxes,
+        ha="right",
+        va="top",
+        fontsize=10,
+        color=theme.title,
+        linespacing=1.2,
+        bbox={
+            "boxstyle": "round,pad=0.35",
+            "facecolor": theme.panel_box,
+            "edgecolor": theme.spine,
+            "alpha": 0.92,
+        },
+    )
+    _legend(ax, theme.ax_bg, theme)
+
+    ax_tb = fig.add_axes([0.12, 0.03, 0.32, 0.065])
+    battery_box = TextBox(
+        ax_tb,
+        "mAh ",
+        initial=f"{state.battery_capacity_mah:g}",
+        color=theme.widget_bg,
+        hovercolor=theme.widget_hover,
+    )
+    battery_box.text_disp.set_color(theme.text)
+    battery_box.label.set_color(theme.text)
+    return BatteryPanel(
+        fig=fig,
+        ax=ax,
+        line_hours=line_hours,
+        stats_text=stats_text,
+        battery_box=battery_box,
+    )
+
+
+def _create_info_panel(theme: Theme) -> InfoPanel:
+    fig = plt.figure("Device Info", figsize=(8, 7))
+    fig.set_facecolor(theme.fig_bg)
+    grid = fig.add_gridspec(2, 1, height_ratios=[9, 0.75])
+    ax_text = fig.add_subplot(grid[0])
+    ax_text.axis("off")
+    ax_text.set_facecolor(theme.fig_bg)
     text_box = ax_text.text(
         0.03,
         0.99,
@@ -407,19 +447,189 @@ def create_gui(
         ha="left",
         family="monospace",
         fontsize=8.5,
-        color=C_TEXT,
+        color=theme.text,
         linespacing=1.35,
         clip_on=False,
     )
 
-    fig_timing.tight_layout()
-    fig_cpu.tight_layout()
-    fig_power.tight_layout()
-    fig_pm_mj.tight_layout()
-    fig_bbox.subplots_adjust(left=0.14, right=0.96, top=0.90, bottom=0.10)
-    fig_info.tight_layout()
-    fig_info.subplots_adjust(left=0.05, right=0.98, top=0.98)
+    ax_btn = fig.add_subplot(grid[1])
+    ax_btn.axis("off")
+    btn_ax1 = fig.add_axes([0.04, 0.035, 0.21, 0.05])
+    btn_ax2 = fig.add_axes([0.28, 0.035, 0.21, 0.05])
+    btn_ax3 = fig.add_axes([0.52, 0.035, 0.21, 0.05])
+    btn_ax4 = fig.add_axes([0.76, 0.035, 0.20, 0.05])
+    btn_info = Button(btn_ax1, "Get Device Info", color=theme.widget_bg, hovercolor=theme.widget_hover)
+    btn_toggle = Button(btn_ax2, "Toggle Display", color=theme.widget_bg, hovercolor=theme.widget_hover)
+    btn_record = Button(btn_ax3, "Start Recording", color=theme.record_off, hovercolor=theme.record_off_hover)
+    btn_save_all = Button(btn_ax4, "Save Figures", color=theme.widget_bg, hovercolor=theme.widget_hover)
+    for button in (btn_info, btn_toggle, btn_record, btn_save_all):
+        button.label.set_color(theme.text)
+        button.label.set_fontsize(10)
 
+    status_text = ax_btn.text(
+        0.99,
+        0.98,
+        "",
+        va="top",
+        ha="right",
+        fontsize=8.5,
+        color=theme.muted,
+        transform=ax_btn.transAxes,
+    )
+    fig.tight_layout()
+    fig.subplots_adjust(left=0.05, right=0.98, top=0.98)
+    return InfoPanel(
+        fig=fig,
+        text_box=text_box,
+        status_text=status_text,
+        btn_info=btn_info,
+        btn_toggle=btn_toggle,
+        btn_record=btn_record,
+        btn_save_all=btn_save_all,
+    )
+
+
+def _create_config_panel(state, theme: Theme) -> ConfigPanel:
+    fig = plt.figure("Runtime PP/Tracker Config", figsize=(6.5, 6.0))
+    fig.set_facecolor(theme.fig_bg)
+    fig.subplots_adjust(left=0.05, right=0.95, top=0.97, bottom=0.03)
+    ax = fig.add_subplot(111)
+    ax.axis("off")
+    title = ax.text(
+        0.04,
+        0.97,
+        "Runtime PP / Tracker Config",
+        va="top",
+        ha="left",
+        fontsize=12,
+        color=theme.title,
+        fontweight="semibold",
+        clip_on=False,
+    )
+    status_text = ax.text(
+        0.04,
+        0.92,
+        "",
+        va="top",
+        ha="left",
+        fontsize=8.5,
+        color=theme.muted,
+        clip_on=False,
+    )
+
+    labels = [
+        ("PP conf threshold", "pp_conf_threshold"),
+        ("PP IoU threshold", "pp_iou_threshold"),
+        ("Track thresh", "track_thresh"),
+        ("Det thresh", "det_thresh"),
+        ("Sim1 thresh", "sim1_thresh"),
+        ("Sim2 thresh", "sim2_thresh"),
+        ("Tlost cnt", "tlost_cnt"),
+    ]
+    textboxes: dict[str, TextBox] = {}
+    y0 = 0.78
+    dy = 0.09
+    for idx, (label, key) in enumerate(labels):
+        y = y0 - idx * dy
+        ax_tb = fig.add_axes([0.38, y, 0.22, 0.055])
+        initial = f"{getattr(state, key):.4f}" if key != "tlost_cnt" else f"{int(state.tlost_cnt)}"
+        tb = TextBox(
+            ax_tb,
+            f"{label}: ",
+            initial=initial,
+            color=theme.widget_bg,
+            hovercolor=theme.widget_hover,
+        )
+        tb.text_disp.set_color(theme.text)
+        tb.label.set_color(theme.text)
+        textboxes[key] = tb
+
+    btn_load = Button(
+        fig.add_axes([0.10, 0.08, 0.25, 0.07]),
+        "Load Device",
+        color=theme.widget_bg,
+        hovercolor=theme.widget_hover,
+    )
+    btn_apply = Button(
+        fig.add_axes([0.62, 0.08, 0.25, 0.07]),
+        "Apply Config",
+        color=theme.widget_bg,
+        hovercolor=theme.widget_hover,
+    )
+    btn_load.label.set_color(theme.text)
+    btn_apply.label.set_color(theme.text)
+    fig._visualizer_widgets = (title, status_text, btn_load, btn_apply, *textboxes.values())
+    return ConfigPanel(
+        fig=fig,
+        status_text=status_text,
+        textboxes=textboxes,
+        btn_load=btn_load,
+        btn_apply=btn_apply,
+    )
+
+
+def _create_bbox_panel(theme: Theme) -> BboxPanel:
+    fig = plt.figure("Bounding Boxes", figsize=(7, 7))
+    fig.set_facecolor(theme.fig_bg)
+    fig.subplots_adjust(left=0.14, right=0.96, top=0.90, bottom=0.10)
+    return BboxPanel(fig=fig, ax=fig.add_subplot(111))
+
+
+def _refresh_record_button(info_panel: InfoPanel, recorder, theme: Theme) -> None:
+    if recorder.is_recording():
+        info_panel.btn_record.label.set_text("Stop Recording")
+        info_panel.btn_record.color = theme.record_on
+        info_panel.btn_record.hovercolor = theme.record_on_hover
+        info_panel.btn_record.ax.set_facecolor(theme.record_on)
+    else:
+        info_panel.btn_record.label.set_text("Start Recording")
+        info_panel.btn_record.color = theme.record_off
+        info_panel.btn_record.hovercolor = theme.record_off_hover
+        info_panel.btn_record.ax.set_facecolor(theme.record_off)
+
+
+def _populate_cfg_boxes(state, config_panel: ConfigPanel) -> None:
+    config_panel.textboxes["pp_conf_threshold"].set_val(f"{state.pp_conf_threshold:.4f}")
+    config_panel.textboxes["pp_iou_threshold"].set_val(f"{state.pp_iou_threshold:.4f}")
+    config_panel.textboxes["track_thresh"].set_val(f"{state.track_thresh:.4f}")
+    config_panel.textboxes["det_thresh"].set_val(f"{state.det_thresh:.4f}")
+    config_panel.textboxes["sim1_thresh"].set_val(f"{state.sim1_thresh:.4f}")
+    config_panel.textboxes["sim2_thresh"].set_val(f"{state.sim2_thresh:.4f}")
+    config_panel.textboxes["tlost_cnt"].set_val(f"{int(state.tlost_cnt)}")
+
+
+def _read_cfg_boxes(config_panel: ConfigPanel) -> dict[str, float]:
+    return {
+        "pp_conf_threshold": float(config_panel.textboxes["pp_conf_threshold"].text.strip()),
+        "pp_iou_threshold": float(config_panel.textboxes["pp_iou_threshold"].text.strip()),
+        "track_thresh": float(config_panel.textboxes["track_thresh"].text.strip()),
+        "det_thresh": float(config_panel.textboxes["det_thresh"].text.strip()),
+        "sim1_thresh": float(config_panel.textboxes["sim1_thresh"].text.strip()),
+        "sim2_thresh": float(config_panel.textboxes["sim2_thresh"].text.strip()),
+        "tlost_cnt": float(config_panel.textboxes["tlost_cnt"].text.strip()),
+    }
+
+
+def _wire_battery_controls(state, battery_panel: BatteryPanel) -> None:
+    def on_battery_mah(text: str) -> None:
+        try:
+            value = float(str(text).strip().replace(",", ""))
+            if value > 0.0:
+                state.battery_capacity_mah = value
+        except ValueError:
+            pass
+
+    battery_panel.battery_box.on_submit(on_battery_mah)
+
+
+def _wire_info_controls(
+    state,
+    cmd_queue: Queue[tuple[str, Any]],
+    recorder,
+    figures: list[plt.Figure],
+    info_panel: InfoPanel,
+    theme: Theme,
+) -> None:
     def on_get_info(_event) -> None:
         cmd_queue.put(("get_info", None))
 
@@ -429,132 +639,63 @@ def create_gui(
     def on_save_all(_event) -> None:
         try:
             output_dir = _save_all_figures(figures, recorder.output_root)
-            info_status.set_text(f"Saved screenshots to {output_dir}")
+            info_panel.status_text.set_text(f"Saved screenshots to {output_dir}")
             print(f"[gui] Saved screenshots to {output_dir}")
         except Exception as exc:
-            info_status.set_text(f"Screenshot save failed: {exc}")
+            info_panel.status_text.set_text(f"Screenshot save failed: {exc}")
             print(f"[gui] Screenshot save failed: {exc}")
-        fig_info.canvas.draw_idle()
-
-    def _refresh_record_button() -> None:
-        if recorder.is_recording():
-            btn_record.label.set_text("Stop Recording")
-            btn_record.color = "#2f7a43"
-            btn_record.hovercolor = "#3c9554"
-            btn_record.ax.set_facecolor("#2f7a43")
-        else:
-            btn_record.label.set_text("Start Recording")
-            btn_record.color = "#7a2f2f"
-            btn_record.hovercolor = "#964141"
-            btn_record.ax.set_facecolor("#7a2f2f")
+        info_panel.fig.canvas.draw_idle()
 
     def on_record(_event) -> None:
         try:
             if recorder.is_recording():
                 output_dir = recorder.stop(state)
                 _save_all_figures(figures, recorder.output_root, output_dir=output_dir)
-                info_status.set_text(f"Saved recording to {output_dir}")
+                info_panel.status_text.set_text(f"Saved recording to {output_dir}")
                 print(f"[gui] Saved recording bundle to {output_dir}")
             else:
                 output_dir = recorder.start(state)
-                info_status.set_text(f"Recording to {output_dir}")
+                info_panel.status_text.set_text(f"Recording to {output_dir}")
                 print(f"[gui] Recording started: {output_dir}")
         except Exception as exc:
-            info_status.set_text(f"Recording failed: {exc}")
+            info_panel.status_text.set_text(f"Recording failed: {exc}")
             print(f"[gui] Recording failed: {exc}")
-        _refresh_record_button()
-        fig_info.canvas.draw_idle()
+        _refresh_record_button(info_panel, recorder, theme)
+        info_panel.fig.canvas.draw_idle()
 
-    btn_info.on_clicked(on_get_info)
-    btn_toggle.on_clicked(on_toggle_display)
-    btn_record.on_clicked(on_record)
-    btn_save_all.on_clicked(on_save_all)
-    _refresh_record_button()
-    fig_info._visualizer_widgets = (
-        btn_info,
-        btn_toggle,
-        btn_record,
-        btn_save_all,
-        info_status,
+    info_panel.btn_info.on_clicked(on_get_info)
+    info_panel.btn_toggle.on_clicked(on_toggle_display)
+    info_panel.btn_record.on_clicked(on_record)
+    info_panel.btn_save_all.on_clicked(on_save_all)
+    _refresh_record_button(info_panel, recorder, theme)
+    info_panel.fig._visualizer_widgets = (
+        info_panel.btn_info,
+        info_panel.btn_toggle,
+        info_panel.btn_record,
+        info_panel.btn_save_all,
+        info_panel.status_text,
     )
 
-    # --- Runtime config controls ---
-    cfg_labels = [
-        ("PP conf threshold", "pp_conf_threshold"),
-        ("PP IoU threshold", "pp_iou_threshold"),
-        ("Track thresh", "track_thresh"),
-        ("Det thresh", "det_thresh"),
-        ("Sim1 thresh", "sim1_thresh"),
-        ("Sim2 thresh", "sim2_thresh"),
-        ("Tlost cnt", "tlost_cnt"),
-    ]
-    cfg_textboxes: dict[str, TextBox] = {}
-    y0 = 0.78
-    dy = 0.09
-    for idx, (label, key) in enumerate(cfg_labels):
-        y = y0 - idx * dy
-        ax_tb = fig_cfg.add_axes([0.38, y, 0.22, 0.055])
-        initial = (
-            f"{getattr(state, key):.4f}"
-            if key != "tlost_cnt"
-            else f"{int(state.tlost_cnt)}"
-        )
-        tb = TextBox(
-            ax_tb,
-            f"{label}: ",
-            initial=initial,
-            color="#252545",
-            hovercolor="#35355a",
-        )
-        tb.text_disp.set_color(C_TEXT)
-        tb.label.set_color(C_TEXT)
-        cfg_textboxes[key] = tb
 
-    cfg_btn_load_ax = fig_cfg.add_axes([0.10, 0.08, 0.25, 0.07])
-    cfg_btn_apply_ax = fig_cfg.add_axes([0.62, 0.08, 0.25, 0.07])
-    cfg_btn_load = Button(
-        cfg_btn_load_ax, "Load Device", color="#252545", hovercolor="#35355a"
-    )
-    cfg_btn_apply = Button(
-        cfg_btn_apply_ax, "Apply Config", color="#252545", hovercolor="#35355a"
-    )
-    cfg_btn_load.label.set_color(C_TEXT)
-    cfg_btn_apply.label.set_color(C_TEXT)
-
-    def _populate_cfg_boxes() -> None:
-        cfg_textboxes["pp_conf_threshold"].set_val(f"{state.pp_conf_threshold:.4f}")
-        cfg_textboxes["pp_iou_threshold"].set_val(f"{state.pp_iou_threshold:.4f}")
-        cfg_textboxes["track_thresh"].set_val(f"{state.track_thresh:.4f}")
-        cfg_textboxes["det_thresh"].set_val(f"{state.det_thresh:.4f}")
-        cfg_textboxes["sim1_thresh"].set_val(f"{state.sim1_thresh:.4f}")
-        cfg_textboxes["sim2_thresh"].set_val(f"{state.sim2_thresh:.4f}")
-        cfg_textboxes["tlost_cnt"].set_val(f"{int(state.tlost_cnt)}")
-
-    def _read_cfg_boxes() -> dict[str, float]:
-        return {
-            "pp_conf_threshold": float(cfg_textboxes["pp_conf_threshold"].text.strip()),
-            "pp_iou_threshold": float(cfg_textboxes["pp_iou_threshold"].text.strip()),
-            "track_thresh": float(cfg_textboxes["track_thresh"].text.strip()),
-            "det_thresh": float(cfg_textboxes["det_thresh"].text.strip()),
-            "sim1_thresh": float(cfg_textboxes["sim1_thresh"].text.strip()),
-            "sim2_thresh": float(cfg_textboxes["sim2_thresh"].text.strip()),
-            "tlost_cnt": float(cfg_textboxes["tlost_cnt"].text.strip()),
-        }
-
+def _wire_config_controls(
+    state,
+    cmd_queue: Queue[tuple[str, Any]],
+    config_panel: ConfigPanel,
+) -> None:
     def on_load_cfg(_event) -> None:
-        _populate_cfg_boxes()
+        _populate_cfg_boxes(state, config_panel)
         state.pp_cfg_status_text = "Loaded runtime values from latest DeviceInfo."
         state.pp_cfg_pending_device_info = 0
-        cfg_status.set_text(state.pp_cfg_status_text)
+        config_panel.status_text.set_text(state.pp_cfg_status_text)
 
     def on_apply_cfg(_event) -> None:
         try:
-            cfg = _read_cfg_boxes()
+            cfg = _read_cfg_boxes(config_panel)
             state.pp_cfg_status_text = (
                 "Sent set_postprocess_config. Waiting for ACK/DeviceInfo..."
             )
             state.pp_cfg_pending_device_info += 1
-            cfg_status.set_text(state.pp_cfg_status_text)
+            config_panel.status_text.set_text(state.pp_cfg_status_text)
             cmd_queue.put(("set_pp_config", cfg))
             cmd_queue.put(("get_info", None))
         except ValueError:
@@ -562,250 +703,235 @@ def create_gui(
                 "Invalid number format. Please enter valid numeric values."
             )
             state.pp_cfg_pending_device_info = 0
-            cfg_status.set_text(state.pp_cfg_status_text)
+            config_panel.status_text.set_text(state.pp_cfg_status_text)
 
-    cfg_btn_load.on_clicked(on_load_cfg)
-    cfg_btn_apply.on_clicked(on_apply_cfg)
-    _populate_cfg_boxes()
-    fig_cfg._visualizer_widgets = (
-        cfg_title,
-        cfg_status,
-        cfg_btn_load,
-        cfg_btn_apply,
-        *cfg_textboxes.values(),
-    )
+    config_panel.btn_load.on_clicked(on_load_cfg)
+    config_panel.btn_apply.on_clicked(on_apply_cfg)
+    _populate_cfg_boxes(state, config_panel)
 
-    SEP = "\u2500" * 30
 
-    def update_timing(_frame_idx):
-        x = _series_secs(state, state.timing_time_hist)
-        line_inf.set_data(x, np.array(state.infer_hist))
-        line_period.set_data(x, np.array(state.period_hist))
-        ax_timing.relim()
-        ax_timing.autoscale_view()
-        return (line_inf, line_period)
+def _update_timing(_frame_idx, state, panel: TimingPanel):
+    x = _series_secs(state, state.timing_time_hist)
+    panel.line_inf.set_data(x, np.array(state.infer_hist))
+    panel.line_period.set_data(x, np.array(state.period_hist))
+    panel.ax.relim()
+    panel.ax.autoscale_view()
+    return (panel.line_inf, panel.line_period)
 
-    def update_cpu(_frame_idx):
-        pct = state.cpu_usage_percent
-        mcu_mhz = int(state.mcu_freq_mhz)
-        cpu_usage_mhz = (pct / 100.0) * float(mcu_mhz) if mcu_mhz > 0 else 0.0
-        x_cpu = _series_secs(state, state.cpu_time_hist)
-        line_cpu.set_data(x_cpu, np.array(state.cpu_hist))
-        ax_cpu.relim()
-        ax_cpu.autoscale_view()
-        cpu_percent_text.set_text(f"{pct:.1f}%")
-        npu = int(state.npu_freq_mhz)
-        if mcu_mhz > 0:
-            cpu_freq_text.set_text(
-                f"{cpu_usage_mhz:.0f} MHz  |  CPU {mcu_mhz} MHz / NPU {npu} MHz"
-            )
-        else:
-            cpu_freq_text.set_text(f"CPU {mcu_mhz} MHz / NPU {npu} MHz")
-        return (line_cpu, cpu_percent_text, cpu_freq_text)
 
-    def update_tof(_frame_idx):
-        img_tof_depth.set_data(state.tof_depth_grid)
-        img_tof_sigma.set_data(state.tof_sigma_grid)
-        img_tof_signal.set_data(state.tof_signal_grid)
-        return (img_tof_depth, img_tof_sigma, img_tof_signal)
-
-    def update_power(_frame_idx):
-        if state.battery_time_hist and state.battery_p_avg_mw_hist:
-            x_period = _series_secs(state, state.battery_time_hist)
-            y_period = np.array(state.battery_p_avg_mw_hist, dtype=float)
-        else:
-            x_period = np.array([])
-            y_period = np.array([])
-
-        line_power_period.set_data(x_period, y_period)
-
-        period_mw = (
-            float(state.battery_p_avg_mw_hist[-1])
-            if state.battery_p_avg_mw_hist
-            else None
+def _update_cpu(_frame_idx, state, panel: CpuPanel):
+    pct = state.cpu_usage_percent
+    mcu_mhz = int(state.mcu_freq_mhz)
+    cpu_usage_mhz = (pct / 100.0) * float(mcu_mhz) if mcu_mhz > 0 else 0.0
+    x_cpu = _series_secs(state, state.cpu_time_hist)
+    panel.line_cpu.set_data(x_cpu, np.array(state.cpu_hist))
+    panel.ax.relim()
+    panel.ax.autoscale_view()
+    panel.cpu_percent_text.set_text(f"{pct:.1f}%")
+    npu = int(state.npu_freq_mhz)
+    if mcu_mhz > 0:
+        panel.cpu_freq_text.set_text(
+            f"{cpu_usage_mhz:.0f} MHz  |  CPU {mcu_mhz} MHz / NPU {npu} MHz"
         )
-        if period_mw is not None:
-            power_peak_text.set_text(f"period: {period_mw:.0f} mW")
-        else:
-            power_peak_text.set_text("")
-        ax_power.relim()
-        ax_power.autoscale_view()
-        return (line_power_period, power_peak_text)
+    else:
+        panel.cpu_freq_text.set_text(f"CPU {mcu_mhz} MHz / NPU {npu} MHz")
+    return (panel.line_cpu, panel.cpu_percent_text, panel.cpu_freq_text)
 
-    def update_pm_mj(_frame_idx):
-        if state.pm_period_mj_time_hist:
-            x_period_mj = _series_secs(state, state.pm_period_mj_time_hist)
-            y_period_mj = np.array(state.pm_period_mj_hist, dtype=float)
-        else:
-            x_period_mj = np.array([])
-            y_period_mj = np.array([])
 
-        line_pm_period_mj.set_data(x_period_mj, y_period_mj)
-        if state.pm_period_total_mj > 0.0:
-            pm_mj_stats_text.set_text(f"period: {state.pm_period_total_mj:.2f} mJ")
-        else:
-            pm_mj_stats_text.set_text("")
-        ax_pm_mj.relim()
-        ax_pm_mj.autoscale_view()
-        return (line_pm_period_mj, pm_mj_stats_text)
+def _update_tof(_frame_idx, state, panel: TofPanel):
+    panel.img_depth.set_data(state.tof_depth_grid)
+    panel.img_sigma.set_data(state.tof_sigma_grid)
+    panel.img_signal.set_data(state.tof_signal_grid)
+    return (panel.img_depth, panel.img_sigma, panel.img_signal)
 
-    def update_battery(_frame_idx):
-        cap_mah = float(state.battery_capacity_mah)
-        v_supply = float(state.battery_supply_voltage_v)
-        energy_mwh = cap_mah * v_supply
-        if state.battery_time_hist and state.battery_p_avg_mw_hist:
-            x = _series_secs(state, state.battery_time_hist)
-            p = np.array(state.battery_p_avg_mw_hist, dtype=float)
-            hours = energy_mwh / p
-            line_battery_hours.set_data(x, hours)
-            last_h = float(hours[-1])
-            last_p = float(p[-1])
-            battery_stats.set_text(
-                f"{cap_mah:g} mAh × {v_supply:g} V → {energy_mwh:g} mWh\n"
-                f"÷ {last_p:.0f} mW ≈ {last_h:.2f} h"
+
+def _update_power(_frame_idx, state, panel: PowerPanel):
+    if state.battery_time_hist and state.battery_p_avg_mw_hist:
+        x_period = _series_secs(state, state.battery_time_hist)
+        y_period = np.array(state.battery_p_avg_mw_hist, dtype=float)
+    else:
+        x_period = np.array([])
+        y_period = np.array([])
+    panel.line_period.set_data(x_period, y_period)
+
+    if state.battery_p_avg_mw_hist:
+        panel.peak_text.set_text(f"period: {float(state.battery_p_avg_mw_hist[-1]):.0f} mW")
+    else:
+        panel.peak_text.set_text("")
+    panel.ax.relim()
+    panel.ax.autoscale_view()
+    return (panel.line_period, panel.peak_text)
+
+
+def _update_energy(_frame_idx, state, panel: EnergyPanel):
+    if state.pm_period_mj_time_hist:
+        x_period = _series_secs(state, state.pm_period_mj_time_hist)
+        y_period = np.array(state.pm_period_mj_hist, dtype=float)
+    else:
+        x_period = np.array([])
+        y_period = np.array([])
+    panel.line_period_mj.set_data(x_period, y_period)
+    if state.pm_period_total_mj > 0.0:
+        panel.stats_text.set_text(f"period: {state.pm_period_total_mj:.2f} mJ")
+    else:
+        panel.stats_text.set_text("")
+    panel.ax.relim()
+    panel.ax.autoscale_view()
+    return (panel.line_period_mj, panel.stats_text)
+
+
+def _update_battery(_frame_idx, state, panel: BatteryPanel):
+    energy_mwh = float(state.battery_capacity_mah) * float(state.battery_supply_voltage_v)
+    if state.battery_time_hist and state.battery_p_avg_mw_hist:
+        x = _series_secs(state, state.battery_time_hist)
+        power_mw = np.array(state.battery_p_avg_mw_hist, dtype=float)
+        hours = energy_mwh / power_mw
+        panel.line_hours.set_data(x, hours)
+        panel.stats_text.set_text(
+            f"{state.battery_capacity_mah:g} mAh × {state.battery_supply_voltage_v:g} V → {energy_mwh:g} mWh\n"
+            f"÷ {float(power_mw[-1]):.0f} mW ≈ {float(hours[-1]):.2f} h"
+        )
+    else:
+        panel.line_hours.set_data([], [])
+        panel.stats_text.set_text("—\n(need power link + frames)")
+    panel.ax.relim()
+    panel.ax.autoscale_view()
+    return (panel.line_hours, panel.stats_text)
+
+
+def _update_bbox(_frame_idx, state, panel: BboxPanel, theme: Theme):
+    ax = panel.ax
+    ax.clear()
+    _style_axis(ax, theme.ax_bg, theme)
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(1.0, 0.0)
+    ax.set_aspect("equal")
+    ax.set_title("Bounding Boxes (normalized)", color=theme.title, pad=12)
+    ax.set_xlabel("x (0 = left)")
+    ax.set_ylabel("y (0 = top)")
+    ax.yaxis.labelpad = 8
+    ax.text(
+        0.04,
+        0.04,
+        f"frame t = {int(state.detection_timestamp)} ms   det: {state.detection_count}   trk: {state.tracked_box_count}",
+        transform=ax.transAxes,
+        ha="left",
+        va="bottom",
+        fontsize=9,
+        color=theme.muted,
+        clip_on=False,
+    )
+    labels = state.class_labels
+    for det in state.detection_boxes:
+        x0 = det.cx - 0.5 * det.w
+        y0 = det.cy - 0.5 * det.h
+        ax.add_patch(
+            Rectangle(
+                (x0, y0),
+                det.w,
+                det.h,
+                linewidth=1.8,
+                edgecolor=theme.infer,
+                facecolor=theme.infer,
+                alpha=0.14,
             )
-        else:
-            line_battery_hours.set_data([], [])
-            battery_stats.set_text("—\n(need power link + frames)")
-        ax_battery.relim()
-        ax_battery.autoscale_view()
-        return (line_battery_hours, battery_stats)
-
-    def update_bbox(_frame_idx):
-        ax_bbox.clear()
-        _style_axis(ax_bbox, C_AX_BG)
-        ax_bbox.set_xlim(0.0, 1.0)
-        ax_bbox.set_ylim(1.0, 0.0)
-        ax_bbox.set_aspect("equal")
-        ax_bbox.set_title("Bounding Boxes (normalized)", color=C_TITLE, pad=12)
-        ax_bbox.set_xlabel("x (0 = left)")
-        ax_bbox.set_ylabel("y (0 = top)")
-        ax_bbox.yaxis.labelpad = 8
-        ts = int(state.detection_timestamp)
-        ax_bbox.text(
-            0.04,
-            0.04,
-            f"frame t = {ts} ms   det: {state.detection_count}   trk: {state.tracked_box_count}",
-            transform=ax_bbox.transAxes,
+        )
+        class_name = labels[det.class_id] if 0 <= det.class_id < len(labels) else str(det.class_id)
+        ax.text(
+            x0,
+            y0 - 0.02,
+            f"{class_name} {det.score:.2f}",
             ha="left",
             va="bottom",
-            fontsize=9,
-            color="#9898b8",
+            fontsize=8,
+            color=theme.infer,
             clip_on=False,
         )
-        labels = state.class_labels
-        for d in state.detection_boxes:
-            x0 = d.cx - 0.5 * d.w
-            y0 = d.cy - 0.5 * d.h
-            ax_bbox.add_patch(
-                Rectangle(
-                    (x0, y0),
-                    d.w,
-                    d.h,
-                    linewidth=1.8,
-                    edgecolor=C_INFER,
-                    facecolor=C_INFER,
-                    alpha=0.14,
-                )
+    for track in state.track_boxes:
+        x0 = track.cx - 0.5 * track.w
+        y0 = track.cy - 0.5 * track.h
+        ax.add_patch(
+            Rectangle(
+                (x0, y0),
+                track.w,
+                track.h,
+                linewidth=2.0,
+                edgecolor=theme.track_box,
+                facecolor=theme.track_box,
+                alpha=0.12,
             )
-            cid = int(d.class_id)
-            name = str(cid)
-            if 0 <= cid < len(labels):
-                name = labels[cid]
-            ax_bbox.text(
-                x0,
-                y0 - 0.02,
-                f"{name} {d.score:.2f}",
-                ha="left",
-                va="bottom",
-                fontsize=8,
-                color=C_INFER,
-                clip_on=False,
-            )
-        for t in state.track_boxes:
-            x0 = t.cx - 0.5 * t.w
-            y0 = t.cy - 0.5 * t.h
-            ax_bbox.add_patch(
-                Rectangle(
-                    (x0, y0),
-                    t.w,
-                    t.h,
-                    linewidth=2.0,
-                    edgecolor=C_TRACK_BOX,
-                    facecolor=C_TRACK_BOX,
-                    alpha=0.12,
-                )
-            )
-            ax_bbox.text(
-                t.cx,
-                y0 - 0.02,
-                f"id {t.track_id}",
-                ha="center",
-                va="bottom",
-                fontsize=8,
-                color=C_TRACK_BOX,
-                clip_on=False,
-            )
-        if not state.detection_boxes and not state.track_boxes:
-            ax_bbox.text(
-                0.5,
-                0.5,
-                "No boxes in last frame",
-                ha="center",
-                va="center",
-                fontsize=11,
-                color="#9898b8",
-                transform=ax_bbox.transAxes,
-            )
-        leg = ax_bbox.legend(
-            handles=[
-                Line2D([0], [0], color=C_INFER, lw=2.4, label="Detections (PP)"),
-                Line2D([0], [0], color=C_TRACK_BOX, lw=2.4, label="Tracks"),
-            ],
-            loc="upper right",
-            fontsize=9,
-            framealpha=0.85,
-            edgecolor="none",
-            facecolor=C_AX_BG,
         )
-        for text in leg.get_texts():
-            text.set_color("#d0d0e0")
-        return ()
+        ax.text(
+            track.cx,
+            y0 - 0.02,
+            f"id {track.track_id}",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+            color=theme.track_box,
+            clip_on=False,
+        )
+    if not state.detection_boxes and not state.track_boxes:
+        ax.text(
+            0.5,
+            0.5,
+            "No boxes in last frame",
+            ha="center",
+            va="center",
+            fontsize=11,
+            color=theme.muted,
+            transform=ax.transAxes,
+        )
+    legend = ax.legend(
+        handles=[
+            Line2D([0], [0], color=theme.infer, lw=2.4, label="Detections (PP)"),
+            Line2D([0], [0], color=theme.track_box, lw=2.4, label="Tracks"),
+        ],
+        loc="upper right",
+        fontsize=9,
+        framealpha=0.85,
+        edgecolor="none",
+        facecolor=theme.ax_bg,
+    )
+    for text in legend.get_texts():
+        text.set_color(theme.legend_text)
+    return ()
 
-    def update_info(_frame_idx):
-        status = "ALERT" if state.tof_alert else "OK"
-        stale = "stale" if state.tof_stale else "fresh"
-        class_labels = ", ".join(state.class_labels) or "-"
-        recog_host_fw = "yes" if state.host_introduced else "no"
-        recog_fw_host = "yes" if state.firmware_recognized else "no"
-        fw_path = state.firmware_port_path or "-"
-        fw_baud = f"{state.firmware_baud}" if state.firmware_baud else "-"
-        last_pp = state.post_hist[-1] if state.post_hist else 0.0
-        last_trk = state.tracker_hist[-1] if state.tracker_hist else 0.0
-        tof_distances = ", ".join(f"{value} mm" for value in state.person_mm) or "--"
 
-        lines = [
-            f" Device",
-            SEP,
+def _build_info_lines(state) -> str:
+    sep = "\u2500" * 30
+    status = "ALERT" if state.tof_alert else "OK"
+    stale = "stale" if state.tof_stale else "fresh"
+    class_labels = ", ".join(state.class_labels) or "-"
+    recog_host_fw = "yes" if state.host_introduced else "no"
+    recog_fw_host = "yes" if state.firmware_recognized else "no"
+    fw_path = state.firmware_port_path or "-"
+    fw_baud = f"{state.firmware_baud}" if state.firmware_baud else "-"
+    last_pp = state.post_hist[-1] if state.post_hist else 0.0
+    last_trk = state.tracker_hist[-1] if state.tracker_hist else 0.0
+    tof_distances = ", ".join(f"{value} mm" for value in state.person_mm) or "--"
+    return "\n".join(
+        [
+            " Device",
+            sep,
             f"  Model   {state.model_name}   NN: {state.nn_size_text}",
             f"  Display {state.display_width}x{state.display_height}   Letterbox: {state.letterbox_width}x{state.letterbox_height}",
             f"  Camera  {state.camera_mode_text}   Mode: {state.build_mode_text}",
             f"  Built   {state.build_timestamp}",
             "",
-            f" Connection",
-            SEP,
+            " Connection",
+            sep,
             f"  STM32   port {fw_path} @ {fw_baud} bps",
-            f"          serial open: {'yes' if state.firmware_connected else 'no'}   "
-            f"H\u2192D: {recog_host_fw}   D\u2192H: {recog_fw_host}  (need yes/yes for traffic)",
+            f"          serial open: {'yes' if state.firmware_connected else 'no'}   H→D: {recog_host_fw}   D→H: {recog_fw_host}  (need yes/yes for traffic)",
             f"  Display {'on' if state.display_enabled else 'off'}",
             "",
-            f" Sensors",
-            SEP,
+            " Sensors",
+            sep,
             f"  ToF     persons {tof_distances}   {status} ({stale})",
             f"  ESP32   {'connected' if state.power_connected else 'disconnected'}",
             "",
-            f" Stats",
-            SEP,
+            " Stats",
+            sep,
             f"  Frames  {state.frame_count}   Drops: {state.frame_drops}",
             f"  Timing  PP: {last_pp:.0f} us   Trk: {last_trk:.0f} us",
             f"  Timestamp  msg: {state.last_timestamp} ms   detection: {state.detection_timestamp} ms   info: {state.device_info_timestamp} ms   ack: {state.last_ack_timestamp} ms",
@@ -814,74 +940,131 @@ def create_gui(
             f"  Err     {state.last_error or '-'}",
             f"  PwrErr  {state.last_power_error or '-'}",
         ]
-        text_box.set_text("\n".join(lines))
-        return (text_box,)
-
-    anim_timing = FuncAnimation(
-        fig_timing, update_timing, interval=120, blit=False, cache_frame_data=False
-    )
-    anim_cpu = FuncAnimation(
-        fig_cpu, update_cpu, interval=120, blit=False, cache_frame_data=False
-    )
-    anim_tof = FuncAnimation(
-        fig_tof, update_tof, interval=120, blit=False, cache_frame_data=False
-    )
-    anim_power = FuncAnimation(
-        fig_power, update_power, interval=120, blit=False, cache_frame_data=False
-    )
-    anim_pm_mj = FuncAnimation(
-        fig_pm_mj, update_pm_mj, interval=120, blit=False, cache_frame_data=False
-    )
-    anim_battery = FuncAnimation(
-        fig_battery, update_battery, interval=120, blit=False, cache_frame_data=False
-    )
-    anim_bbox = FuncAnimation(
-        fig_bbox, update_bbox, interval=120, blit=False, cache_frame_data=False
-    )
-    anim_info = FuncAnimation(
-        fig_info, update_info, interval=120, blit=False, cache_frame_data=False
     )
 
-    def update_cfg(_frame_idx):
-        cfg_status.set_text(state.pp_cfg_status_text)
-        return (cfg_status,)
 
-    anim_cfg = FuncAnimation(
-        fig_cfg, update_cfg, interval=200, blit=False, cache_frame_data=False
-    )
+def _update_info(_frame_idx, state, panel: InfoPanel):
+    panel.text_box.set_text(_build_info_lines(state))
+    return (panel.text_box,)
 
-    figures = [
-        fig_timing,
-        fig_cpu,
-        fig_tof,
-        fig_power,
-        fig_pm_mj,
-        fig_battery,
-        fig_bbox,
-        fig_info,
-        fig_cfg,
-    ]
-    animations = [
-        anim_timing,
-        anim_cpu,
-        anim_tof,
-        anim_power,
-        anim_pm_mj,
-        anim_battery,
-        anim_bbox,
-        anim_info,
-        anim_cfg,
-    ]
 
-    _closing_all = [False]
+def _update_config(_frame_idx, state, panel: ConfigPanel):
+    panel.status_text.set_text(state.pp_cfg_status_text)
+    return (panel.status_text,)
+
+
+def _connect_close_handlers(figures: list[plt.Figure]) -> None:
+    closing_all = [False]
 
     def on_any_figure_close(_event) -> None:
-        if _closing_all[0]:
+        if closing_all[0]:
             return
-        _closing_all[0] = True
+        closing_all[0] = True
         plt.close("all")
 
     for fig in figures:
         fig.canvas.mpl_connect("close_event", on_any_figure_close)
 
+
+def create_gui(
+    state,
+    cmd_queue: Queue[tuple[str, Any]],
+    recorder,
+) -> tuple[list[plt.Figure], list[FuncAnimation]]:
+    theme = Theme()
+    _apply_theme(theme)
+
+    timing_panel = _create_timing_panel(theme)
+    cpu_panel = _create_cpu_panel(theme)
+    tof_panel = _create_tof_panel(theme)
+    power_panel = _create_power_panel(theme)
+    energy_panel = _create_energy_panel(theme)
+    battery_panel = _create_battery_panel(state, theme)
+    bbox_panel = _create_bbox_panel(theme)
+    info_panel = _create_info_panel(theme)
+    config_panel = _create_config_panel(state, theme)
+
+    figures = [
+        timing_panel.fig,
+        cpu_panel.fig,
+        tof_panel.fig,
+        power_panel.fig,
+        energy_panel.fig,
+        battery_panel.fig,
+        bbox_panel.fig,
+        info_panel.fig,
+        config_panel.fig,
+    ]
+
+    _wire_battery_controls(state, battery_panel)
+    _wire_info_controls(state, cmd_queue, recorder, figures, info_panel, theme)
+    _wire_config_controls(state, cmd_queue, config_panel)
+
+    animations = [
+        FuncAnimation(
+            timing_panel.fig,
+            lambda frame_idx: _update_timing(frame_idx, state, timing_panel),
+            interval=120,
+            blit=False,
+            cache_frame_data=False,
+        ),
+        FuncAnimation(
+            cpu_panel.fig,
+            lambda frame_idx: _update_cpu(frame_idx, state, cpu_panel),
+            interval=120,
+            blit=False,
+            cache_frame_data=False,
+        ),
+        FuncAnimation(
+            tof_panel.fig,
+            lambda frame_idx: _update_tof(frame_idx, state, tof_panel),
+            interval=120,
+            blit=False,
+            cache_frame_data=False,
+        ),
+        FuncAnimation(
+            power_panel.fig,
+            lambda frame_idx: _update_power(frame_idx, state, power_panel),
+            interval=120,
+            blit=False,
+            cache_frame_data=False,
+        ),
+        FuncAnimation(
+            energy_panel.fig,
+            lambda frame_idx: _update_energy(frame_idx, state, energy_panel),
+            interval=120,
+            blit=False,
+            cache_frame_data=False,
+        ),
+        FuncAnimation(
+            battery_panel.fig,
+            lambda frame_idx: _update_battery(frame_idx, state, battery_panel),
+            interval=120,
+            blit=False,
+            cache_frame_data=False,
+        ),
+        FuncAnimation(
+            bbox_panel.fig,
+            lambda frame_idx: _update_bbox(frame_idx, state, bbox_panel, theme),
+            interval=120,
+            blit=False,
+            cache_frame_data=False,
+        ),
+        FuncAnimation(
+            info_panel.fig,
+            lambda frame_idx: _update_info(frame_idx, state, info_panel),
+            interval=120,
+            blit=False,
+            cache_frame_data=False,
+        ),
+        FuncAnimation(
+            config_panel.fig,
+            lambda frame_idx: _update_config(frame_idx, state, config_panel),
+            interval=200,
+            blit=False,
+            cache_frame_data=False,
+        ),
+    ]
+
+    _connect_close_handlers(figures)
     return figures, animations
