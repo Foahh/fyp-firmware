@@ -30,9 +30,6 @@
  * Configuration
  * ============================================================================ */
 
-/* Depth data staleness threshold */
-#define TOF_STALENESS_MS 333
-
 /* FOV calibration: ToF FOV mapped to NN normalised [0,1] coordinates.
  * These are approximate and should be refined with physical calibration. */
 #define TOF_NN_X0 0.0f
@@ -215,9 +212,8 @@ static void tof_run_fusion(const tof_depth_grid_t *grid,
 
   memset(out, 0, sizeof(*out));
 
-  /* Check depth grid staleness */
-  uint32_t now = HAL_GetTick();
-  if (!grid->valid || (now - grid->timestamp_ms) > TOF_STALENESS_MS) {
+  /* Depth grid must be valid; */
+  if (!grid->valid) {
     out->stale = 1;
     return;
   }
@@ -326,8 +322,7 @@ static void tof_fusion_thread_entry(ULONG arg) {
     tof_alert_t local_alert;
     tof_alert_t *alert_out = &local_alert;
 
-    tx_event_flags_get(&tof_fusion_events,
-                       TOF_FUSION_EVT_DEPTH_READY | TOF_FUSION_EVT_PERSON_READY,
+    tx_event_flags_get(&tof_fusion_events, TOF_FUSION_EVT_PERSON_READY,
                        TX_OR_CLEAR, &actual_flags, TX_WAIT_FOREVER);
 
     grid = TOF_AcquireDepthGrid(&grid_token);
