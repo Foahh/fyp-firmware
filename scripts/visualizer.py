@@ -325,7 +325,6 @@ class RecordingManager:
         self,
         result: messages_pb2.DetectionResult,
         class_labels: list[str],
-        cpu_usage_percent: float,
     ) -> None:
         host_time_s = time.time()
         with self._lock:
@@ -346,7 +345,6 @@ class RecordingManager:
                     "nn_period_us": int(result.nn_period_us),
                     "fps": f"{fps:.6f}",
                     "frame_drop_count": int(result.frame_drop_count),
-                    "cpu_usage_percent": f"{cpu_usage_percent:.6f}",
                     "detection_count": len(result.detections),
                     "tracked_box_count": len(result.tracks),
                 }
@@ -525,7 +523,6 @@ class RecordingManager:
                 "nn_period_us",
                 "fps",
                 "frame_drop_count",
-                "cpu_usage_percent",
                 "detection_count",
                 "tracked_box_count",
             ],
@@ -895,9 +892,7 @@ def receiver_loop(
                         state.battery_time_hist.append(now)
                         state.pm_period_mj_hist.append(state.pm_period_total_mj)
                         state.pm_period_mj_time_hist.append(now)
-                recorder.record_detection_result(
-                    result, state.class_labels, state.cpu_usage_percent
-                )
+                recorder.record_detection_result(result, state.class_labels)
 
             elif which == "device_info":
                 info = dev_msg.device_info
