@@ -48,6 +48,9 @@ static void nn_thread_entry(ULONG arg);
 #define NN_OUT_BUFFER_SIZE MDL_NN_OUT_BUFFER_SIZE
 #define NN_INPUT_SIZE      (NN_WIDTH * NN_HEIGHT * NN_BPP)
 
+/* Double-buffer NN outputs (1 in flight to NPU, 1 for postprocess). 3 was used for extra pipeline slack. */
+#define NN_OUTPUT_BUFFER_COUNT 2
+
 /* ============================================================================
  * Global State Variables
  * ============================================================================ */
@@ -72,7 +75,7 @@ static uint8_t nn_input_buffers[3][NN_INPUT_SIZE] ALIGN_32 IN_PSRAM;
 
 /* NN output buffers */
 static bqueue_t nn_output_queue;
-static nn_output_frame_t nn_output_buffers[3];
+static nn_output_frame_t nn_output_buffers[NN_OUTPUT_BUFFER_COUNT];
 
 /* Output sizes array */
 static const uint32_t nn_out_sizes[NN_OUT_NB] = MDL_NN_OUT_SIZES;
@@ -328,12 +331,11 @@ void NN_ThreadStart(void) {
 #endif
 
   /* Initialize output buffer queue */
-  uint8_t *out_bufs[3] = {
-      (uint8_t *)&nn_output_buffers[0],
-      (uint8_t *)&nn_output_buffers[1],
-      (uint8_t *)&nn_output_buffers[2],
-  };
-  ret = BQUE_Init(&nn_output_queue, 3, out_bufs);
+  uint8_t *out_bufs[NN_OUTPUT_BUFFER_COUNT];
+  for (i = 0; i < NN_OUTPUT_BUFFER_COUNT; i++) {
+    out_bufs[i] = (uint8_t *)&nn_output_buffers[i];
+  }
+  ret = BQUE_Init(&nn_output_queue, NN_OUTPUT_BUFFER_COUNT, out_bufs);
   APP_REQUIRE(ret == 0);
 
   /* Clear output buffers */
