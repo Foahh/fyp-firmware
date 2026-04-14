@@ -5,6 +5,7 @@ from .common import file_hash, read_cached_hash, require_tool, run, write_cached
 
 EXTERNAL_LOADER_NAME = "MX66UW1G45G_STM32N6570-DK.stldr"
 FLASH_CACHE_FILE = ".flash_cache"
+LAST_NETWORK_FLASHED_FILE = ".last_flashed_network"
 
 
 def find_external_loader():
@@ -71,7 +72,15 @@ def cmd_flash(project_root, build_type, name_prefix, network_name, force=False):
             f"Network image not found: {net_hex}\n"
             f"Run: python project.py model -n <model>  (see project.py MODELS for keys)"
         )
-    flash_hex(f"Network: {net_hex.name}", net_hex, force=force)
+    last_net_path = bin_dir / LAST_NETWORK_FLASHED_FILE
+    prev_net = (
+        last_net_path.read_text(encoding="utf-8").strip()
+        if last_net_path.exists()
+        else ""
+    )
+    network_force = force or (prev_net != net_hex.name)
+    flash_hex(f"Network: {net_hex.name}", net_hex, force=network_force)
+    last_net_path.write_text(net_hex.name + "\n", encoding="utf-8")
 
     flash_hex("Appli", hex_path("Appli"), force=force)
 

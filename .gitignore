@@ -7,6 +7,7 @@ cmake-build-debug/
 .clangd
 .flash_history
 .flash_cache
+.last_flashed_network
 *.local.json
 __pycache__/
 .venv/
