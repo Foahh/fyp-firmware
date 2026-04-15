@@ -1,4 +1,9 @@
-"""Recording and CSV export for the visualizer."""
+"""Recording and CSV export for the visualizer.
+
+Per-message CSVs mirror firmware/ESP32 streams. ``host_frame_context.csv`` stores
+one host-side snapshot per detection frame (join on ``sample_index``), not a
+single device protobuf.
+"""
 
 from __future__ import annotations
 
@@ -49,6 +54,44 @@ def _format_grid_array(values: list[Any], row_width: int = 8) -> str:
     return "[" + ",".join(rows) + "]"
 
 
+def _host_frame_context_row(
+    state: VisualizerState,
+    base: dict[str, Any],
+    sample_index: int,
+    sent_timestamp_ms: int,
+    frame_timestamp_ms: int,
+) -> dict[str, Any]:
+    """One row per detection frame: latest host/ESP32/ToF-derived state (not the NN protobuf)."""
+    battery_p = ""
+    if state.battery_p_avg_mw_hist:
+        battery_p = f"{float(state.battery_p_avg_mw_hist[-1]):.6f}"
+    return {
+        **base,
+        "sample_index": sample_index,
+        "sent_timestamp_ms": int(sent_timestamp_ms),
+        "frame_timestamp_ms": int(frame_timestamp_ms),
+        "cpu_usage_percent": f"{float(state.cpu_usage_percent):.6f}",
+        "tof_alert": bool(state.tof_alert),
+        "tof_stale": bool(state.tof_stale),
+        "alert_threshold_mm": int(state.alert_threshold_mm),
+        "power_infer_avg_mw": f"{float(state.power_infer_avg_mw):.6f}",
+        "power_idle_avg_mw": f"{float(state.power_idle_avg_mw):.6f}",
+        "power_infer_energy_uj": f"{float(state.power_infer_energy_uj):.6f}",
+        "power_infer_duration_ms": f"{float(state.power_infer_duration_ms):.6f}",
+        "pm_last_inf_mj": f"{float(state.pm_last_inf_mj):.6f}",
+        "pm_last_idle_mj": f"{float(state.pm_last_idle_mj):.6f}",
+        "pm_period_total_mj": f"{float(state.pm_period_total_mj):.6f}",
+        "battery_p_avg_mw": battery_p,
+    }
+
+
+def _track_fused_distance_mm(state: VisualizerState, track_id: int) -> dict[str, Any]:
+    distance_mm: Optional[int] = state.track_person_mm.get(int(track_id))
+    return {
+        "distance_mm": int(distance_mm) if distance_mm is not None else "",
+    }
+
+
 DETECTION_RESULT_FIELDS = [
     "host_time_s",
     "record_elapsed_s",
@@ -65,6 +108,27 @@ DETECTION_RESULT_FIELDS = [
     "frame_drop_count",
     "detection_count",
     "tracked_box_count",
+]
+
+HOST_FRAME_CONTEXT_FIELDS = [
+    "host_time_s",
+    "record_elapsed_s",
+    "recorded_at_iso",
+    "sample_index",
+    "sent_timestamp_ms",
+    "frame_timestamp_ms",
+    "cpu_usage_percent",
+    "tof_alert",
+    "tof_stale",
+    "alert_threshold_mm",
+    "power_infer_avg_mw",
+    "power_idle_avg_mw",
+    "power_infer_energy_uj",
+    "power_infer_duration_ms",
+    "pm_last_inf_mj",
+    "pm_last_idle_mj",
+    "pm_period_total_mj",
+    "battery_p_avg_mw",
 ]
 
 DETECTION_ITEM_FIELDS = [
@@ -95,6 +159,7 @@ TRACK_FIELDS = [
     "y",
     "w",
     "h",
+    "distance_mm",
 ]
 
 DEVICE_INFO_FIELDS = [
@@ -198,6 +263,7 @@ class RecordingManager:
         self._tof_alert_rows: list[dict[str, Any]] = []
         self._cpu_rows: list[dict[str, Any]] = []
         self._power_rows: list[dict[str, Any]] = []
+        self._host_frame_context_rows: list[dict[str, Any]] = []
 
     def _reset_rows_locked(self) -> None:
         self._detection_rows = []
@@ -209,6 +275,7 @@ class RecordingManager:
         self._tof_alert_rows = []
         self._cpu_rows = []
         self._power_rows = []
+        self._host_frame_context_rows = []
 
     def _base_row_locked(self, host_time_s: float) -> dict[str, Any]:
         return {
@@ -284,6 +351,7 @@ class RecordingManager:
                 "tof_alert_rows": list(self._tof_alert_rows),
                 "cpu_rows": list(self._cpu_rows),
                 "power_rows": list(self._power_rows),
+                "host_frame_context_rows": list(self._host_frame_context_rows),
             }
             if not snapshot["device_info_rows"] and state.firmware_recognized:
                 snapshot["device_info_rows"].append(self._device_info_row_from_state(state))
@@ -296,7 +364,7 @@ class RecordingManager:
     def record_detection_result(
         self,
         result: messages_pb2.DetectionResult,
-        class_labels: list[str],
+        state: VisualizerState,
     ) -> None:
         host_time_s = time.time()
         with self._lock:
@@ -305,6 +373,7 @@ class RecordingManager:
             sample_index = len(self._detection_rows)
             fps = (1_000_000.0 / float(result.nn_period_us)) if result.nn_period_us else 0.0
             base = self._base_row_locked(host_time_s)
+            class_labels = state.class_labels
             self._detection_rows.append(
                 {
                     **base,
@@ -321,6 +390,15 @@ class RecordingManager:
                     "detection_count": len(result.detections),
                     "tracked_box_count": len(result.tracks),
                 }
+            )
+            self._host_frame_context_rows.append(
+                _host_frame_context_row(
+                    state,
+                    base,
+                    sample_index,
+                    int(result.sent_timestamp_ms),
+                    int(result.frame_timestamp_ms),
+                )
             )
             for det_index, det in enumerate(result.detections):
                 class_id = int(det.class_id)
@@ -345,17 +423,19 @@ class RecordingManager:
                     }
                 )
             for track_index, track in enumerate(result.tracks):
+                tid = int(track.track_id)
                 self._track_rows.append(
                     {
                         **base,
                         "sample_index": sample_index,
                         "frame_timestamp_ms": int(result.frame_timestamp_ms),
                         "track_index": track_index,
-                        "track_id": int(track.track_id),
+                        "track_id": tid,
                         "x": f"{float(track.x):.6f}",
                         "y": f"{float(track.y):.6f}",
                         "w": f"{float(track.w):.6f}",
                         "h": f"{float(track.h):.6f}",
+                        **_track_fused_distance_mm(state, tid),
                     }
                 )
 
@@ -493,6 +573,11 @@ class RecordingManager:
             snapshot["detection_rows"],
         )
         self._write_csv(
+            os.path.join(session_dir, "host_frame_context.csv"),
+            HOST_FRAME_CONTEXT_FIELDS,
+            snapshot["host_frame_context_rows"],
+        )
+        self._write_csv(
             os.path.join(session_dir, "detections.csv"),
             DETECTION_ITEM_FIELDS,
             snapshot["detection_item_rows"],
@@ -563,6 +648,7 @@ class RecordingManager:
             "tof_alert_result": len(snapshot["tof_alert_rows"]),
             "cpu_usage": len(snapshot["cpu_rows"]),
             "power_sample": len(snapshot["power_rows"]),
+            "host_frame_context": len(snapshot["host_frame_context_rows"]),
         }
         lines = [
             f"session_name: {snapshot['session_name']}",

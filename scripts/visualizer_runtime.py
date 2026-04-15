@@ -152,7 +152,7 @@ def _handle_detection_result(
     state.nn_idle_us = int(result.nn_idle_us)
     state.frame_drops = int(result.frame_drop_count)
     _record_period_metrics(state, now)
-    recorder.record_detection_result(result, state.class_labels)
+    recorder.record_detection_result(result, state)
 
 
 def _handle_device_info(
