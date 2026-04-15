@@ -30,7 +30,7 @@
 /* Post-processing */
 #define MDL_PP_TYPE           POSTPROCESS_OD_ST_YOLOD_UI
 #define MDL_PP_NB_CLASSES     1
-#define MDL_PP_CONF_THRESHOLD 0.25f
+#define MDL_PP_CONF_THRESHOLD 0.3f
 #define MDL_PP_IOU_THRESHOLD  0.5f
 /* Strides 8/16/32 → 32×32 + 16×16 + 8×8 = 1344 rows in raw output */
 #define MDL_PP_STRIDE_0 8
