@@ -6,8 +6,10 @@ Firmware for the **STM32N6570-DK** (Arm Cortex-M55 application core plus integra
 
 ### Prerequisites
 
+When using a stripped submission archive, run `./init.sh` first to restore the omitted `External/` submodules at the pinned revisions.
+
 ```sh
-git submodule update --init --recursive
+./init.sh
 pip install -r requirements.txt
 ```
 
