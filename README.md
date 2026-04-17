@@ -6,26 +6,85 @@ Firmware for the **STM32N6570-DK** (Arm Cortex-M55 application core plus integra
 
 ### Prerequisites
 
-When using a stripped submission archive, run `./init.sh` first to restore the omitted `External/` submodules at the pinned revisions.
+1. Restore omitted submodules if you are working from a stripped submission archive.
+2. Install the Python dependencies.
+3. Install the ST toolchain pieces used by the build and model-generation scripts.
+4. Export the required environment variables and make the tool binaries visible on `PATH`.
+5. Run the verification commands before attempting a full build.
+
+If needed, restore the stripped `External/` submodules first:
 
 ```sh
 ./init.sh
+```
+
+Install the Python requirements from the repository root:
+
+```sh
 pip install -r requirements.txt
 ```
 
-Install [STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html) and [STEdgeAI-Core](https://www.st.com/en/development-tools/stedgeai-core.html).
+Install these ST packages:
 
-Ensure the following tools are available:
+- [STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html) for the bundled GNU Arm toolchain, CMake, Ninja, and STM32CubeProgrammer CLI tools
+- [STEdgeAI-Core](https://www.st.com/en/development-tools/stedgeai-core.html) for `stedgeai`
+- Protocol Buffers compiler (`protoc`) for `python project.py proto`
 
-- `cmake`, `ninja`
-- `arm-none-eabi-*`
-- `STM32_SigningTool_CLI`, `STM32_Programmer_CLI` (only when producing signed HEX / flashing)
-- `stedgeai` (for model compilation)
+The current scripts require these commands to resolve on `PATH`:
 
-Set these environment variables:
+- Always: `cmake`, `ninja`, `arm-none-eabi-gcc`, `arm-none-eabi-objcopy`, `protoc`
+- For model generation: `stedgeai`
+- For signed images / flashing: `STM32_SigningTool_CLI`, `STM32_Programmer_CLI`
+- For `python project.py format`: `clang-format`, `ruff`
 
-- `STM32CLT_PATH`
-- `STEDGEAI_CORE_DIR`
+If you want to rely on the tools bundled inside STM32CubeCLT, export the install roots in your shell startup file. Example Linux paths:
+
+```sh
+export STM32CLT_PATH="$HOME/ST/STM32CubeCLT"
+export STEDGEAI_CORE_DIR="$HOME/ST/STEdgeAI/4.0"
+export PATH="$STM32CLT_PATH/CMake/bin:$PATH"
+export PATH="$STM32CLT_PATH/Ninja/bin:$PATH"
+export PATH="$STM32CLT_PATH/GNU-tools-for-STM32/bin:$PATH"
+export PATH="$STM32CLT_PATH/STM32CubeProgrammer/bin:$PATH"
+export PATH="$STEDGEAI_CORE_DIR/Utilities/linux:$PATH"
+```
+
+`STM32CLT_PATH` is useful as a stable pointer to your CubeCLT install. The current firmware scripts do not read it directly, but they do require the `arm-none-eabi-*` binaries from that install to be on `PATH`.
+
+`cmake` and `ninja` may come either from STM32CubeCLT or from your system packages; the scripts only require that they resolve on `PATH`.
+
+Verify the setup before building:
+
+```sh
+cmake --version
+ninja --version
+arm-none-eabi-gcc --version
+arm-none-eabi-objcopy --version
+protoc --version
+stedgeai --help >/dev/null
+```
+
+If you will flash from the CLI, also verify:
+
+```sh
+STM32_SigningTool_CLI --help >/dev/null
+STM32_Programmer_CLI --help >/dev/null
+```
+
+If you will use the formatting command, also verify:
+
+```sh
+clang-format --version
+ruff --version
+```
+
+Minimal first build from the repository root:
+
+```sh
+python project.py proto
+python project.py model -n tinyv8_320
+python project.py build
+```
 
 ### Commands
 
